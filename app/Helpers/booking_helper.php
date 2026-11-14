@@ -9,6 +9,21 @@ if (! function_exists('is_admin')) {
     }
 }
 
+if (! function_exists('is_staff')) {
+    function is_staff(): bool
+    {
+        return session()->get('role') === 'staff';
+    }
+}
+
+if (! function_exists('is_manager')) {
+    /** Admin or staff: the people who run the bookings (customers are everyone else). */
+    function is_manager(): bool
+    {
+        return in_array(session()->get('role'), ['admin', 'staff'], true);
+    }
+}
+
 if (! function_exists('unread_notifications')) {
     /** Number shown on the bell icon in the header. */
     function unread_notifications(): int
@@ -46,6 +61,36 @@ if (! function_exists('facility_icon')) {
             'other'         => 'bi-geo-alt',
         ];
         return $icons[$type] ?? 'bi-geo-alt';
+    }
+}
+
+if (! function_exists('facility_image')) {
+    /**
+     * Photo for a facility: the uploaded one if there is one,
+     * otherwise the generated court illustration for its type (A/B variant from the name).
+     */
+    function facility_image(array $facility): string
+    {
+        if (! empty($facility['image']) && is_file(FCPATH . $facility['image'])) {
+            return base_url($facility['image']);
+        }
+
+        $type    = (string) ($facility['type'] ?? 'other');
+        $variant = preg_match('/\s(B|2)$/i', trim((string) ($facility['name'] ?? ''))) ? 'b' : 'a';
+
+        foreach ([$type . '-' . $variant, $type . '-a', 'other-a'] as $name) {
+            if (is_file(FCPATH . 'assets/img/courts/' . $name . '.svg')) {
+                return base_url('assets/img/courts/' . $name . '.svg');
+            }
+        }
+        return base_url('assets/img/courts/other-a.svg');
+    }
+}
+
+if (! function_exists('fmt_time')) {
+    function fmt_time(?string $datetime): string
+    {
+        return $datetime ? date('g:i A', strtotime($datetime)) : '';
     }
 }
 

@@ -14,6 +14,7 @@ use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
 use App\Filters\AdminFilter;
 use App\Filters\AuthFilter;
+use App\Filters\StaffFilter;
 
 class Filters extends BaseFilters
 {
@@ -38,6 +39,7 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'auth'          => AuthFilter::class,
         'admin'         => AdminFilter::class,
+        'staff'         => StaffFilter::class,
     ];
 
     /**

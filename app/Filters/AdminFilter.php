@@ -11,11 +11,11 @@ class AdminFilter implements FilterInterface
 {
     public function before(RequestInterface $request, $arguments = null)
     {
-        if (! session()->get('user_id')) {
-            return redirect()->to('/login')->with('error', 'Please log in first.');
+        if ($redirect = AuthFilter::guard()) {
+            return $redirect;
         }
         if (session()->get('role') !== 'admin') {
-            return redirect()->to('/dashboard')->with('error', 'Admins only.');
+            return redirect()->to('/dashboard')->with('error', 'Only the admin can open that page.');
         }
     }
 

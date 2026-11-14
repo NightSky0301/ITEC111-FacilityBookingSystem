@@ -37,10 +37,12 @@ class NotificationService
         }
     }
 
-    public function notifyAdmins(string $title, string $message, ?int $bookingId = null): void
+    /** Tells every active admin and staff member (the people who handle bookings). */
+    public function notifyManagers(string $title, string $message, ?int $bookingId = null): void
     {
-        foreach ($this->users->where('role', 'admin')->findAll() as $admin) {
-            $this->notifyUser((int) $admin['id'], $title, $message, $bookingId);
+        $managers = $this->users->whereIn('role', ['admin', 'staff'])->where('status', 'active')->findAll();
+        foreach ($managers as $manager) {
+            $this->notifyUser((int) $manager['id'], $title, $message, $bookingId);
         }
     }
 

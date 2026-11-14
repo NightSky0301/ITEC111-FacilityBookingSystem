@@ -37,7 +37,7 @@ class Calendar extends BaseController
         }
 
         $me      = (int) session()->get('user_id');
-        $isAdmin = is_admin();
+        $isAdmin = is_manager();
         $events  = [];
 
         foreach ($builder->findAll() as $b) {

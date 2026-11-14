@@ -46,15 +46,15 @@
                         <?= csrf_field() ?>
                         <input type="text" name="admin_remarks" class="form-control form-control-sm" placeholder="Remarks (optional)" aria-label="Remarks">
                         <div class="btn-row">
-                            <button formaction="<?= site_url('admin/bookings/' . (int) $b['id'] . '/approve') ?>" class="btn btn-sm btn-success">Approve</button>
-                            <button formaction="<?= site_url('admin/bookings/' . (int) $b['id'] . '/reject') ?>" class="btn btn-sm btn-outline-danger">Reject</button>
+                            <button formaction="<?= site_url('manage/bookings/' . (int) $b['id'] . '/approve') ?>" class="btn btn-sm btn-success">Approve</button>
+                            <button formaction="<?= site_url('manage/bookings/' . (int) $b['id'] . '/reject') ?>" class="btn btn-sm btn-outline-danger">Reject</button>
                         </div>
                     </form>
                 <?php elseif ($b['status'] === 'approved'): ?>
                     <form method="post" class="action-stack" onsubmit="return confirm('Cancel this approved booking?')">
                         <?= csrf_field() ?>
                         <input type="text" name="admin_remarks" class="form-control form-control-sm" placeholder="Reason (optional)" aria-label="Reason">
-                        <div class="btn-row"><button formaction="<?= site_url('admin/bookings/' . (int) $b['id'] . '/cancel') ?>" class="btn btn-sm btn-outline-danger">Cancel booking</button></div>
+                        <div class="btn-row"><button formaction="<?= site_url('manage/bookings/' . (int) $b['id'] . '/cancel') ?>" class="btn btn-sm btn-outline-danger">Cancel booking</button></div>
                     </form>
                 <?php endif; ?>
             </td>

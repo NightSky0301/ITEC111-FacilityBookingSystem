@@ -18,10 +18,17 @@ class Bookings extends BaseController
 
     public function create()
     {
+        $facilities = new FacilityModel();
+
         return view('bookings/create', [
-            'facilities' => (new FacilityModel())->active(),
+            'facilities' => $facilities->active(),
+            'activities' => array_combine(
+                array_keys($facilities->activeByType()),
+                array_map(static fn ($type) => FacilityModel::activityName($type), array_keys($facilities->activeByType()))
+            ),
             'selected'   => (int) $this->request->getGet('facility_id'),
             'start'      => $this->request->getGet('start'),
+            'end'        => $this->request->getGet('end'),
         ]);
     }
 
@@ -79,7 +86,7 @@ class Bookings extends BaseController
         ], true);
 
         $notify = new NotificationService();
-        $notify->notifyAdmins(
+        $notify->notifyManagers(
             'New booking request',
             session()->get('name') . ' requested ' . $facility['name'] . ' from ' . fmt_dt($startAt) . ' to ' . fmt_dt($endAt) . '.',
             (int) $id
@@ -108,7 +115,7 @@ class Bookings extends BaseController
 
         $bookings->update($id, ['status' => 'cancelled']);
 
-        (new NotificationService())->notifyAdmins(
+        (new NotificationService())->notifyManagers(
             'Booking cancelled by customer',
             $booking['customer_name'] . ' cancelled the booking for ' . $booking['facility_name'] . ' (' . fmt_dt($booking['start_at']) . ').',
             $id

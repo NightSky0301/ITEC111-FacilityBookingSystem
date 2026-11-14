@@ -14,16 +14,22 @@
 <?php else: ?>
 <div class="table-responsive">
 <table class="table data-table table-hover">
-    <thead><tr><th>Name</th><th>Type</th><th>Max players</th><th>Price per hour</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Court</th><th>Type</th><th>Max players</th><th>Price per hour</th><th>Status</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($facilities as $f): ?>
         <tr>
-            <td class="cell-title"><?= esc($f['name']) ?></td>
+            <td>
+                <div class="d-flex align-items-center gap-3">
+                    <img src="<?= facility_image($f) ?>" alt="" class="table-thumb">
+                    <span class="cell-title"><?= esc($f['name']) ?></span>
+                </div>
+            </td>
             <td><span class="type-chip"><i class="bi <?= facility_icon($f['type']) ?>"></i><?= esc($types[$f['type']] ?? ucfirst($f['type'])) ?></span></td>
             <td><?= (int) $f['capacity'] ?></td>
             <td>₱<?= number_format((float) $f['price_per_hour'], 2) ?></td>
             <td><?= status_badge($f['status']) ?></td>
             <td class="text-end text-nowrap">
+                <a href="<?= site_url('facilities/court/' . (int) $f['id']) ?>" class="btn btn-sm btn-outline-secondary">Schedule</a>
                 <a href="<?= site_url('admin/facilities/' . (int) $f['id'] . '/edit') ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                 <form method="post" action="<?= site_url('admin/facilities/' . (int) $f['id'] . '/delete') ?>" class="d-inline" onsubmit="return confirm('Delete this facility? Facilities with booking history are set to inactive instead.')">
                     <?= csrf_field() ?>

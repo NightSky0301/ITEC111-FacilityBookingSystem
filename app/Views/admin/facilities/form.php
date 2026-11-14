@@ -10,7 +10,7 @@
 
 <div class="row"><div class="col-lg-8">
 <div class="panel"><div class="panel-body">
-<form method="post" action="<?= $editing ? site_url('admin/facilities/' . (int) $facility['id']) : site_url('admin/facilities') ?>">
+<form method="post" enctype="multipart/form-data" action="<?= $editing ? site_url('admin/facilities/' . (int) $facility['id']) : site_url('admin/facilities') ?>">
     <?= csrf_field() ?>
     <div class="mb-3">
         <label class="form-label" for="name">Name</label>
@@ -43,6 +43,22 @@
             <input type="number" min="0" step="0.01" id="price" name="price_per_hour" class="form-control" value="<?= esc(old('price_per_hour', $facility['price_per_hour'] ?? 0)) ?>" required>
         </div>
     </div>
+    <div class="mb-3">
+        <label class="form-label" for="image">Photo <span class="text-muted fw-normal">(optional)</span></label>
+        <div class="d-flex gap-3 align-items-start flex-wrap">
+            <img src="<?= facility_image($facility ?? ['type' => 'basketball', 'name' => '']) ?>" alt="" class="form-thumb" id="imgPreview">
+            <div class="flex-grow-1" style="min-width: 220px">
+                <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/webp" class="form-control">
+                <div class="form-text">JPG, PNG or WEBP, up to 3 MB. Without a photo, an illustration of the court is shown.</div>
+                <?php if ($editing && ! empty($facility['image'])): ?>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" name="remove_image" value="1" id="remove_image">
+                        <label class="form-check-label" for="remove_image">Remove my photo and use the illustration</label>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
     <div class="mb-4">
         <label class="form-label" for="description">Description</label>
         <textarea id="description" name="description" rows="3" class="form-control" placeholder="Indoor or outdoor, surface, lights, equipment available"><?= esc(old('description', $facility['description'] ?? '')) ?></textarea>
@@ -54,4 +70,13 @@
 </form>
 </div></div>
 </div></div>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+document.getElementById('image').addEventListener('change', function () {
+    const f = this.files[0];
+    if (f) document.getElementById('imgPreview').src = URL.createObjectURL(f);
+});
+</script>
 <?= $this->endSection() ?>

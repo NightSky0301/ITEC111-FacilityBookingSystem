@@ -22,6 +22,15 @@ class InitialSeeder extends Seeder
                 'updated_at' => $now,
             ],
             [
+                'name'       => 'Front Desk Staff',
+                'email'      => 'staff@facility.test',
+                'phone'      => null,
+                'password'   => password_hash('staff123', PASSWORD_DEFAULT),
+                'role'       => 'staff',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
                 'name'       => 'Sample Customer',
                 'email'      => 'customer@facility.test',
                 'phone'      => '09123456789',
@@ -33,15 +42,15 @@ class InitialSeeder extends Seeder
         ]);
 
         // Sample courts (edit or replace these from Admin > Facilities).
-        // type must be one of the keys in FacilityModel::TYPES
+        // type must be one of the keys in FacilityModel::TYPES.
+        // Court photos are generated automatically from the type and the A/B name.
         $courts = [
             ['Basketball Court A', 'basketball', 'Indoor full court with wooden floor, scoreboard and lights.', 10, 800],
             ['Basketball Court B', 'basketball', 'Outdoor court with night lights. Ball not included.', 10, 500],
-            ['Volleyball Court',   'volleyball', 'Indoor court with adjustable net. Good for 6-a-side games.', 12, 600],
-            ['Pickleball Court 1', 'pickleball', 'Standard court with net and lines. Paddles can be rented at the counter.', 4, 350],
-            ['Pickleball Court 2', 'pickleball', 'Standard court with net and lines. Paddles can be rented at the counter.', 4, 350],
-            ['Badminton Court',    'badminton',  'Indoor court with wooden floor. Shuttlecocks sold on site.', 4, 250],
-            ['Covered Multipurpose Court', 'multipurpose', 'Covered court for tournaments, practice and events. Fits basketball and volleyball markings.', 60, 1500],
+            ['Badminton Court A',  'badminton',  'Indoor court with wooden floor. Shuttlecocks sold on site.', 4, 250],
+            ['Badminton Court B',  'badminton',  'Indoor court next to Court A. Good for practice and casual games.', 4, 250],
+            ['Pickleball Court A', 'pickleball', 'Standard court with net and lines. Paddles can be rented at the counter.', 4, 350],
+            ['Pickleball Court B', 'pickleball', 'Standard court with net and lines. Paddles can be rented at the counter.', 4, 350],
         ];
 
         $rows = [];

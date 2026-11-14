@@ -12,7 +12,7 @@ class Dashboard extends BaseController
         $bookings = new BookingModel();
         $userId   = (int) session()->get('user_id');
 
-        if (is_admin()) {
+        if (is_manager()) {
             $data = [
                 'pending'    => $bookings->where('status', 'pending')->countAllResults(),
                 'approved'   => $bookings->where('status', 'approved')->countAllResults(),

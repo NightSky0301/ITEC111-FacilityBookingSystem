@@ -1,0 +1,17 @@
+FACILITY BOOKING SYSTEM - FACILITY IMAGE UPDATE
+
+This update adds seven generated facility photos and displays them on:
+- Customer: Facilities page
+- Administrator: Facilities list and Edit Facility page
+
+No database migration is required. The existing facilities table and booking data are unchanged.
+
+INSTALLATION
+1. Back up your current facility-booking project folder.
+2. Extract this ZIP into the parent directory where your current facility-booking folder is located.
+3. Allow files to merge/overwrite when prompted. The ZIP intentionally does not include .env or .git, so your local environment settings and Git history are preserved.
+4. Keep your existing .env file. Do not replace it with the sample env file.
+5. Start MySQL in XAMPP, then run: C:\xampp\php\php.exe spark serve
+6. Visit http://localhost:8080/facilities and /admin/facilities to verify the images.
+
+The images are illustrative generated photos, not photographs of the actual campus.

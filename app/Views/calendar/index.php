@@ -7,7 +7,7 @@
 <div class="page-head">
     <div>
         <h1>Calendar</h1>
-        <p><?= is_admin() ? 'All requests and approved bookings.' : 'Click a free day to start a booking request.' ?></p>
+        <p><?= is_manager() ? 'All requests and approved bookings.' : 'Click a free day to start a booking request.' ?></p>
     </div>
     <div class="page-actions">
         <label class="visually-hidden" for="facilityFilter">Facility</label>
@@ -23,7 +23,7 @@
 <div class="legend">
     <span><i style="background:#a93d36"></i> Booked</span>
     <span><i style="background:#c28a1c"></i> Waiting for approval</span>
-    <?php if (! is_admin()): ?><span><i style="background:#0e3b3f"></i> Your booking</span><?php endif; ?>
+    <?php if (! is_manager()): ?><span><i style="background:#0e3b3f"></i> Your booking</span><?php endif; ?>
 </div>
 
 <div class="panel"><div class="panel-body"><div id="calendar"></div></div></div>
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('evBody').innerHTML = html + '</dl>';
             modal.show();
         },
-        <?php if (! is_admin()): ?>
+        <?php if (! is_manager()): ?>
         dateClick: function (info) {
             const qs = new URLSearchParams();
             if (filter.value) qs.set('facility_id', filter.value);

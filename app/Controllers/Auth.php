@@ -17,7 +17,7 @@ class Auth extends BaseController
     public function attemptLogin()
     {
         $rules = [
-            'email'    => 'required|valid_email',
+            'email'    => 'required|max_length[150]',
             'password' => 'required',
         ];
         if (! $this->validate($rules)) {
@@ -28,6 +28,10 @@ class Auth extends BaseController
 
         if (! $user || ! password_verify((string) $this->request->getPost('password'), $user['password'])) {
             return redirect()->back()->withInput()->with('error', 'Wrong email or password.');
+        }
+
+        if (($user['status'] ?? 'active') !== 'active') {
+            return redirect()->back()->withInput()->with('error', 'This account has been deactivated. Please contact the administrator.');
         }
 
         session()->regenerate();

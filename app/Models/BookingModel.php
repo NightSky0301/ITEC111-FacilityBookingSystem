@@ -33,6 +33,36 @@ class BookingModel extends Model
         return $builder->countAllResults() > 0;
     }
 
+    /** Bookings of one facility that overlap [$from, $to), with the customer's name. */
+    public function sessionsBetween(int $facilityId, string $from, string $to, array $statuses = ['approved']): array
+    {
+        return $this->select('bookings.*, users.name AS customer_name')
+            ->join('users', 'users.id = bookings.user_id', 'left')
+            ->where('bookings.facility_id', $facilityId)
+            ->whereIn('bookings.status', $statuses)
+            ->where('bookings.start_at <', $to)
+            ->where('bookings.end_at >', $from)
+            ->orderBy('bookings.start_at')
+            ->findAll();
+    }
+
+    /** Is the facility in use right now, and when is the next approved session? */
+    public function liveStatus(int $facilityId): array
+    {
+        $now = date('Y-m-d H:i:s');
+
+        $current = $this->where('facility_id', $facilityId)->where('status', 'approved')
+            ->where('start_at <=', $now)->where('end_at >', $now)->orderBy('start_at')->first();
+        if ($current) {
+            return ['in_use' => true, 'until' => $current['end_at'], 'next' => null];
+        }
+
+        $next = $this->where('facility_id', $facilityId)->where('status', 'approved')
+            ->where('start_at >', $now)->orderBy('start_at')->first();
+
+        return ['in_use' => false, 'until' => null, 'next' => $next['start_at'] ?? null];
+    }
+
     /** Bookings joined with facility + customer info, newest first. */
     public function withDetails(array $filters = []): array
     {

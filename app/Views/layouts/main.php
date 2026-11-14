@@ -35,9 +35,14 @@
                 <ul class="navbar-nav site-nav me-auto">
                     <li class="nav-item"><a class="nav-link <?= $active('dashboard') ?>" href="<?= site_url('dashboard') ?>">Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link <?= $active('calendar') ?>" href="<?= site_url('calendar') ?>">Calendar</a></li>
-                    <?php if (is_admin()): ?>
-                        <li class="nav-item"><a class="nav-link <?= $active('admin', 'bookings') ?>" href="<?= site_url('admin/bookings') ?>">Bookings</a></li>
-                        <li class="nav-item"><a class="nav-link <?= $active('admin', 'facilities') ?>" href="<?= site_url('admin/facilities') ?>">Facilities</a></li>
+                    <?php if (is_manager()): ?>
+                        <li class="nav-item"><a class="nav-link <?= $active('manage', 'bookings') ?>" href="<?= site_url('manage/bookings') ?>">Bookings</a></li>
+                        <?php if (is_admin()): ?>
+                            <li class="nav-item"><a class="nav-link <?= $active('admin', 'facilities') ?>" href="<?= site_url('admin/facilities') ?>">Facilities</a></li>
+                            <li class="nav-item"><a class="nav-link <?= $active('admin', 'users') ?>" href="<?= site_url('admin/users') ?>">Users</a></li>
+                        <?php else: ?>
+                            <li class="nav-item"><a class="nav-link <?= $active('facilities') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
+                        <?php endif; ?>
                     <?php else: ?>
                         <li class="nav-item"><a class="nav-link <?= $active('facilities') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
                         <li class="nav-item"><a class="nav-link <?= $active('my-bookings') ?>" href="<?= site_url('my-bookings') ?>">My bookings</a></li>
@@ -45,8 +50,8 @@
                 </ul>
 
                 <div class="header-tools mt-2 mt-lg-0">
-                    <?php if (! is_admin()): ?>
-                        <a class="btn btn-sm btn-light-on-dark" href="<?= site_url('bookings/new') ?>"><i class="bi bi-plus-lg"></i> New booking</a>
+                    <?php if (! is_manager()): ?>
+                        <a class="btn btn-sm btn-light-on-dark" href="<?= site_url('facilities') ?>"><i class="bi bi-plus-lg"></i> New booking</a>
                     <?php endif; ?>
 
                     <a class="icon-btn" href="<?= site_url('notifications') ?>" aria-label="Notifications<?= $unread ? ', ' . $unread . ' unread' : '' ?>">

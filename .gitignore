@@ -1,60 +1,126 @@
-# Environment and secrets
-.env
-.env.*
-!.env.example
+#-------------------------
+# Operating Specific Junk Files
+#-------------------------
 
-# Composer dependencies
-/vendor/
-
-# CodeIgniter 4 writable runtime files
-/writable/cache/*
-!/writable/cache/.htaccess
-/writable/cache/index.html
-/writable/logs/*
-!/writable/logs/.htaccess
-/writable/logs/index.html
-/writable/session/*
-!/writable/session/.htaccess
-/writable/session/index.html
-/writable/debugbar/*
-!/writable/debugbar/.htaccess
-/writable/debugbar/index.html
-
-# User-uploaded files (runtime uploads, not app-managed default images)
-/writable/uploads/*
-!/writable/uploads/.htaccess
-!/writable/uploads/index.html
-
-# Frontend dependencies and generated assets
-/node_modules/
-/public/build/
-/public/hot
-
-# IDE and editor files
-/.idea/
-/.vscode/*
-!/.vscode/extensions.json
-!/.vscode/settings.example.json
-*.swp
-*.swo
-
-# Operating system files
+# OS X
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# OS X Thumbnails
+._*
+
+# Windows image file caches
 Thumbs.db
+ehthumbs.db
 Desktop.ini
 
-# Logs and temporary files
-*.log
-*.tmp
-*.bak
-*.orig
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
 
-# Test and coverage output
-.phpunit.cache/
-/coverage/
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
 
-# Local development databases / dumps
-*.sqlite
-*.sqlite3
-*.db
-*.sql.gz
+# Windows shortcuts
+*.lnk
+
+# Linux
+*~
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+#-------------------------
+# Environment Files
+#-------------------------
+# These should never be under version control,
+# as it poses a security risk.
+.env
+.vagrant
+Vagrantfile
+
+#-------------------------
+# Temporary Files
+#-------------------------
+/writable/cache/*
+!/writable/cache/index.html
+
+/writable/logs/*
+!/writable/logs/index.html
+
+/writable/session/*
+!/writable/session/index.html
+
+/writable/uploads/*
+!/writable/uploads/index.html
+
+/writable/debugbar/*
+!/writable/debugbar/index.html
+
+php_errors.log
+
+#-------------------------
+# User Guide Temp Files
+#-------------------------
+/user_guide_src/build/*
+/user_guide_src/cilexer/build/*
+/user_guide_src/cilexer/dist/*
+/user_guide_src/cilexer/pycilexer.egg-info/*
+
+#-------------------------
+# Test Files
+#-------------------------
+/tests/coverage*
+
+# Don't save phpunit under version control.
+/phpunit
+
+#-------------------------
+# Composer
+#-------------------------
+vendor/
+
+#-------------------------
+# IDE / Development Files
+#-------------------------
+
+# Modules Testing
+_modules/*
+
+# phpenv local config
+.php-version
+
+# Jetbrains editors (PHPStorm, etc)
+.idea/
+*.iml
+
+# NetBeans
+/nbproject/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/nbactions.xml
+/nb-configuration.xml
+/.nb-gradle/
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+.phpintel
+/api/
+
+# Visual Studio Code
+.vscode/
+
+/results/
+/phpunit.xml

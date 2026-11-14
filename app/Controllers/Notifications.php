@@ -27,7 +27,7 @@ class Notifications extends BaseController
         if ($note) {
             $model->update($id, ['is_read' => 1]);
             if (! empty($note['booking_id'])) {
-                return redirect()->to(is_admin() ? '/admin/bookings' : '/my-bookings');
+                return redirect()->to(is_manager() ? '/manage/bookings' : '/my-bookings');
             }
         }
         return redirect()->to('/notifications');

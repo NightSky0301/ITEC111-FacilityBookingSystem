@@ -1,37 +1,32 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
+<?= $this->setVar('step', 1)->include('facilities/_stepper') ?>
+
 <div class="page-head">
     <div>
-        <h1>Facilities</h1>
-        <p>Everything you can book. Check availability first, then send a request.</p>
+        <h1>What would you like to play?</h1>
+        <p>Pick an activity first. Then you can choose a court and see when it is free.</p>
     </div>
 </div>
 
-<?php if (empty($facilities)): ?>
+<?php if (empty($cards)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-geo-alt"></i><strong>No courts yet</strong>The facility manager has not added any courts.</div></div>
 <?php else: ?>
 <div class="row g-4">
-    <?php foreach ($facilities as $f): ?>
+    <?php foreach ($cards as $c): ?>
         <div class="col-md-6 col-lg-4">
-            <article class="plaque">
-                <div class="plaque-top tint-<?= esc($f['type']) ?>">
-                    <div class="plaque-type"><i class="bi <?= facility_icon($f['type']) ?>"></i><?= esc($types[$f['type']] ?? ucfirst($f['type'])) ?></div>
-                    <h3><?= esc($f['name']) ?></h3>
-                </div>
+            <a class="plaque plaque-link" href="<?= site_url('facilities/' . esc($c['type'], 'url')) ?>">
+                <img class="plaque-img" src="<?= facility_image($c['first']) ?>" alt="" loading="lazy">
                 <div class="plaque-body">
-                    <p class="plaque-desc"><?= esc($f['description']) ?></p>
+                    <h3><?= esc($c['name']) ?></h3>
+                    <p class="plaque-desc"><?= esc($c['tagline']) ?></p>
                     <div class="plaque-meta">
-                        <span><i class="bi bi-people"></i> Up to <?= (int) $f['capacity'] ?> players</span>
-                        <span class="plaque-price">₱<?= number_format((float) $f['price_per_hour'], 0) ?> <small>/ hour</small></span>
+                        <span><i class="bi <?= facility_icon($c['type']) ?>"></i> <?= (int) $c['count'] ?> <?= $c['count'] === 1 ? 'court' : 'courts' ?></span>
+                        <span class="plaque-price">from ₱<?= number_format((float) $c['min_price'], 0) ?> <small>/ hour</small></span>
                     </div>
-                    <div class="d-flex gap-2">
-                        <a class="btn btn-outline-primary btn-sm flex-fill" href="<?= site_url('calendar') ?>?facility_id=<?= (int) $f['id'] ?>">See availability</a>
-                        <?php if (! is_admin()): ?>
-                            <a class="btn btn-primary btn-sm flex-fill" href="<?= site_url('bookings/new') ?>?facility_id=<?= (int) $f['id'] ?>">Book</a>
-                        <?php endif; ?>
-                    </div>
+                    <span class="btn btn-primary btn-sm w-100">Choose <?= esc(strtolower($c['name'])) ?></span>
                 </div>
-            </article>
+            </a>
         </div>
     <?php endforeach; ?>
 </div>
