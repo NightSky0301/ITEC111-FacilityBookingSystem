@@ -1,14 +1,12 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<?= $this->setVar('step', 2)->include('facilities/_stepper') ?>
+<?= $this->setVar('step', 2)->setVar('backUrl', site_url('facilities'))->setVar('backLabel', 'All activities')->include('facilities/_stepper') ?>
 
-<div class="page-head">
-    <div>
-        <a href="<?= site_url('facilities') ?>" class="back-link"><i class="bi bi-arrow-left"></i> All activities</a>
-        <h1><?= esc($activity) ?></h1>
-        <p>Choose a court to see its schedule.</p>
-    </div>
-</div>
+<header class="activity-hero tint-<?= esc($type, 'attr') ?>">
+    <span class="activity-badge"><i class="bi <?= facility_icon($type) ?>"></i></span>
+    <h1><?= esc($activity) ?></h1>
+    <p>Choose a court to see its schedule.</p>
+</header>
 
 <div class="row g-4">
     <?php foreach ($courts as $c): $live = $c['live']; ?>

@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<?= $this->setVar('step', 3)->include('facilities/_stepper') ?>
+<?= $this->setVar('step', 3)->setVar('backUrl', site_url('facilities/' . $facility['type']))->setVar('backLabel', ($activity ?? 'Back') . ' courts')->include('facilities/_stepper') ?>
 <?php
     $dateStr  = $date->format('Y-m-d');
     $bookUrl  = static fn (int $fid, int $s, int $e): string => site_url('bookings/new') . '?' . http_build_query([
@@ -9,7 +9,6 @@
 ?>
 <div class="page-head">
     <div>
-        <a href="<?= site_url('facilities/' . esc($facility['type'], 'url')) ?>" class="back-link"><i class="bi bi-arrow-left"></i> <?= esc($activity) ?> courts</a>
         <h1><?= esc($facility['name']) ?></h1>
         <p><?= esc($activity) ?> · up to <?= (int) $facility['capacity'] ?> players · ₱<?= number_format((float) $facility['price_per_hour'], 0) ?> per hour</p>
     </div>

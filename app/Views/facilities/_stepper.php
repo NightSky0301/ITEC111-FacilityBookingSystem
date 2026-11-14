@@ -13,6 +13,12 @@ if ($typeKey) {
     $steps[2]['url'] = site_url('facilities/' . $typeKey);
 }
 ?>
+<div class="stepper-row">
+<div class="stepper-side">
+    <?php if (! empty($backUrl)): ?>
+        <a href="<?= esc($backUrl, 'attr') ?>" class="btn-back"><i class="bi bi-arrow-left"></i><span><?= esc($backLabel ?? 'Back') ?></span></a>
+    <?php endif; ?>
+</div>
 <nav class="stepper-wrap" aria-label="Booking steps">
     <ol class="stepper">
         <?php foreach ($steps as $n => $s):
@@ -31,3 +37,5 @@ if ($typeKey) {
         <?php endforeach; ?>
     </ol>
 </nav>
+<div class="stepper-side d-none d-lg-block"></div>
+</div>
