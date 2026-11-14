@@ -7,7 +7,7 @@ use App\Models\FacilityModel;
 use DateTime;
 
 /**
- * Facility menu:  Activity (basketball, badminton...)  ->  Court (A, B)  ->  Availability
+ * Facility menu:  Activity (basketball, badminton...)  ->  Court (A, B)  ->  Date (calendar)  ->  booking form (time in + hours)
  */
 class Facilities extends BaseController
 {
@@ -50,7 +50,10 @@ class Facilities extends BaseController
         ]);
     }
 
-    /** Step 3: availability of one court for one day, with each session's time in and out. */
+    /**
+     * Step 3: pick a date on a month calendar. Days that already have sessions are marked, and the
+     * sessions of the selected day are listed next to it. The time itself is chosen in the booking form.
+     */
     public function court(int $id)
     {
         $facility = (new FacilityModel())->find($id);
@@ -58,25 +61,38 @@ class Facilities extends BaseController
             return redirect()->to('/facilities')->with('error', 'That court is not available.');
         }
 
-        // Day to show (defaults to today). Anything that is not a real Y-m-d date falls back to today.
+        // Selected day (defaults to today). Anything that is not a real Y-m-d date falls back to today.
         $dateStr = (string) $this->request->getGet('date');
         $date    = DateTime::createFromFormat('!Y-m-d', $dateStr);
         if (! $date || $date->format('Y-m-d') !== $dateStr) {
             $date = new DateTime('today');
         }
-        $dayStart = $date->format('Y-m-d') . ' 00:00:00';
+        $dateStr  = $date->format('Y-m-d');
+        $dayStart = $dateStr . ' 00:00:00';
         $dayEnd   = (clone $date)->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
+
+        // Month shown on the calendar (?month=Y-m). Defaults to the month of the selected day.
+        $monthStr = (string) $this->request->getGet('month');
+        $month    = DateTime::createFromFormat('!Y-m', $monthStr);
+        if (! $month || $month->format('Y-m') !== $monthStr || (int) $month->format('Y') < 2000 || (int) $month->format('Y') > 2100) {
+            $month = new DateTime($date->format('Y-m-01'));
+        }
 
         $isManager = is_manager();
         $me        = (int) session()->get('user_id');
 
         // Approved sessions block the court. Pending ones are shown only to staff/admin and to their owner.
+        $visible = static function (array $b) use ($isManager, $me): bool {
+            return $b['status'] === 'approved' || $isManager || (int) $b['user_id'] === $me;
+        };
+
+        // Sessions of the selected day, for the list.
         $sessions = [];
         foreach ((new BookingModel())->sessionsBetween($id, $dayStart, $dayEnd, ['approved', 'pending']) as $b) {
-            $mine = (int) $b['user_id'] === $me;
-            if ($b['status'] === 'pending' && ! $isManager && ! $mine) {
+            if (! $visible($b)) {
                 continue;
             }
+            $mine = (int) $b['user_id'] === $me;
             $sessions[] = [
                 'id'       => (int) $b['id'],
                 'start'    => $b['start_at'],
@@ -89,47 +105,63 @@ class Facilities extends BaseController
             ];
         }
 
-        // Hour-by-hour slots.
-        $now   = time();
-        $slots = [];
-        for ($h = FacilityModel::OPEN_HOUR; $h < FacilityModel::CLOSE_HOUR; $h++) {
-            $s = strtotime($date->format('Y-m-d') . sprintf(' %02d:00:00', $h));
-            $e = $s + 3600;
+        // Month grid (Sunday first): only the weeks the month needs, 4 to 6 rows. The rows stretch to fill the panel.
+        $weeks     = (int) ceil(((int) $month->format('w') + (int) $month->format('t')) / 7);
+        $gridStart = (clone $month)->modify('-' . (int) $month->format('w') . ' days');
+        $gridEnd   = (clone $gridStart)->modify('+' . ($weeks * 7) . ' days');
 
-            $covered = 0;
-            $inSlot  = [];
-            foreach ($sessions as $idx => $sess) {
-                $bs = strtotime($sess['start']);
-                $be = strtotime($sess['end']);
-                if ($bs < $e && $be > $s) {
-                    $inSlot[] = ['idx' => $idx, 'continues' => $bs < $s];
-                    if ($sess['status'] === 'approved') {
-                        $covered += min($be, $e) - max($bs, $s);
-                    }
-                }
+        // How many sessions touch each day of the grid (a session past midnight marks both days).
+        $dayCounts = [];
+        foreach ((new BookingModel())->sessionsBetween($id, $gridStart->format('Y-m-d') . ' 00:00:00', $gridEnd->format('Y-m-d') . ' 00:00:00', ['approved', 'pending']) as $b) {
+            if (! $visible($b)) {
+                continue;
             }
+            $cursor = new DateTime(date('Y-m-d', strtotime($b['start_at'])));
+            $last   = date('Y-m-d', strtotime($b['end_at']) - 1);
+            while ($cursor->format('Y-m-d') <= $last) {
+                $key             = $cursor->format('Y-m-d');
+                $dayCounts[$key] = ($dayCounts[$key] ?? 0) + 1;
+                $cursor->modify('+1 day');
+            }
+        }
 
-            $slots[] = [
-                'start'    => $s,
-                'end'      => $e,
-                'state'    => $covered >= 3600 ? 'booked' : ($covered > 0 ? 'partial' : 'free'),
-                'past'     => $e <= $now,
-                'current'  => $s <= $now && $now < $e,
-                'sessions' => $inSlot,
+        $today = date('Y-m-d');
+        $cells = [];
+        for ($i = 0; $i < $weeks * 7; $i++) {
+            $d       = (clone $gridStart)->modify('+' . $i . ' days');
+            $ds      = $d->format('Y-m-d');
+            $cells[] = [
+                'date'     => $ds,
+                'day'      => (int) $d->format('j'),
+                'inMonth'  => $d->format('Y-m') === $month->format('Y-m'),
+                'past'     => $ds < $today,
+                'today'    => $ds === $today,
+                'selected' => $ds === $dateStr,
+                'count'    => $dayCounts[$ds] ?? 0,
+                'label'    => $d->format('l, F j, Y'),
             ];
         }
 
+        $prevMonth = (clone $month)->modify('-1 month')->format('Y-m');
+
         return view('facilities/court', [
-            'facility'  => $facility,
-            'activity'  => FacilityModel::activityName($facility['type']),
-            'date'      => $date,
-            'isToday'   => $date->format('Y-m-d') === date('Y-m-d'),
-            'prev'      => (clone $date)->modify('-1 day')->format('Y-m-d'),
-            'next'      => (clone $date)->modify('+1 day')->format('Y-m-d'),
-            'sessions'  => $sessions,
-            'slots'     => $slots,
-            'live'      => (new BookingModel())->liveStatus($id),
-            'isManager' => $isManager,
+            'facility'   => $facility,
+            'activity'   => FacilityModel::activityName($facility['type']),
+            'date'       => $date,
+            'isPast'     => $dateStr < $today,
+            'month'      => $month,
+            'cells'      => $cells,
+            'weeks'      => $weeks,
+            'prevMonth'  => $prevMonth,
+            'nextMonth'  => (clone $month)->modify('+1 month')->format('Y-m'),
+            // Customers cannot book the past, so they cannot browse back before the current month.
+            'canPrev'    => $isManager || $prevMonth >= date('Y-m'),
+            'showToday'  => $dateStr !== $today || $month->format('Y-m') !== date('Y-m'),
+            'opens'      => date('g:i A', strtotime(sprintf('%02d:00', FacilityModel::OPEN_HOUR))),
+            'closes'     => date('g:i A', strtotime(sprintf('%02d:00', FacilityModel::CLOSE_HOUR))),
+            'sessions'   => $sessions,
+            'live'       => (new BookingModel())->liveStatus($id),
+            'isManager'  => $isManager,
         ]);
     }
 }

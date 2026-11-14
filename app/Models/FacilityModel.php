@@ -16,6 +16,25 @@ class FacilityModel extends Model
     public const OPEN_HOUR  = 6;
     public const CLOSE_HOUR = 22;
 
+    /**
+     * Booking length. Courts are rented per hour: a booking is MIN_HOURS (1 hour) or more,
+     * added one hour at a time with the +/- stepper, up to MAX_HOURS.
+     */
+    public const MIN_HOURS = 1;
+    public const MAX_HOURS = 5;
+
+    /** Booking length in minutes for a number of whole hours. */
+    public static function durationMinutes(int $hours): int
+    {
+        return $hours * 60;
+    }
+
+    /** Total price: the hourly rate for every hour booked. */
+    public static function totalPrice(float $hourlyRate, int $hours): float
+    {
+        return round($hourlyRate * $hours, 2);
+    }
+
     /** Facility types shown in the dropdowns (also the "activities" customers choose first). */
     public const TYPES = [
         'basketball'    => 'Basketball Court',

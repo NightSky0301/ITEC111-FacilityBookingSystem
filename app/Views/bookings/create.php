@@ -6,12 +6,15 @@
     foreach ($facilities as $f) {
         if ((int) $f['id'] === $selectedId) { $selectedType = $f['type']; }
     }
+    $hours     = max((int) $minHours, min((int) $maxHours, (int) (old('hours') ?: $minHours)));
+    $dateValue = old('start_date') ?: $startDate;
+    $timeValue = old('start_time') ?: $startTime;
 ?>
 <div class="page-head">
     <div>
         <a href="<?= site_url('facilities') ?>" class="back-link"><i class="bi bi-arrow-left"></i> Browse courts and availability</a>
         <h1>New booking</h1>
-        <p>Choose the activity, then the court and a time. The facility manager reviews every request, and you will be notified of the result.</p>
+        <p>Choose the activity, the court and your time in, then add hours with the + button. The facility manager reviews every request, and you will be notified of the result.</p>
     </div>
 </div>
 
@@ -47,16 +50,34 @@
                     </select>
                 </div>
             </div>
+
             <div class="row">
                 <div class="col-sm-6 mb-3">
-                    <label class="form-label" for="start">Time in</label>
-                    <input type="datetime-local" name="start_at" id="start" class="form-control" value="<?= esc(old('start_at') ?: $start) ?>" required>
+                    <label class="form-label" for="startDate">Date</label>
+                    <input type="date" name="start_date" id="startDate" class="form-control" min="<?= date('Y-m-d') ?>" value="<?= esc($dateValue) ?>" required>
                 </div>
                 <div class="col-sm-6 mb-3">
-                    <label class="form-label" for="end">Time out</label>
-                    <input type="datetime-local" name="end_at" id="end" class="form-control" value="<?= esc(old('end_at') ?: $end) ?>" required>
+                    <label class="form-label" for="startTime">Time in</label>
+                    <input type="time" name="start_time" id="startTime" class="form-control" value="<?= esc($timeValue) ?>" required>
                 </div>
             </div>
+
+            <div class="duration-box mb-3">
+                <div class="duration-row">
+                    <span class="duration-icon"><i class="bi bi-clock-history"></i></span>
+                    <div class="duration-text">
+                        <strong>How long?</strong>
+                        <span id="durHint">Courts are rented per hour. Each + adds one hour.</span>
+                    </div>
+                    <div class="ext-stepper" role="group" aria-label="Number of hours">
+                        <button type="button" class="ext-btn" id="hrMinus" aria-label="Remove 1 hour"><i class="bi bi-dash-lg"></i></button>
+                        <output class="ext-value" id="hrValue" for="hrMinus hrPlus">1 hr</output>
+                        <button type="button" class="ext-btn" id="hrPlus" aria-label="Add 1 hour"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </div>
+                <input type="hidden" name="hours" id="hours" value="<?= $hours ?>">
+            </div>
+
             <div class="mb-3">
                 <label class="form-label" for="guests">Number of players</label>
                 <input type="number" min="1" name="guests" id="guests" class="form-control" value="<?= esc(old('guests') ?: 1) ?>" required>
@@ -74,7 +95,9 @@
             <h2 class="h5 mb-3">Summary</h2>
             <dl>
                 <div class="row-line"><dt>Court</dt><dd id="sFacility">–</dd></div>
-                <div class="row-line"><dt>Duration</dt><dd id="sDuration">–</dd></div>
+                <div class="row-line"><dt>Time in</dt><dd id="sStart">–</dd></div>
+                <div class="row-line"><dt>Time out</dt><dd id="sEnd">–</dd></div>
+                <div class="row-line"><dt>Length</dt><dd id="sDuration">–</dd></div>
                 <div class="row-line"><dt>Rate</dt><dd id="sRate">–</dd></div>
             </dl>
             <div class="total"><span class="text-muted">Estimated total</span><strong id="sTotal">–</strong></div>
@@ -89,12 +112,15 @@
 <?= $this->section('scripts') ?>
 <script>
 (function () {
-    const sport = document.getElementById('sport'), f = document.getElementById('facility'),
-          s = document.getElementById('start'), e = document.getElementById('end'),
-          g = document.getElementById('guests'), hint = document.getElementById('capacityHint'),
-          avail = document.getElementById('availLink');
+    const MIN = <?= (int) $minHours ?>, MAX = <?= (int) $maxHours ?>;
+    const $ = id => document.getElementById(id);
+    const sport = $('sport'), f = $('facility'), d = $('startDate'), t = $('startTime'), g = $('guests'), hint = $('capacityHint'), avail = $('availLink'),
+          hoursInput = $('hours'), minus = $('hrMinus'), plus = $('hrPlus'), hrValue = $('hrValue'), durHint = $('durHint');
     const peso = n => '₱' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const baseUrl = '<?= site_url('facilities/court') ?>';
+    const fmtHrs = n => n + (n === 1 ? ' hr' : ' hrs');
+    const fmtWhen = x => x.toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    let hours = Math.max(MIN, Math.min(MAX, parseInt(hoursInput.value, 10) || MIN));
 
     // Step 1 -> Step 2: only show the courts of the chosen activity.
     function filterCourts() {
@@ -120,21 +146,33 @@
     function update() {
         const opt = f.options[f.selectedIndex];
         const has = opt && opt.value;
-        document.getElementById('sFacility').textContent = has ? opt.dataset.name : '–';
+        $('sFacility').textContent = has ? opt.dataset.name : '–';
         if (has) { g.max = opt.dataset.capacity; hint.textContent = 'Up to ' + opt.dataset.capacity + ' players.'; }
         else { g.removeAttribute('max'); hint.textContent = ''; }
-
         const price = has ? parseFloat(opt.dataset.price) : NaN;
-        document.getElementById('sRate').textContent = has ? peso(price) + ' / hour' : '–';
 
-        const hours = (new Date(e.value) - new Date(s.value)) / 36e5;
-        const ok = has && isFinite(hours) && hours > 0;
-        document.getElementById('sDuration').textContent = ok ? (+hours.toFixed(2)) + (hours === 1 ? ' hour' : ' hours') : '–';
-        document.getElementById('sTotal').textContent = ok ? peso(hours * price) : '–';
+        // Time out = time in + the hours chosen with the stepper (shown in the summary only).
+        const start = (d.value && t.value) ? new Date(d.value + 'T' + t.value.substring(0, 5)) : null;
+        const startOk = start && !isNaN(start.getTime());
+        const end = startOk ? new Date(start.getTime() + hours * 3600000) : null;
+        $('sStart').textContent = startOk ? fmtWhen(start) : '–';
+        $('sEnd').textContent = end ? fmtWhen(end) : '–';
+        $('sDuration').textContent = fmtHrs(hours);
+
+        // Stepper
+        hoursInput.value = hours;
+        hrValue.textContent = fmtHrs(hours);
+        minus.disabled = hours <= MIN;
+        plus.disabled = hours >= MAX;
+        durHint.textContent = hours >= MAX
+            ? 'Longest booking reached (' + fmtHrs(MAX) + ').'
+            : (has ? peso(price) + ' per hour. Each + adds one hour.' : 'Courts are rented per hour. Each + adds one hour.');
+
+        $('sRate').textContent = has ? peso(price) + ' / hour' : '–';
+        $('sTotal').textContent = has ? peso(price * hours) : '–';
 
         if (has) {
-            const day = s.value ? '?date=' + s.value.substring(0, 10) : '';
-            avail.href = baseUrl + '/' + opt.value + day;
+            avail.href = baseUrl + '/' + opt.value + (d.value ? '?date=' + d.value : '');
             avail.classList.remove('disabled'); avail.removeAttribute('aria-disabled');
         } else {
             avail.href = '#'; avail.classList.add('disabled'); avail.setAttribute('aria-disabled', 'true');
@@ -142,7 +180,9 @@
     }
 
     sport.addEventListener('change', function () { filterCourts(); update(); });
-    [f, s, e].forEach(el => el.addEventListener('input', update));
+    [f, d, t].forEach(el => el.addEventListener('input', update));
+    minus.addEventListener('click', function () { if (hours > MIN) { hours--; update(); } });
+    plus.addEventListener('click', function () { if (hours < MAX) { hours++; update(); } });
     filterCourts(); update();
 })();
 </script>

@@ -1,12 +1,12 @@
 <?php
 /**
- * Shows where the visitor is in: Activity -> Court -> Availability.
+ * Shows where the visitor is in: Activity -> Court -> Date.
  * $step = 1, 2 or 3. Finished steps are links back to that step.
  */
 $steps = [
     1 => ['label' => 'Choose an activity', 'short' => 'Activity', 'url' => site_url('facilities')],
     2 => ['label' => 'Choose a court',     'short' => 'Court',    'url' => null],
-    3 => ['label' => 'Pick a time',        'short' => 'Time',     'url' => null],
+    3 => ['label' => 'Pick a date',        'short' => 'Date',     'url' => null],
 ];
 $typeKey = $facility['type'] ?? ($type ?? null);
 if ($typeKey) {
