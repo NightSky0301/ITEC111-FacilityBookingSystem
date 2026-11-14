@@ -14,17 +14,15 @@
     </div>
     <div class="page-actions">
         <?php if ($manager): ?>
-            <a href="<?= site_url('manage/bookings?status=pending') ?>" class="btn btn-primary"><i class="bi bi-inbox me-1"></i> Review requests</a>
-            <a href="<?= site_url('calendar') ?>" class="btn btn-outline-secondary"><i class="bi bi-calendar3 me-1"></i> Calendar</a>
+            <a href="<?= site_url('manage/bookings?status=pending') ?>" class="btn btn-gold"><i class="bi bi-inbox me-1"></i> Review requests</a>
         <?php else: ?>
-            <a href="<?= site_url('facilities') ?>" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> New booking</a>
-            <a href="<?= site_url('calendar') ?>" class="btn btn-outline-secondary"><i class="bi bi-calendar3 me-1"></i> Calendar</a>
+            <a href="<?= site_url('facilities') ?>" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i> New booking</a>
         <?php endif; ?>
     </div>
 </header>
 
 <div class="stat-grid <?= $manager ? 'is-three' : '' ?>">
-    <a class="stat-card is-wait <?= (int) $pending > 0 ? 'has-items' : '' ?>" href="<?= $manager ? site_url('manage/bookings?status=pending') : $statsUrl ?>">
+    <a class="stat-card is-wait <?= (int) $pending > 0 ? 'has-items' : '' ?>" href="<?= $manager ? site_url('manage/bookings?status=pending') : site_url('my-bookings?filter=pending') ?>">
         <span class="stat-icon"><i class="bi bi-hourglass-split"></i></span>
         <div class="stat-body">
             <div class="stat-num"><?= (int) $pending ?></div>
@@ -33,7 +31,7 @@
         <i class="bi bi-arrow-right stat-go" aria-hidden="true"></i>
     </a>
 
-    <a class="stat-card is-ok" href="<?= $manager ? site_url('manage/bookings?status=approved') : $statsUrl ?>">
+    <a class="stat-card is-ok" href="<?= $manager ? site_url('manage/bookings?status=approved') : site_url('my-bookings?filter=approved') ?>">
         <span class="stat-icon"><i class="bi bi-check2-circle"></i></span>
         <div class="stat-body">
             <div class="stat-num"><?= (int) $approved ?></div>

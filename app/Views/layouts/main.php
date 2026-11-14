@@ -53,7 +53,7 @@
 
                 <div class="header-tools mt-2 mt-lg-0">
 
-                    <a class="icon-btn" href="<?= site_url('notifications') ?>" aria-label="Notifications<?= $unread ? ', ' . $unread . ' unread' : '' ?>">
+                    <a class="icon-btn" href="<?= site_url('notifications') ?>" data-notif-open aria-label="Notifications<?= $unread ? ', ' . $unread . ' unread' : '' ?>">
                         <i class="bi bi-bell"></i>
                         <?php if ($unread > 0): ?><span class="dot-count"><?= $unread > 99 ? '99+' : $unread ?></span><?php endif; ?>
                     </a>
@@ -72,7 +72,6 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><span class="dropdown-item-text"><strong><?= esc($name) ?></strong><br><small class="text-muted"><?= esc(session()->get('email')) ?></small></span></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="<?= site_url('notifications') ?>"><i class="bi bi-bell me-2"></i>Notifications</a></li>
                             <li><a class="dropdown-item text-danger" href="<?= site_url('logout') ?>"><i class="bi bi-box-arrow-right me-2"></i>Log out</a></li>
                         </ul>
                     </div>
@@ -86,6 +85,25 @@
     <?= $this->include('layouts/alerts') ?>
     <?= $this->renderSection('content') ?>
 </main>
+
+<!-- Notifications pop-up -->
+<div class="modal fade" id="notifModal" tabindex="-1" aria-labelledby="notifModalTitle" aria-hidden="true" data-feed="<?= site_url('notifications/feed') ?>">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable notif-dialog">
+        <div class="modal-content notif-modal">
+            <div class="modal-header">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="notif-head-icon"><i class="bi bi-bell"></i></span>
+                    <div>
+                        <h2 class="modal-title" id="notifModalTitle">Notifications</h2>
+                        <div class="notif-sub">Updates about your bookings</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="notifBody"></div>
+        </div>
+    </div>
+</div>
 
 <script src="<?= base_url('assets/vendor/bootstrap.bundle.min.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>

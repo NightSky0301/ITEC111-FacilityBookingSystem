@@ -48,7 +48,7 @@
         'upcoming' => ['Upcoming', $count('upcoming'),  'No upcoming bookings.'],
         'pending'  => ['Pending',  $count('pending'),   'Nothing is waiting for approval.'],
         'approved' => ['Approved', $count('approved'),  'No approved bookings coming up.'],
-        'past'     => ['Past & closed', $count('past'), 'No past or closed bookings yet.'],
+        'past'     => ['Completed', $count('past'), 'No completed bookings yet.'],
     ];
 
     // The next approved session, for the banner on top.
@@ -243,6 +243,13 @@
     }
 
     tabs.forEach(function (t) { t.addEventListener('click', function () { apply(t); }); });
+
+    // Links like /my-bookings?filter=pending open that tab straight away.
+    const wanted = new URLSearchParams(window.location.search).get('filter');
+    if (wanted) {
+        const match = Array.prototype.find.call(tabs, function (t) { return t.dataset.filter === wanted; });
+        if (match) apply(match);
+    }
 })();
 </script>
 <?= $this->endSection() ?>

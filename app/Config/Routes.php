@@ -35,6 +35,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
 
     // Notifications
     $routes->get('notifications', 'Notifications::index');
+    $routes->get('notifications/feed', 'Notifications::feed');
     $routes->get('notifications/(:num)/read', 'Notifications::read/$1');
     $routes->post('notifications/read-all', 'Notifications::readAll');
 });

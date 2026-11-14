@@ -23,7 +23,8 @@ class Dashboard extends BaseController
             $mine = $bookings->withDetails(['user_id' => $userId]);
             $data = [
                 'pending'  => count(array_filter($mine, fn ($b) => $b['status'] === 'pending')),
-                'approved' => count(array_filter($mine, fn ($b) => $b['status'] === 'approved')),
+                // Same rule as the "Approved" tab on My bookings: approved and not finished yet.
+                'approved' => count(array_filter($mine, fn ($b) => $b['status'] === 'approved' && strtotime($b['end_at']) > time())),
                 'latest'   => array_slice($mine, 0, 5),
             ];
         }
