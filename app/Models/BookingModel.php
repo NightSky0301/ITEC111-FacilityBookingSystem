@@ -66,7 +66,7 @@ class BookingModel extends Model
     /** Bookings joined with facility + customer info, newest first. */
     public function withDetails(array $filters = []): array
     {
-        $builder = $this->select('bookings.*, facilities.name AS facility_name, facilities.type AS facility_type, '
+        $builder = $this->select('bookings.*, facilities.name AS facility_name, facilities.type AS facility_type, facilities.image AS facility_image, '
                 . 'users.name AS customer_name, users.email AS customer_email')
             ->join('facilities', 'facilities.id = bookings.facility_id', 'left')
             ->join('users', 'users.id = bookings.user_id', 'left');

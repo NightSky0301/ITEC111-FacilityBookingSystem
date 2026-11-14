@@ -24,7 +24,7 @@
                     <span class="cell-title"><?= esc($f['name']) ?></span>
                 </div>
             </td>
-            <td><span class="type-chip"><i class="bi <?= facility_icon($f['type']) ?>"></i><?= esc($types[$f['type']] ?? ucfirst($f['type'])) ?></span></td>
+            <td><span class="type-chip"><?= facility_icon_html($f['type']) ?><?= esc($types[$f['type']] ?? ucfirst($f['type'])) ?></span></td>
             <td><?= (int) $f['capacity'] ?></td>
             <td>₱<?= number_format((float) $f['price_per_hour'], 2) ?></td>
             <td><?= status_badge($f['status']) ?></td>

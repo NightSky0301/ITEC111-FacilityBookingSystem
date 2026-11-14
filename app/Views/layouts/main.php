@@ -7,6 +7,8 @@
     <link rel="preload" href="<?= base_url('assets/vendor/fonts/fraunces-600.woff2') ?>" as="font" type="font/woff2" crossorigin>
     <link href="<?= base_url('assets/vendor/bootstrap.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/vendor/icons/bootstrap-icons.min.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('assets/vendor/fontawesome/css/fontawesome.min.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('assets/vendor/fontawesome/css/solid.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/css/app.css') ?>" rel="stylesheet">
     <?= $this->renderSection('head') ?>
 </head>
@@ -21,18 +23,18 @@
 ?>
 <header class="site-header">
     <nav class="navbar navbar-expand-lg">
-        <div class="container-xl d-flex flex-wrap align-items-center">
+        <div class="container-xl">
             <a class="brand" href="<?= site_url('dashboard') ?>">
                 <span class="brand-mark"><i class="bi bi-trophy"></i></span>
                 <span>Facility Booking</span>
             </a>
 
-            <button class="nav-toggle ms-auto d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-label="Open menu">
+            <button class="nav-toggle d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-label="Open menu">
                 <i class="bi bi-list"></i>
             </button>
 
             <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav site-nav me-auto">
+                <ul class="navbar-nav site-nav">
                     <li class="nav-item"><a class="nav-link <?= $active('dashboard') ?>" href="<?= site_url('dashboard') ?>">Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link <?= $active('calendar') ?>" href="<?= site_url('calendar') ?>">Calendar</a></li>
                     <?php if (is_manager()): ?>
@@ -50,14 +52,13 @@
                 </ul>
 
                 <div class="header-tools mt-2 mt-lg-0">
-                    <?php if (! is_manager()): ?>
-                        <a class="btn btn-sm btn-light-on-dark" href="<?= site_url('facilities') ?>"><i class="bi bi-plus-lg"></i> New booking</a>
-                    <?php endif; ?>
 
                     <a class="icon-btn" href="<?= site_url('notifications') ?>" aria-label="Notifications<?= $unread ? ', ' . $unread . ' unread' : '' ?>">
                         <i class="bi bi-bell"></i>
                         <?php if ($unread > 0): ?><span class="dot-count"><?= $unread > 99 ? '99+' : $unread ?></span><?php endif; ?>
                     </a>
+
+                    <span class="tools-divider d-none d-lg-block" aria-hidden="true"></span>
 
                     <div class="dropdown">
                         <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
@@ -66,6 +67,7 @@
                                 <span class="user-name"><?= esc($name) ?></span>
                                 <span class="user-role"><?= esc(session()->get('role')) ?></span>
                             </span>
+                            <i class="bi bi-chevron-down user-chev" aria-hidden="true"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><span class="dropdown-item-text"><strong><?= esc($name) ?></strong><br><small class="text-muted"><?= esc(session()->get('email')) ?></small></span></li>

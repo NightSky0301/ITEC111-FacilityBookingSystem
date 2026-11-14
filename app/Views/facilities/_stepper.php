@@ -29,8 +29,8 @@ if ($typeKey) {
                 <<?= $link ? 'a href="' . esc($s['url'], 'attr') . '"' : 'span' ?> class="stepper-chip">
                     <span class="stepper-n"><?= $n < $step ? '<i class="bi bi-check-lg"></i>' : $n ?></span>
                     <span class="stepper-label">
-                        <span class="d-none d-sm-inline"><?= esc($s['label']) ?></span>
-                        <span class="d-sm-none"><?= esc($s['short']) ?></span>
+                        <span class="d-none d-md-inline"><?= esc($s['label']) ?></span>
+                        <span class="d-md-none"><?= esc($s['short']) ?></span>
                     </span>
                 </<?= $link ? 'a' : 'span' ?>>
             </li>

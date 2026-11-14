@@ -2,12 +2,10 @@
 <?= $this->section('content') ?>
 <?= $this->setVar('step', 1)->include('facilities/_stepper') ?>
 
-<div class="page-head">
-    <div>
-        <h1>What would you like to play?</h1>
-        <p>Pick an activity first. Then you can choose a court and see when it is free.</p>
-    </div>
-</div>
+<header class="activity-hero">
+    <h1>What would you like to play?</h1>
+    <p>Pick an activity first. Then choose a court and see when it is free.</p>
+</header>
 
 <?php if (empty($cards)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-geo-alt"></i><strong>No courts yet</strong>The facility manager has not added any courts.</div></div>
@@ -21,7 +19,7 @@
                     <h3><?= esc($c['name']) ?></h3>
                     <p class="plaque-desc"><?= esc($c['tagline']) ?></p>
                     <div class="plaque-meta">
-                        <span><i class="bi <?= facility_icon($c['type']) ?>"></i> <?= (int) $c['count'] ?> <?= $c['count'] === 1 ? 'court' : 'courts' ?></span>
+                        <span><?= facility_icon_html($c['type']) ?> <?= (int) $c['count'] ?> <?= $c['count'] === 1 ? 'court' : 'courts' ?></span>
                         <span class="plaque-price">from ₱<?= number_format((float) $c['min_price'], 0) ?> <small>/ hour</small></span>
                     </div>
                     <span class="btn btn-primary btn-sm w-100">Choose <?= esc(strtolower($c['name'])) ?></span>

@@ -113,3 +113,35 @@ if (! function_exists('fmt_range')) {
         return date('M d, g:i A', $s) . ' – ' . date('M d, Y g:i A', $e);
     }
 }
+
+if (! function_exists('facility_icon_html')) {
+    /**
+     * Icon for an activity type, as ready-to-print HTML.
+     * Font Awesome (public/assets/vendor/fontawesome) for most; badminton and tennis are small inline SVGs
+     * because Font Awesome's free set has no icon for them.
+     */
+    function facility_icon_html(string $type): string
+    {
+        $fa = [
+            'basketball'   => 'fa-basketball',
+            'volleyball'   => 'fa-volleyball',
+            'pickleball'   => 'fa-table-tennis-paddle-ball',
+            'futsal'       => 'fa-futbol',
+            'multipurpose' => 'fa-border-all',
+        ];
+        if (isset($fa[$type])) {
+            return '<i class="fa-solid ' . $fa[$type] . '" aria-hidden="true"></i>';
+        }
+
+        $svg = static fn (string $inner): string =>
+            '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $inner . '</svg>';
+
+        if ($type === 'badminton') {      // shuttlecock
+            return $svg('<path d="M9.4 17.2 5.2 4.2c4.6-1.6 9-1.6 13.6 0l-4.2 13"/><path d="M9 11.2h6M7.2 7.6h9.6M12 4.2v13"/><path d="M9.4 17.2h5.2v1.6a2.6 2.6 0 0 1-5.2 0z" fill="currentColor"/>');
+        }
+        if ($type === 'tennis') {         // tennis ball
+            return $svg('<circle cx="12" cy="12" r="9"/><path d="M4.2 7.5c3.8 2 3.8 7 0 9M19.8 7.5c-3.8 2-3.8 7 0 9"/>');
+        }
+        return '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>';
+    }
+}

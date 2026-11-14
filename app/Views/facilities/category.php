@@ -3,7 +3,7 @@
 <?= $this->setVar('step', 2)->setVar('backUrl', site_url('facilities'))->setVar('backLabel', 'All activities')->include('facilities/_stepper') ?>
 
 <header class="activity-hero tint-<?= esc($type, 'attr') ?>">
-    <span class="activity-badge"><i class="bi <?= facility_icon($type) ?>"></i></span>
+    <span class="activity-badge"><?= facility_icon_html($type) ?></span>
     <h1><?= esc($activity) ?></h1>
     <p>Choose a court to see its schedule.</p>
 </header>
