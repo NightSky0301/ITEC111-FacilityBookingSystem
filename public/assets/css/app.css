@@ -761,7 +761,11 @@ a.cal-day:focus-visible { outline: 2px solid var(--lagoon); outline-offset: 2px;
 
 .bf-slot-group + .bf-slot-group { margin-top: 1rem; }
 .bf-slot-group h3 { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 0 0 .45rem; }
+<<<<<<< HEAD
 .bf-slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .45rem; padding: .25rem .25rem .1rem; }
+=======
+.bf-slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: .5rem; padding: .25rem .25rem .1rem; }
+>>>>>>> ef98a8e (Time arrival update)
 .bf-slot { padding: .5rem .25rem; border: 1.5px solid var(--line-strong); border-radius: 10px; background: #fff; color: var(--ink); font-size: .85rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; transition: border-color .12s, background .12s; }
 .bf-slot.is-free:hover { border-color: var(--brass); background: #fbf6ea; }
 .bf-slot.is-picked { background: var(--brass); border-color: var(--brass); color: #fff; box-shadow: 0 4px 10px rgba(168, 120, 43, .3); }
@@ -782,7 +786,7 @@ a.cal-day:focus-visible { outline: 2px solid var(--lagoon); outline-offset: 2px;
 .bf-people span:not(.duration-icon) { display: block; color: var(--muted); font-size: .87rem; }
 .bf-people.is-on span:not(.duration-icon) { color: var(--ink); }
 @media (max-width: 575.98px) {
-    .bf-slot-grid { grid-template-columns: repeat(3, 1fr); }
+    .bf-slot-grid { grid-template-columns: repeat(2, 1fr); }
     .bf-courts { grid-template-columns: 1fr; }
 }
 

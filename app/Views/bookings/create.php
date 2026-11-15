@@ -166,8 +166,14 @@
     const baseUrl = '<?= site_url('facilities/court') ?>', busyUrl = '<?= site_url('bookings/busy') ?>';
     const peso = n => '₱' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtHrs = n => n + (n === 1 ? ' hr' : ' hrs');
+<<<<<<< HEAD
     const clockRange = (a, b) => { const x = clock(a), y = clock(b); return x.slice(-2) === y.slice(-2) ? x.slice(0, -3) + ' – ' + y : x + ' – ' + y; };
     const clock = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ':' + String(mm).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
+=======
+        const clock = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ':' + String(mm).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
+    // One arrival button covers a half-hour window, e.g. "6:00 AM – 6:30 AM". The arrival time is its start.
+    const win = s => clock(s) + ' – ' + clock(s + 30);
+>>>>>>> ef98a8e (Time arrival update)
     const toMin = s => { const p = (s || '').split(':'); return p.length >= 2 ? (+p[0]) * 60 + (+p[1]) : null; };
     const pad = n => String(n).padStart(2, '0');
 
@@ -247,14 +253,22 @@
             head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
             const range = clock(Math.max(info.open, g.from)).replace(':00', '') + ' – ' + clock(Math.min(info.close, g.to)).replace(':00', '');
             head.innerHTML = '<span class="bf-grp-name"><b>' + g.label + '</b><small>' + range + '</small></span>' +
+<<<<<<< HEAD
                 '<span class="bf-grp-meta">' + (hasPick ? '<em class="bf-grp-pick">' + clock(picked) + '</em>' : '<small>' + (g.free ? g.free + ' open' : 'None left') + '</small>') + '</span>' +
+=======
+                '<span class="bf-grp-meta">' + (hasPick ? '<em class="bf-grp-pick">' + win(picked) + '</em>' : '<small>' + (g.free ? g.free + ' open' : 'None left') + '</small>') + '</span>' +
+>>>>>>> ef98a8e (Time arrival update)
                 '<i class="bi bi-chevron-down bf-grp-chev"></i>';
             wrap.appendChild(head);
             if (isOpen) {
                 const grid = document.createElement('div'); grid.className = 'bf-slot-grid';
                 g.list.forEach(([s, st]) => {
                     const b = document.createElement('button');
+<<<<<<< HEAD
                     b.type = 'button'; b.className = 'bf-slot is-' + st; b.dataset.min = s; b.textContent = clock(s);
+=======
+                    b.type = 'button'; b.className = 'bf-slot is-' + st; b.dataset.min = s; b.textContent = win(s);
+>>>>>>> ef98a8e (Time arrival update)
                     if (st !== 'free') { b.disabled = true; b.title = st === 'past' ? 'This time has passed' : st === 'busy' ? 'Already booked' : 'Too close to closing time'; }
                     if (picked === s) { b.classList.add('is-picked'); b.setAttribute('aria-pressed', 'true'); }
                     grid.appendChild(b);
