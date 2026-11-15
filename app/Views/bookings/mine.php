@@ -92,20 +92,6 @@
 </div>
 <?php else: ?>
 
-<?php if ($next):
-    $nb = $next['b'];
-    [$nextRel] = $rel($next['s'], $next['e']);
-?>
-<section class="bk-next" aria-label="Your next session">
-    <span class="bk-next-icon"><i class="bi bi-calendar-event"></i></span>
-    <div class="bk-next-body">
-        <div class="bk-next-kicker">Next session<?= $nextRel ? ' · ' . esc($nextRel) : '' ?></div>
-        <h2 class="bk-next-title"><?= esc($nb['facility_name']) ?></h2>
-        <div class="bk-next-when"><?= esc(fmt_range($nb['start_at'], $nb['end_at'])) ?></div>
-    </div>
-    <a class="btn btn-sm btn-light-on-dark" href="<?= site_url('facilities/court/' . (int) $nb['facility_id']) ?>?date=<?= esc(date('Y-m-d', $next['s']), 'url') ?>">Court schedule <i class="bi bi-arrow-right ms-1"></i></a>
-</section>
-<?php endif; ?>
 
 <section class="panel panel-table bk-panel">
     <div class="bk-tabs" role="group" aria-label="Filter bookings">

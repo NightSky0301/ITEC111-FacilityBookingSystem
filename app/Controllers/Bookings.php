@@ -47,6 +47,7 @@ class Bookings extends BaseController
                 'price' => (float) $f['price_per_hour'],
                 'img'   => facility_image($f),
                 'people' => FacilityModel::peopleLabel($f),
+                'outdoor' => facility_is_outdoor($f),
             ], $facilities->active()),
             'addons'     => Addons::CATALOG,
             'eveningFrom' => Addons::EVENING_FROM,
@@ -142,7 +143,7 @@ class Bookings extends BaseController
         // Add-ons: lights (evening only), fan or AC (one of them), rentals. Priced here, never taken from the form.
         $keys   = (array) $this->request->getPost('addons');
         $keys[] = (string) $this->request->getPost('cooling');
-        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours);
+        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours, facility_is_outdoor($facility));
         if (is_string($addons)) {
             return redirect()->back()->withInput()->with('error', $addons);
         }

@@ -26,9 +26,19 @@ class Dashboard extends BaseController
                 // Same rule as the "Approved" tab on My bookings: approved and not finished yet.
                 'approved' => count(array_filter($mine, fn ($b) => $b['status'] === 'approved' && strtotime($b['end_at']) > time())),
                 'latest'   => array_slice($mine, 0, 5),
+                'next'     => $this->nextSession($mine),
             ];
         }
 
         return view('dashboard/index', $data);
+    }
+
+    /** The soonest approved booking that has not finished yet. */
+    private function nextSession(array $mine): ?array
+    {
+        $upcoming = array_filter($mine, static fn ($b) => $b['status'] === 'approved' && strtotime($b['end_at']) > time());
+        usort($upcoming, static fn ($a, $b) => strtotime($a['start_at']) <=> strtotime($b['start_at']));
+
+        return $upcoming[0] ?? null;
     }
 }

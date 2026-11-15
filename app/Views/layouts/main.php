@@ -63,7 +63,7 @@
                     <div class="dropdown">
                         <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
                             <span class="avatar"><?= esc($initial) ?></span>
-                            <span class="d-none d-xl-block">
+                            <span class="user-meta">
                                 <span class="user-name"><?= esc($name) ?></span>
                                 <span class="user-role"><?= esc(session()->get('role')) ?></span>
                             </span>

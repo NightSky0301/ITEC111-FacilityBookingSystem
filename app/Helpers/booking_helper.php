@@ -64,6 +64,14 @@ if (! function_exists('facility_icon')) {
     }
 }
 
+if (! function_exists('facility_is_outdoor')) {
+    /** Every "Court B" (or numbered 2) is the outdoor court next to Court A. */
+    function facility_is_outdoor(array $facility): bool
+    {
+        return (bool) preg_match('/\s(B|2)$/i', trim((string) ($facility['name'] ?? '')));
+    }
+}
+
 if (! function_exists('facility_image')) {
     /**
      * Photo for a facility: the uploaded one if there is one,
@@ -76,7 +84,7 @@ if (! function_exists('facility_image')) {
         }
 
         $type    = (string) ($facility['type'] ?? 'other');
-        $variant = preg_match('/\s(B|2)$/i', trim((string) ($facility['name'] ?? ''))) ? 'b' : 'a';
+        $variant = facility_is_outdoor($facility) ? 'b' : 'a';
 
         foreach ([$type . '-' . $variant, $type . '-a', 'other-a'] as $name) {
             if (is_file(FCPATH . 'assets/img/courts/' . $name . '.svg')) {

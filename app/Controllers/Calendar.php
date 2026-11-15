@@ -25,7 +25,7 @@ class Calendar extends BaseController
         $endAt   = $end ? date('Y-m-d H:i:s', strtotime($end)) : date('Y-m-t 23:59:59');
 
         $builder = (new BookingModel())
-            ->select('bookings.*, facilities.name AS facility_name, users.name AS customer_name')
+            ->select('bookings.*, facilities.name AS facility_name, facilities.price_per_hour AS facility_price, users.name AS customer_name')
             ->join('facilities', 'facilities.id = bookings.facility_id', 'left')
             ->join('users', 'users.id = bookings.user_id', 'left')
             ->whereIn('bookings.status', ['pending', 'approved'])
@@ -51,17 +51,29 @@ class Calendar extends BaseController
             if ($isAdmin) {
                 $title = $b['facility_name'] . ' - ' . $b['customer_name'] . ($b['status'] === 'pending' ? ' (pending)' : '');
             } elseif ($mine) {
-                $title = 'My booking: ' . $b['facility_name'] . ($b['status'] === 'pending' ? ' (pending)' : '');
+                $title = $b['facility_name'] . ($b['status'] === 'pending' ? ' (pending)' : '');
             } else {
-                $title = 'Booked: ' . $b['facility_name'];
+                $title = $b['facility_name'];
             }
 
             if ($b['status'] === 'pending') {
                 $color = '#c28a1c';
+                $kind  = 'pending';
             } elseif ($mine) {
                 $color = '#0e3b3f';
+                $kind  = 'mine';
             } else {
                 $color = '#a93d36';
+                $kind  = 'booked';
+            }
+
+            $hours   = max(0, (strtotime($b['end_at']) - strtotime($b['start_at'])) / 3600);
+            $private = $isAdmin || $mine;
+            $addons  = [];
+            if ($private && ! empty($b['addons'])) {
+                foreach ((array) json_decode((string) $b['addons'], true) as $a) {
+                    $addons[] = (string) ($a['label'] ?? '');
+                }
             }
 
             $events[] = [
@@ -71,10 +83,17 @@ class Calendar extends BaseController
                 'end'             => date('c', strtotime($b['end_at'])),
                 'backgroundColor' => $color,
                 'borderColor'     => $color,
+                'classNames'      => ['ev-' . $kind],
                 'extendedProps'   => [
-                    'status'   => $b['status'],
-                    'facility' => $b['facility_name'],
-                    'purpose'  => ($isAdmin || $mine) ? $b['purpose'] : null,
+                    'status'      => $b['status'],
+                    'kind'        => $kind,
+                    'facility'    => $b['facility_name'],
+                    'facility_id' => (int) $b['facility_id'],
+                    'customer'    => $isAdmin ? $b['customer_name'] : null,
+                    'hours'       => $hours,
+                    'total'       => $private ? $hours * (float) $b['facility_price'] + (float) ($b['addons_total'] ?? 0) : null,
+                    'addons'      => $addons,
+                    'purpose'     => $private ? $b['purpose'] : null,
                 ],
             ];
         }

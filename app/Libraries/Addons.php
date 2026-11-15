@@ -10,6 +10,7 @@ namespace App\Libraries;
  *          'extra'   -> any combination
  *   evening  true    -> only when the arrival time is 5:00 PM or later (lights)
  *   types    null    -> every activity, otherwise only the listed activity types
+ *   indoor   true    -> not offered on outdoor courts (Court B)
  * Change prices here.
  */
 class Addons
@@ -20,7 +21,7 @@ class Addons
     public const CATALOG = [
         'lights'  => ['label' => 'Court lights',        'note' => 'Evening arrivals only',          'price' => 150, 'per' => 'hour',    'group' => 'extra',   'evening' => true,  'types' => null],
         'fan'     => ['label' => 'Electric fan',        'note' => 'Stand fans around the court',    'price' => 50,  'per' => 'hour',    'group' => 'cooling', 'evening' => false, 'types' => null],
-        'ac'      => ['label' => 'Air-conditioning',    'note' => 'Cools the whole court',          'price' => 200, 'per' => 'hour',    'group' => 'cooling', 'evening' => false, 'types' => null],
+        'ac'      => ['label' => 'Air-conditioning',    'note' => 'Indoor courts only',             'price' => 200, 'per' => 'hour',    'group' => 'cooling', 'evening' => false, 'types' => null, 'indoor' => true],
         'ball'    => ['label' => 'Ball rental',         'note' => 'Match ball for your session',    'price' => 50,  'per' => 'session', 'group' => 'extra',   'evening' => false, 'types' => ['basketball', 'volleyball', 'futsal', 'multipurpose']],
         'racket'  => ['label' => 'Racket / paddle set', 'note' => 'Two rackets or paddles and balls', 'price' => 100, 'per' => 'session', 'group' => 'extra',   'evening' => false, 'types' => ['badminton', 'pickleball', 'tennis']],
         'referee' => ['label' => 'Referee',             'note' => 'Officiates your game',           'price' => 300, 'per' => 'session', 'group' => 'extra',   'evening' => false, 'types' => ['basketball', 'volleyball', 'futsal']],
@@ -39,7 +40,7 @@ class Addons
      * @param  string[] $keys
      * @return array{items:array<int,array>,total:float}|string  items to store, or an error message
      */
-    public static function resolve(array $keys, string $type, int $startMinute, int $hours)
+    public static function resolve(array $keys, string $type, int $startMinute, int $hours, bool $outdoor = false)
     {
         $items   = [];
         $total   = 0.0;
@@ -52,6 +53,9 @@ class Addons
             $a = self::CATALOG[$key] ?? null;
             if (! $a || ($a['types'] !== null && ! in_array($type, $a['types'], true))) {
                 return 'One of the add-ons is not available for this court.';
+            }
+            if (! empty($a['indoor']) && $outdoor) {
+                return $a['label'] . ' is only available on indoor courts (Court A).';
             }
             if ($a['evening'] && $startMinute < self::EVENING_FROM) {
                 return $a['label'] . ' is only available for evening arrivals (5:00 PM or later).';

@@ -1,0 +1,19 @@
+My workflow:
+
+git add .
+git commit -m "update"
+git push
+
+git switch main
+git pull origin main
+git merge testing
+git push
+git switch testing
+git pull origin testing
+
+Startup:
+C:\xampp\php\php.exe spark migrate - pag may bago sa backend/database
+
+C:\xampp\php\php.exe spark db:seed InitialSeeder - pag may gusto kang iinsert na initial data
+
+C:\xampp\php\php.exe spark serve - pang start up sa project

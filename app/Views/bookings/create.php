@@ -98,8 +98,8 @@
                 <div class="bf-cool" role="radiogroup" aria-label="Cooling">
                     <label class="bf-cool-opt"><input type="radio" name="cooling" value="" checked><span><b>No cooling</b><small>Natural airflow</small></span></label>
                     <?php foreach ($addons as $key => $a): if ($a['group'] !== 'cooling') continue; ?>
-                        <label class="bf-cool-opt"><input type="radio" name="cooling" value="<?= esc($key) ?>" data-addon="<?= esc($key) ?>" <?= old('cooling') === $key ? 'checked' : '' ?>>
-                            <span><b><?= esc($a['label']) ?></b><small>+₱<?= number_format($a['price']) ?> / hr</small></span></label>
+                        <label class="bf-cool-opt"><input type="radio" name="cooling" value="<?= esc($key) ?>" data-addon="<?= esc($key) ?>" data-indoor="<?= ! empty($a['indoor']) ? '1' : '0' ?>" <?= old('cooling') === $key ? 'checked' : '' ?>>
+                            <span><b><?= esc($a['label']) ?></b><small data-note="+₱<?= number_format($a['price']) ?> / hr">+₱<?= number_format($a['price']) ?> / hr</small></span></label>
                     <?php endforeach; ?>
                 </div>
                 <div class="bf-extras" id="extras">
@@ -144,20 +144,45 @@
             </dl>
             <div class="total"><span class="text-muted">Total payment</span><strong id="sTotal">–</strong></div>
             <button class="btn btn-primary w-100 mt-4" id="submitBtn" disabled>Send request</button>
-            <p class="small text-muted text-center mt-2 mb-0" id="submitHint">Choose a court and arrival time to continue.</p>
-            <a href="#" id="availLink" class="btn btn-outline-secondary w-100 mt-2 disabled" aria-disabled="true">Check this court's schedule</a>
+            <p class="small text-danger text-center mt-2 mb-0" id="submitHint" hidden></p>
+            <button type="button" id="schedBtn" class="btn btn-outline-secondary w-100 mt-2" disabled><i class="bi bi-calendar3 me-1"></i> Check this court's schedule</button>
         </div></div>
     </div>
 </div>
 </form>
+
+<div class="modal fade" id="schedModal" tabindex="-1" aria-labelledby="schTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered ev-dialog"><div class="modal-content ev-modal">
+        <div class="ev-head">
+            <span class="ev-ic"><i class="bi bi-calendar3"></i></span>
+            <div class="ev-head-text">
+                <div class="ev-kicker" id="schKicker"></div>
+                <h5 class="ev-title" id="schTitle"></h5>
+            </div>
+            <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="ev-body" id="schBody"></div>
+        <div class="ev-foot"><button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">Close</button></div>
+    </div></div>
+</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
+// If anything on this page fails to start, say so on screen instead of leaving dead buttons.
+window.addEventListener('error', function (e) {
+    if (document.getElementById('bfError')) return;
+    var box = document.createElement('div');
+    box.id = 'bfError'; box.className = 'alert alert-danger';
+    box.textContent = 'The booking form could not start: ' + (e.message || 'unknown error') + ' (line ' + (e.lineno || '?') + '). Press Ctrl+F5. If it stays like this, send this message to your developer.';
+    var main = document.querySelector('main'); if (main) main.prepend(box);
+});
+</script>
+<script>
 (function () {
-    const ADDONS = <?= json_encode($addons, JSON_HEX_TAG | JSON_HEX_AMP) ?>, EVENING = <?= (int) $eveningFrom ?>;
+    const ADDONS = <?= (json_encode($addons, JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}') ?>, EVENING = <?= (int) $eveningFrom ?>;
     const MIN = <?= (int) $minHours ?>, MAX = <?= (int) $maxHours ?>;
-    const COURTS = <?= json_encode($courts, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    const COURTS = <?= (json_encode($courts, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]') ?>;
     const $ = id => document.getElementById(id);
     const dateIn = $('startDate'), timeIn = $('startTime'), hoursIn = $('hours'), slotsEl = $('slots');
     const radios = Array.from(document.querySelectorAll('input[name=facility_id]'));
@@ -166,14 +191,9 @@
     const baseUrl = '<?= site_url('facilities/court') ?>', busyUrl = '<?= site_url('bookings/busy') ?>';
     const peso = n => '₱' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtHrs = n => n + (n === 1 ? ' hr' : ' hrs');
-<<<<<<< HEAD
-    const clockRange = (a, b) => { const x = clock(a), y = clock(b); return x.slice(-2) === y.slice(-2) ? x.slice(0, -3) + ' – ' + y : x + ' – ' + y; };
-    const clock = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ':' + String(mm).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
-=======
         const clock = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ':' + String(mm).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
     // One arrival button covers a half-hour window, e.g. "6:00 AM – 6:30 AM". The arrival time is its start.
     const win = s => clock(s) + ' – ' + clock(s + 30);
->>>>>>> ef98a8e (Time arrival update)
     const toMin = s => { const p = (s || '').split(':'); return p.length >= 2 ? (+p[0]) * 60 + (+p[1]) : null; };
     const pad = n => String(n).padStart(2, '0');
 
@@ -253,22 +273,14 @@
             head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
             const range = clock(Math.max(info.open, g.from)).replace(':00', '') + ' – ' + clock(Math.min(info.close, g.to)).replace(':00', '');
             head.innerHTML = '<span class="bf-grp-name"><b>' + g.label + '</b><small>' + range + '</small></span>' +
-<<<<<<< HEAD
-                '<span class="bf-grp-meta">' + (hasPick ? '<em class="bf-grp-pick">' + clock(picked) + '</em>' : '<small>' + (g.free ? g.free + ' open' : 'None left') + '</small>') + '</span>' +
-=======
                 '<span class="bf-grp-meta">' + (hasPick ? '<em class="bf-grp-pick">' + win(picked) + '</em>' : '<small>' + (g.free ? g.free + ' open' : 'None left') + '</small>') + '</span>' +
->>>>>>> ef98a8e (Time arrival update)
                 '<i class="bi bi-chevron-down bf-grp-chev"></i>';
             wrap.appendChild(head);
             if (isOpen) {
                 const grid = document.createElement('div'); grid.className = 'bf-slot-grid';
                 g.list.forEach(([s, st]) => {
                     const b = document.createElement('button');
-<<<<<<< HEAD
-                    b.type = 'button'; b.className = 'bf-slot is-' + st; b.dataset.min = s; b.textContent = clock(s);
-=======
                     b.type = 'button'; b.className = 'bf-slot is-' + st; b.dataset.min = s; b.textContent = win(s);
->>>>>>> ef98a8e (Time arrival update)
                     if (st !== 'free') { b.disabled = true; b.title = st === 'past' ? 'This time has passed' : st === 'busy' ? 'Already booked' : 'Too close to closing time'; }
                     if (picked === s) { b.classList.add('is-picked'); b.setAttribute('aria-pressed', 'true'); }
                     grid.appendChild(b);
@@ -302,6 +314,14 @@
     };
     // Show only the extras that suit this court, and lights only for evening arrivals.
     function syncAddons(c) {
+        // Air-conditioning is for indoor courts only; Court B is outdoors.
+        cool.forEach(r => {
+            if (r.dataset.indoor !== '1') return;
+            const off = !!c && c.outdoor, small = r.closest('label').querySelector('small');
+            r.disabled = off; r.closest('label').classList.toggle('is-off', off);
+            if (off && r.checked) cool.find(x => x.value === '').checked = true;
+            small.textContent = off ? 'Indoor courts only (not on Court B)' : small.dataset.note;
+        });
         extras.forEach(e => {
             const types = JSON.parse(e.dataset.types), small = e.querySelector('small');
             const wrongType = types && (!c || types.indexOf(c.type) < 0);
@@ -344,12 +364,10 @@
 
         const ready = !!c && picked !== null && /^\d{4}-\d{2}-\d{2}$/.test(dv);
         $('submitBtn').disabled = !ready;
-        $('submitHint').textContent = note || (ready ? '' : 'Choose a court and arrival time to continue.');
-        $('submitHint').hidden = ready && !note;
+        $('submitHint').textContent = note;
+        $('submitHint').hidden = !note;
 
-        const link = $('availLink');
-        if (c) { link.href = baseUrl + '/' + c.id + (dv ? '?date=' + dv : ''); link.classList.remove('disabled'); link.removeAttribute('aria-disabled'); }
-        else { link.href = '#'; link.classList.add('disabled'); link.setAttribute('aria-disabled', 'true'); }
+        $('schedBtn').disabled = !c || !/^\d{4}-\d{2}-\d{2}$/.test(dv);
     }
 
     acts.forEach(a => a.addEventListener('click', () => { setSport(a.dataset.type); picked = null; timeIn.value = ''; note = ''; load(); }));
@@ -364,6 +382,38 @@
     extras.forEach(e => e.addEventListener('change', summary)); cool.forEach(r => r.addEventListener('change', summary));
     $('hrMinus').addEventListener('click', () => { if (hours > MIN) { hours--; note = ''; summary(); } });
     $('hrPlus').addEventListener('click', () => { if (hours < maxStay()) { hours++; note = ''; summary(); } });
+    // Popup: what is already booked on this court on the chosen day.
+    const schedModal = new bootstrap.Modal($('schedModal'));
+    function openSched() {
+        const c = court(), dv = dateIn.value; if (!c) return;
+        const dObj = new Date(dv + 'T00:00');
+        $('schKicker').textContent = dObj.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        $('schTitle').textContent = c.name;
+        $('schBody').innerHTML = '<p class="bf-empty m-3">Loading schedule…</p>';
+        schedModal.show();
+        fetch(busyUrl + '?facility_id=' + c.id + '&date=' + dv, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(j => {
+                const span = j.close - j.open, pct = m => Math.max(0, Math.min(100, (m - j.open) / span * 100));
+                const busy = j.busy.slice().sort((a, b) => a[0] - b[0]);
+                let free = [], from = j.open;
+                if (j.date === j.today) from = Math.max(from, Math.ceil((j.now + 1) / 30) * 30);
+                busy.forEach(b => { if (b[0] > from) free.push([from, b[0]]); from = Math.max(from, b[1]); });
+                if (from < j.close) free.push([from, j.close]);
+                free = free.filter(f => f[1] - f[0] >= 60);
+                let h = '<div class="sch-bar" aria-hidden="true">' + busy.map(b => '<i class="sch-seg" style="left:' + pct(b[0]) + '%;width:' + (pct(b[1]) - pct(b[0])) + '%"></i>').join('') + '</div>' +
+                    '<div class="sch-scale"><span>' + clock(j.open) + '</span><span>' + clock(j.close) + '</span></div>';
+                h += busy.length
+                    ? '<div class="sch-list"><small>Already booked</small>' + busy.map(b => '<div class="sch-row"><span>' + clock(b[0]) + ' – ' + clock(b[1]) + '</span><span class="pill pill-rejected">Booked</span></div>').join('') + '</div>'
+                    : '<div class="sch-none"><i class="bi bi-check-circle"></i> Nothing is booked on this day yet.</div>';
+                h += '<div class="sch-list"><small>Open for booking</small>' + (free.length
+                    ? free.map(f => '<div class="sch-row"><span>' + clock(f[0]) + ' – ' + clock(f[1]) + '</span><span class="pill pill-approved">Open</span></div>').join('')
+                    : '<div class="sch-row"><span>No open times left on this day.</span></div>') + '</div>';
+                $('schBody').innerHTML = h;
+            })
+            .catch(() => { $('schBody').innerHTML = '<p class="bf-empty m-3">Could not load the schedule. Try again.</p>'; });
+    }
+    $('schedBtn').addEventListener('click', openSched);
     // Keep "passed" slots current while the page stays open.
     setInterval(() => { if (info) { renderSlots(); summary(); } }, 30000);
 

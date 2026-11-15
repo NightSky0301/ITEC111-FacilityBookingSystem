@@ -52,6 +52,28 @@
     <?php endif; ?>
 </div>
 
+<?php if (! $manager && ! empty($next)):
+    $ns = strtotime($next['start_at']);
+    $ne = strtotime($next['end_at']);
+    $now = time();
+    if ($ns <= $now && $now < $ne) {
+        $nextRel = 'Happening now';
+    } else {
+        $days = (int) (new \DateTime(date('Y-m-d', $now)))->diff(new \DateTime(date('Y-m-d', $ns)))->format('%r%a');
+        $nextRel = $days === 0 ? 'Today' : ($days === 1 ? 'Tomorrow' : 'In ' . $days . ' days');
+    }
+?>
+<section class="bk-next" aria-label="Your next session">
+    <span class="bk-next-icon"><i class="bi bi-calendar-event"></i></span>
+    <div class="bk-next-body">
+        <div class="bk-next-kicker">Next session · <?= esc($nextRel) ?></div>
+        <h2 class="bk-next-title"><?= esc($next['facility_name']) ?></h2>
+        <div class="bk-next-when"><?= esc(fmt_range($next['start_at'], $next['end_at'])) ?></div>
+    </div>
+    <a class="btn btn-sm btn-light-on-dark" href="<?= site_url('calendar') ?>?<?= esc(http_build_query(['date' => date('Y-m-d', $ns), 'booking' => (int) $next['id']]), 'attr') ?>">Court schedule <i class="bi bi-arrow-right ms-1"></i></a>
+</section>
+<?php endif; ?>
+
 <section class="panel panel-table">
     <div class="panel-head">
         <div>
