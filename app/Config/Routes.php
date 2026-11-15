@@ -29,6 +29,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
 
     // Booking request (customers)
     $routes->get('bookings/new', 'Bookings::create');
+    $routes->get('bookings/busy', 'Bookings::busy');
     $routes->post('bookings', 'Bookings::store');
     $routes->get('my-bookings', 'Bookings::mine');
     $routes->post('bookings/(:num)/cancel', 'Bookings::cancel/$1');

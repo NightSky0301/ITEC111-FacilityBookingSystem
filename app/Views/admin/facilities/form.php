@@ -35,7 +35,7 @@
     </div>
     <div class="row">
         <div class="col-sm-6 mb-3">
-            <label class="form-label" for="capacity">Max players</label>
+            <label class="form-label" for="capacity">Max people</label>
             <input type="number" min="1" id="capacity" name="capacity" class="form-control" value="<?= esc(old('capacity', $facility['capacity'] ?? 1)) ?>" required>
         </div>
         <div class="col-sm-6 mb-3">

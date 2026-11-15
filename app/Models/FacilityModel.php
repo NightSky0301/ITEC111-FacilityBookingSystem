@@ -59,6 +59,37 @@ class FacilityModel extends Model
         'other'        => ['Other',        'Other facilities'],
     ];
 
+    /**
+     * Suggested number of people for each activity (information only, shown to customers).
+     * A court's own capacity can raise the top of the range but never lowers it.
+     */
+    public const PEOPLE = [
+        'basketball'   => [10, 15],
+        'badminton'    => [2, 4],
+        'pickleball'   => [2, 4],
+        'volleyball'   => [12, 18],
+        'tennis'       => [2, 4],
+        'futsal'       => [10, 14],
+        'multipurpose' => [10, 30],
+    ];
+
+    /** @return array{0:int,1:int} [min, max] people the court comfortably holds. */
+    public static function peopleRange(array $facility): array
+    {
+        $capacity = max(1, (int) ($facility['capacity'] ?? 1));
+        $range    = self::PEOPLE[$facility['type'] ?? ''] ?? [1, $capacity];
+
+        return [min($range[0], max($range[1], $capacity)), max($range[1], $capacity)];
+    }
+
+    /** "10–15 people" or "Up to 4 people". */
+    public static function peopleLabel(array $facility): string
+    {
+        [$min, $max] = self::peopleRange($facility);
+
+        return $min >= $max ? 'Up to ' . $max . ' people' : $min . '–' . $max . ' people';
+    }
+
     public function active(): array
     {
         return $this->where('status', 'active')->orderBy('type')->orderBy('name')->findAll();

@@ -13,7 +13,7 @@
 <div class="page-head">
     <div>
         <h1><?= esc($facility['name']) ?></h1>
-        <p><?= esc($activity) ?> · up to <?= (int) $facility['capacity'] ?> players · ₱<?= number_format($rate, 0) ?> per hour · Open <?= esc($opens) ?> – <?= esc($closes) ?></p>
+        <p><?= esc($activity) ?> · <?= esc(\App\Models\FacilityModel::peopleLabel($facility)) ?> · ₱<?= number_format($rate, 0) ?> per hour · Open <?= esc($opens) ?> – <?= esc($closes) ?></p>
     </div>
     <div class="page-actions">
         <?php if ($live['in_use']): ?>

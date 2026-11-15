@@ -28,7 +28,7 @@
 <?php else: ?>
 <div class="table-responsive">
 <table class="table data-table table-hover">
-    <thead><tr><th>Customer</th><th>Facility</th><th>When</th><th>Players</th><th>Status</th><th>Action</th></tr></thead>
+    <thead><tr><th>Customer</th><th>Facility</th><th>When</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
     <?php foreach ($bookings as $b): ?>
         <tr>
@@ -38,7 +38,6 @@
                 <?php if ($b['purpose']): ?><div class="cell-sub"><?= esc($b['purpose']) ?></div><?php endif; ?>
             </td>
             <td><?= esc(fmt_range($b['start_at'], $b['end_at'])) ?></td>
-            <td><?= (int) $b['guests'] ?></td>
             <td><?= status_badge($b['status']) ?><?php if ($b['admin_remarks']): ?><div class="cell-sub mt-1"><?= esc($b['admin_remarks']) ?></div><?php endif; ?></td>
             <td>
                 <?php if ($b['status'] === 'pending'): ?>

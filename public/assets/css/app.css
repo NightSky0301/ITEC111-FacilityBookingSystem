@@ -715,3 +715,72 @@ a.cal-day:focus-visible { outline: 2px solid var(--lagoon); outline-offset: 2px;
     .notif-list .note .d-flex { flex-direction: column; gap: .1rem !important; }
     .notif-list .note-time { order: -1; }
 }
+
+/* ---------- New booking form ---------- */
+.bf .bf-sec { margin-bottom: 1.75rem; }
+.bf-h { font-family: var(--font-body, inherit); font-size: .95rem; font-weight: 700; color: var(--lagoon); margin: 0 0 .75rem; }
+.bf-h-row { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-bottom: .75rem; }
+.bf-h-row .bf-h { margin: 0; }
+.bf-open { color: var(--muted); font-size: .82rem; }
+.bf-empty { color: var(--muted); font-size: .9rem; margin: 0 0 .75rem; padding: .85rem 1rem; border: 1px dashed var(--line-strong); border-radius: 12px; background: #fbfcfb; }
+.bf-empty[hidden] { display: none; }
+
+.bf-acts { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .6rem; }
+.bf-act { display: flex; align-items: center; gap: .65rem; padding: .6rem .75rem; border: 1.5px solid var(--line-strong); border-radius: 12px; background: #fff; color: var(--ink); font-weight: 600; font-size: .88rem; text-align: left; transition: border-color .15s, background .15s, box-shadow .15s; }
+.bf-act:hover { border-color: var(--lagoon); }
+.bf-act-ic { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: #e3eeee; color: var(--lagoon); font-size: 1rem; }
+.bf-act[aria-checked="true"] { border-color: var(--lagoon); background: #f2f8f7; box-shadow: 0 0 0 3px rgba(14, 59, 63, .1); }
+.bf-act[aria-checked="true"] .bf-act-ic { background: var(--lagoon); color: #fff; }
+
+.bf-courts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .75rem; }
+.bf-court { position: relative; display: block; border: 1.5px solid var(--line-strong); border-radius: 14px; overflow: hidden; background: #fff; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.bf-court[hidden] { display: none; }
+.bf-court input { position: absolute; opacity: 0; pointer-events: none; }
+.bf-court img { display: block; width: 100%; aspect-ratio: 16 / 7; object-fit: cover; }
+.bf-court-body { display: flex; flex-direction: column; gap: .15rem; padding: .7rem .85rem .8rem; font-size: .85rem; color: var(--muted); }
+.bf-court-body strong { color: var(--ink); font-size: .95rem; }
+.bf-price { color: var(--lagoon); font-weight: 700; }
+.bf-price small { color: var(--muted); font-weight: 500; }
+.bf-tick { position: absolute; top: .6rem; right: .6rem; font-size: 1.3rem; color: var(--lagoon); background: #fff; border-radius: 50%; line-height: 1; display: none; }
+.bf-court:hover { border-color: var(--lagoon); }
+.bf-court:has(input:checked) { border-color: var(--lagoon); box-shadow: 0 0 0 3px rgba(14, 59, 63, .12); }
+.bf-court:has(input:checked) .bf-tick { display: block; }
+.bf-court:has(input:focus-visible) { outline: 3px solid var(--brass); outline-offset: 2px; }
+
+.bf-dates { display: flex; flex-wrap: wrap; gap: .5rem; }
+.bf-date { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 68px; padding: .5rem .6rem; border: 1.5px solid var(--line-strong); border-radius: 12px; background: #fff; color: var(--ink); line-height: 1.15; cursor: pointer; transition: border-color .15s, background .15s; }
+.bf-date small { color: var(--muted); font-size: .7rem; font-weight: 600; }
+.bf-date b { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bf-date:hover { border-color: var(--brass); }
+.bf-date.is-on { background: var(--brass); border-color: var(--brass); color: #fff; }
+.bf-date.is-on small { color: rgba(255, 255, 255, .85); }
+.bf-date-pick i { font-size: 1.15rem; margin-bottom: .1rem; }
+.bf-date-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.bf-date-pick input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+
+.bf-slot-group + .bf-slot-group { margin-top: 1rem; }
+.bf-slot-group h3 { font-size: .78rem; font-weight: 700; color: var(--muted); margin: 0 0 .45rem; }
+.bf-slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: .45rem; }
+.bf-slot { padding: .5rem .25rem; border: 1.5px solid var(--line-strong); border-radius: 10px; background: #fff; color: var(--ink); font-size: .85rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; transition: border-color .12s, background .12s; }
+.bf-slot.is-free:hover { border-color: var(--brass); background: #fbf6ea; }
+.bf-slot.is-picked { background: var(--brass); border-color: var(--brass); color: #fff; box-shadow: 0 4px 10px rgba(168, 120, 43, .3); }
+.bf-slot:disabled { cursor: not-allowed; }
+.bf-slot.is-busy { background: var(--bad-soft); border-color: transparent; color: var(--bad); text-decoration: line-through; }
+.bf-slot.is-past, .bf-slot.is-fit, .bf-slot.is-off { background: #f3f5f4; border-color: transparent; color: #a7b1ae; }
+.bf-slot:focus-visible, .bf-act:focus-visible, .bf-date:focus-visible { outline: 3px solid var(--brass); outline-offset: 2px; }
+
+.bf-legend { display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; margin-top: .9rem; color: var(--muted); font-size: .78rem; }
+.bf-legend span { display: inline-flex; align-items: center; gap: .4rem; }
+.lg { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--line-strong); background: #fff; }
+.lg-sel { background: var(--brass); border-color: var(--brass); }
+.lg-busy { background: var(--bad-soft); border-color: transparent; }
+.lg-off { background: #f3f5f4; border-color: transparent; }
+
+.bf-people { display: flex; align-items: center; gap: .9rem; padding: .9rem 1rem; border: 1px solid var(--line); border-radius: var(--radius-lg); background: #f6f9f8; }
+.bf-people strong { display: block; }
+.bf-people span:not(.duration-icon) { display: block; color: var(--muted); font-size: .87rem; }
+.bf-people.is-on span:not(.duration-icon) { color: var(--ink); }
+@media (max-width: 575.98px) {
+    .bf-slot-grid { grid-template-columns: repeat(3, 1fr); }
+    .bf-courts { grid-template-columns: 1fr; }
+}

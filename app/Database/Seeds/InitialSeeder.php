@@ -45,12 +45,14 @@ class InitialSeeder extends Seeder
         // type must be one of the keys in FacilityModel::TYPES.
         // Court photos are generated automatically from the type and the A/B name.
         $courts = [
-            ['Basketball Court A', 'basketball', 'Indoor full court with wooden floor, scoreboard and lights.', 10, 800],
-            ['Basketball Court B', 'basketball', 'Outdoor court with night lights. Ball not included.', 10, 500],
+            ['Basketball Court A', 'basketball', 'Indoor full court with wooden floor, scoreboard and lights.', 15, 800],
+            ['Basketball Court B', 'basketball', 'Outdoor court with night lights. Ball not included.', 15, 500],
             ['Badminton Court A',  'badminton',  'Indoor court with wooden floor. Shuttlecocks sold on site.', 4, 250],
             ['Badminton Court B',  'badminton',  'Indoor court next to Court A. Good for practice and casual games.', 4, 250],
             ['Pickleball Court A', 'pickleball', 'Standard court with net and lines. Paddles can be rented at the counter.', 4, 350],
             ['Pickleball Court B', 'pickleball', 'Standard court with net and lines. Paddles can be rented at the counter.', 4, 350],
+            ['Volleyball Court A', 'volleyball', 'Indoor court with adjustable net and wooden floor.', 18, 450],
+            ['Volleyball Court B', 'volleyball', 'Outdoor sand court with night lights. Ball not included.', 18, 400],
         ];
 
         $rows = [];

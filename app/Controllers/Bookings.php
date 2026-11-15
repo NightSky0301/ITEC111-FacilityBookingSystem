@@ -39,8 +39,47 @@ class Bookings extends BaseController
             'selected'   => (int) $this->request->getGet('facility_id'),
             'startDate'  => $startDate,
             'startTime'  => $startTime,
+            'courts'     => array_map(static fn ($f) => [
+                'id'    => (int) $f['id'],
+                'type'  => $f['type'],
+                'name'  => $f['name'],
+                'price' => (float) $f['price_per_hour'],
+                'img'   => facility_image($f),
+                'people' => FacilityModel::peopleLabel($f),
+            ], $facilities->active()),
+            'open'       => FacilityModel::OPEN_HOUR,
+            'close'      => FacilityModel::CLOSE_HOUR,
             'minHours'   => FacilityModel::MIN_HOURS,
             'maxHours'   => FacilityModel::MAX_HOURS,
+        ]);
+    }
+
+    /** JSON for the time picker: approved sessions on one court and day, plus the server's clock. */
+    public function busy()
+    {
+        $facilityId = (int) $this->request->getGet('facility_id');
+        $date       = (string) $this->request->getGet('date');
+        if ($facilityId < 1 || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || ! strtotime($date)) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Bad request']);
+        }
+
+        $dayStart = strtotime($date . ' 00:00:00');
+        $dayEnd   = $dayStart + 86400;
+        $busy     = [];
+        foreach ((new BookingModel())->sessionsBetween($facilityId, date('Y-m-d H:i:s', $dayStart), date('Y-m-d H:i:s', $dayEnd)) as $b) {
+            $busy[] = [
+                (int) max(0, round((strtotime($b['start_at']) - $dayStart) / 60)),
+                (int) min(1440, round((strtotime($b['end_at']) - $dayStart) / 60)),
+            ];
+        }
+
+        return $this->response->setJSON([
+            'date'  => $date,
+            'today' => date('Y-m-d'),
+            'now'   => (int) date('G') * 60 + (int) date('i'),
+            'open'  => FacilityModel::OPEN_HOUR * 60,
+            'close' => FacilityModel::CLOSE_HOUR * 60,
+            'busy'  => $busy,
         ]);
     }
 
@@ -48,7 +87,6 @@ class Bookings extends BaseController
     {
         $rules = [
             'facility_id' => 'required|is_natural_no_zero',
-            'guests'      => 'required|is_natural_no_zero',
             'purpose'     => 'permit_empty|max_length[255]',
         ];
         if (! $this->validate($rules)) {
@@ -74,8 +112,9 @@ class Bookings extends BaseController
         if ($startTs === null) {
             return redirect()->back()->withInput()->with('error', 'Please choose a valid date and time in.');
         }
-        if ($startTs < time()) {
-            return redirect()->back()->withInput()->with('error', 'Time in must be in the future.');
+        // Anything earlier than the current minute has already passed (5:00 PM is still fine at 5:00:30 PM).
+        if ($startTs < strtotime(date('Y-m-d H:i:00'))) {
+            return redirect()->back()->withInput()->with('error', 'That time has already passed. Please choose a time from now onward.');
         }
 
         // Courts are rented per hour: 1 hour minimum, added one hour at a time with the + / - stepper.
@@ -87,10 +126,15 @@ class Bookings extends BaseController
         }
         $endTs = $startTs + FacilityModel::durationMinutes($hours) * 60;
 
-        $guests = (int) $this->request->getPost('guests');
-        if ($guests > (int) $facility['capacity']) {
-            return redirect()->back()->withInput()->with('error', 'Maximum capacity for ' . $facility['name'] . ' is ' . $facility['capacity'] . ' players.');
+        // The whole session has to fall inside opening hours, on the same day.
+        $opens  = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::OPEN_HOUR));
+        $closes = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::CLOSE_HOUR));
+        if ($startTs < $opens || $endTs > $closes) {
+            return redirect()->back()->withInput()->with('error', 'Bookings must fall within opening hours (' . date('g:i A', $opens) . ' – ' . date('g:i A', $closes) . '). Choose an earlier time in or fewer hours.');
         }
+
+        // The form no longer asks for a head count; the suggested number of people is information only.
+        $guests = FacilityModel::peopleRange($facility)[1];
 
         $startAt  = date('Y-m-d H:i:s', $startTs);
         $endAt    = date('Y-m-d H:i:s', $endTs);

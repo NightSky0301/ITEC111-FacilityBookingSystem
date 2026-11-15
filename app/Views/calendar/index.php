@@ -68,7 +68,6 @@ document.addEventListener('DOMContentLoaded', function () {
             let html = '<dl class="detail-list">' +
                 '<dt>Facility</dt><dd>' + esc(p.facility) + '</dd>' +
                 '<dt>When</dt><dd>' + esc(fmt(info.event.start)) + ' to ' + esc(fmt(info.event.end)) + '</dd>' +
-                '<dt>Players</dt><dd>' + esc(p.guests) + '</dd>' +
                 '<dt>Status</dt><dd>' + esc(p.status.charAt(0).toUpperCase() + p.status.slice(1)) + '</dd>';
             if (p.purpose) html += '<dt>Purpose</dt><dd>' + esc(p.purpose) + '</dd>';
             document.getElementById('evBody').innerHTML = html + '</dl>';

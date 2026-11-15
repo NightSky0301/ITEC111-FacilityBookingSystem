@@ -122,7 +122,6 @@
             <thead><tr>
                 <th>Court</th>
                 <th>When</th>
-                <th>Players</th>
                 <th class="text-end">Total</th>
                 <th>Status</th>
                 <th class="text-end"></th>
@@ -170,10 +169,6 @@
                                 <?php if ($relText): ?><span class="bk-rel <?= esc($relClass, 'attr') ?>"><?= esc($relText) ?></span><?php endif; ?>
                             </div>
                         </div>
-                    </td>
-
-                    <td class="c-players">
-                        <span class="bk-players"><i class="bi bi-people"></i><?= (int) $b['guests'] ?></span>
                     </td>
 
                     <td class="c-total text-end">

@@ -101,7 +101,6 @@ class Facilities extends BaseController
                 'mine'     => $mine,
                 'who'      => $isManager ? $b['customer_name'] : ($mine ? 'You' : 'Reserved'),
                 'purpose'  => ($isManager || $mine) ? $b['purpose'] : null,
-                'players'  => (int) $b['guests'],
             ];
         }
 

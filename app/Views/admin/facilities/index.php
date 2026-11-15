@@ -14,7 +14,7 @@
 <?php else: ?>
 <div class="table-responsive">
 <table class="table data-table table-hover">
-    <thead><tr><th>Court</th><th>Type</th><th>Max players</th><th>Price per hour</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Court</th><th>Type</th><th>Max people</th><th>Price per hour</th><th>Status</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($facilities as $f): ?>
         <tr>

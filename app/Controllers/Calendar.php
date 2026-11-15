@@ -74,7 +74,6 @@ class Calendar extends BaseController
                 'extendedProps'   => [
                     'status'   => $b['status'],
                     'facility' => $b['facility_name'],
-                    'guests'   => $b['guests'],
                     'purpose'  => ($isAdmin || $mine) ? $b['purpose'] : null,
                 ],
             ];

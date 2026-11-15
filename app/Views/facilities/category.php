@@ -27,7 +27,7 @@
                         <p class="small text-muted mb-2">Next session starts at <?= esc(fmt_time($live['next'])) ?>.</p>
                     <?php endif; ?>
                     <div class="plaque-meta">
-                        <span><i class="bi bi-people"></i> Up to <?= (int) $c['capacity'] ?> players</span>
+                        <span><i class="bi bi-people"></i> <?= esc(\App\Models\FacilityModel::peopleLabel($c)) ?></span>
                         <span class="plaque-price">₱<?= number_format((float) $c['price_per_hour'], 0) ?> <small>/ hour</small></span>
                     </div>
                     <a class="btn btn-primary btn-sm w-100" href="<?= site_url('facilities/court/' . (int) $c['id']) ?>">See availability</a>
