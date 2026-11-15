@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\Addons;
 use App\Libraries\NotificationService;
 use App\Models\BookingModel;
 use App\Models\FacilityModel;
@@ -47,6 +48,8 @@ class Bookings extends BaseController
                 'img'   => facility_image($f),
                 'people' => FacilityModel::peopleLabel($f),
             ], $facilities->active()),
+            'addons'     => Addons::CATALOG,
+            'eveningFrom' => Addons::EVENING_FROM,
             'open'       => FacilityModel::OPEN_HOUR,
             'close'      => FacilityModel::CLOSE_HOUR,
             'minHours'   => FacilityModel::MIN_HOURS,
@@ -110,7 +113,7 @@ class Bookings extends BaseController
             }
         }
         if ($startTs === null) {
-            return redirect()->back()->withInput()->with('error', 'Please choose a valid date and time in.');
+            return redirect()->back()->withInput()->with('error', 'Please choose a valid arrival time.');
         }
         // Anything earlier than the current minute has already passed (5:00 PM is still fine at 5:00:30 PM).
         if ($startTs < strtotime(date('Y-m-d H:i:00'))) {
@@ -136,9 +139,17 @@ class Bookings extends BaseController
         // The form no longer asks for a head count; the suggested number of people is information only.
         $guests = FacilityModel::peopleRange($facility)[1];
 
+        // Add-ons: lights (evening only), fan or AC (one of them), rentals. Priced here, never taken from the form.
+        $keys   = (array) $this->request->getPost('addons');
+        $keys[] = (string) $this->request->getPost('cooling');
+        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours);
+        if (is_string($addons)) {
+            return redirect()->back()->withInput()->with('error', $addons);
+        }
+
         $startAt  = date('Y-m-d H:i:s', $startTs);
         $endAt    = date('Y-m-d H:i:s', $endTs);
-        $total    = FacilityModel::totalPrice((float) $facility['price_per_hour'], $hours);
+        $total    = FacilityModel::totalPrice((float) $facility['price_per_hour'], $hours) + $addons['total'];
         $bookings = new BookingModel();
 
         if ($bookings->hasConflict((int) $facility['id'], $startAt, $endAt)) {
@@ -151,6 +162,8 @@ class Bookings extends BaseController
             'start_at'    => $startAt,
             'end_at'      => $endAt,
             'guests'      => $guests,
+            'addons'      => $addons['items'] ? json_encode($addons['items']) : null,
+            'addons_total' => $addons['total'],
             'purpose'     => trim((string) $this->request->getPost('purpose')),
             'status'      => 'pending',
         ], true);

@@ -36,6 +36,7 @@
             <td>
                 <div class="cell-title"><?= esc($b['facility_name']) ?></div>
                 <?php if ($b['purpose']): ?><div class="cell-sub"><?= esc($b['purpose']) ?></div><?php endif; ?>
+                <?php if (! empty($b['addons'])): ?><div class="cell-sub">Add-ons: <?= esc(implode(', ', array_column(json_decode($b['addons'], true) ?: [], 'label'))) ?> (₱<?= number_format((float) $b['addons_total'], 2) ?>)</div><?php endif; ?>
             </td>
             <td><?= esc(fmt_range($b['start_at'], $b['end_at'])) ?></td>
             <td><?= status_badge($b['status']) ?><?php if ($b['admin_remarks']): ?><div class="cell-sub mt-1"><?= esc($b['admin_remarks']) ?></div><?php endif; ?></td>

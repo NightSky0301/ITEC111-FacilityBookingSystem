@@ -43,10 +43,10 @@
                             <li class="nav-item"><a class="nav-link <?= $active('admin', 'facilities') ?>" href="<?= site_url('admin/facilities') ?>">Facilities</a></li>
                             <li class="nav-item"><a class="nav-link <?= $active('admin', 'users') ?>" href="<?= site_url('admin/users') ?>">Users</a></li>
                         <?php else: ?>
-                            <li class="nav-item"><a class="nav-link <?= $active('facilities') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
+                            <li class="nav-item"><a class="nav-link <?= $active('facilities') ?: ($seg1 === 'bookings' && $seg2 === 'new' ? 'active' : '') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
                         <?php endif; ?>
                     <?php else: ?>
-                        <li class="nav-item"><a class="nav-link <?= $active('facilities') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $active('facilities') ?: ($seg1 === 'bookings' && $seg2 === 'new' ? 'active' : '') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
                         <li class="nav-item"><a class="nav-link <?= $active('my-bookings') ?>" href="<?= site_url('my-bookings') ?>">My bookings</a></li>
                     <?php endif; ?>
                 </ul>

@@ -27,7 +27,7 @@
             'upcoming' => $upcoming,
             'done'     => $status === 'approved' && $e <= $now,
             'hours'    => $hours,
-            'total'    => $hours * $price,
+            'total'    => $hours * $price + (float) ($b['addons_total'] ?? 0),
             'tags'     => $tags,
         ];
     }
@@ -166,6 +166,7 @@
                                     <div class="cell-title"><?= esc(fmt_range($b['start_at'], $b['end_at'])) ?></div>
                                     <div class="cell-sub"><?= esc($fmtHours($r['hours'])) ?></div>
                                 <?php endif; ?>
+                                <?php if (! empty($b['addons'])): ?><div class="cell-sub">+ <?= esc(implode(', ', array_column(json_decode($b['addons'], true) ?: [], 'label'))) ?></div><?php endif; ?>
                                 <?php if ($relText): ?><span class="bk-rel <?= esc($relClass, 'attr') ?>"><?= esc($relText) ?></span><?php endif; ?>
                             </div>
                         </div>

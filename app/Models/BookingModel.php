@@ -11,7 +11,7 @@ class BookingModel extends Model
     protected $returnType    = 'array';
     protected $allowedFields = [
         'facility_id', 'user_id', 'start_at', 'end_at', 'guests',
-        'purpose', 'status', 'admin_remarks',
+        'purpose', 'status', 'admin_remarks', 'addons', 'addons_total',
     ];
     protected $useTimestamps = true;
 
