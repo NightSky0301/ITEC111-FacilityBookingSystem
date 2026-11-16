@@ -5,7 +5,7 @@
         <?php if ($unread > 0): ?>
             <form method="post" action="<?= site_url('notifications/read-all') ?>" data-notif-readall>
                 <?= csrf_field() ?>
-                <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check2-all me-1"></i> Mark all as read</button>
+                <button type="submit" class="btn btn-sm btn-gold"><i class="bi bi-check2-all me-1"></i> Mark all as read</button>
             </form>
         <?php endif; ?>
     </div>

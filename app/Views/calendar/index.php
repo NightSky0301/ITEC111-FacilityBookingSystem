@@ -39,10 +39,8 @@
             <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="ev-body" id="evBody"></div>
-        <div class="ev-foot">
-            <a href="#" id="evLink" class="btn btn-sm btn-outline-secondary">Court schedule</a>
-            <a href="#" id="evBook" class="btn btn-sm btn-gold d-none">Book this day</a>
-            <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">Close</button>
+        <div class="ev-foot d-none" id="evFoot">
+            <a href="#" id="evBook" class="btn btn-sm btn-gold">Book this day</a>
         </div>
     </div></div>
 </div>
@@ -77,10 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (p.purpose) html += row('bi-chat-left-text', 'Notes', esc(p.purpose));
         if (p.total !== null && p.total !== undefined) html += '<div class="ev-total"><span>Total payment</span><strong>' + peso(p.total) + '</strong></div>';
         document.getElementById('evBody').innerHTML = html;
-        const ymd = s.getFullYear() + '-' + String(s.getMonth() + 1).padStart(2, '0') + '-' + String(s.getDate()).padStart(2, '0');
-        document.getElementById('evLink').href = '<?= site_url('facilities/court') ?>/' + p.facility_id + '?date=' + ymd;
-        document.getElementById('evLink').classList.remove('d-none');
-        document.getElementById('evBook').classList.add('d-none');
+        document.getElementById('evFoot').classList.add('d-none');
         modal.show();
     }
 
@@ -103,21 +98,49 @@ document.addEventListener('DOMContentLoaded', function () {
             html = '<div class="ev-empty"><span class="ev-row-ic"><i class="bi bi-calendar-x"></i></span><div><b>No bookings on this day</b>You have nothing booked or waiting for approval.</div></div>';
         }
         document.getElementById('evBody').innerHTML = html;
-        document.getElementById('evLink').classList.add('d-none');
         const book = document.getElementById('evBook'), today = ymdOf(new Date());
         if (day >= today) {
             const qs = new URLSearchParams();
             if (filter.value) qs.set('facility_id', filter.value);
             qs.set('start', day + 'T' + (timeStr && timeStr.length >= 5 ? timeStr.substring(0, 5) : '09:00'));
             book.href = '<?= site_url('bookings/new') ?>?' + qs.toString();
-            book.classList.remove('d-none');
-        } else { book.classList.add('d-none'); }
+            document.getElementById('evFoot').classList.remove('d-none');
+        } else { document.getElementById('evFoot').classList.add('d-none'); }
         modal.show();
     }
     document.getElementById('evBody').addEventListener('click', function (e) {
         const b = e.target.closest('.ev-item'); if (!b) return;
         const ev = calendar.getEventById(b.dataset.id); if (ev) showEvent(ev);
     });
+
+    // Month view: instead of stacking a bar per booking, show one small count chip per kind.
+    const CHIP = { mine: 'Yours', pending: 'Waiting', booked: 'Booked' };
+    function paintChips() {
+        const root = document.getElementById('calendar');
+        root.querySelectorAll('.day-chips').forEach(n => n.remove());
+        if (calendar.view.type !== 'dayGridMonth') return;
+        const by = {};
+        calendar.getEvents().forEach(e => {
+            const d = ymdOf(e.start), k = e.extendedProps.kind;
+            ((by[d] = by[d] || {})[k] = (by[d][k] || 0) + 1);
+        });
+        root.querySelectorAll('.fc-daygrid-day[data-date]').forEach(cell => {
+            const c = by[cell.dataset.date]; if (!c) return;
+            const frame = cell.querySelector('.fc-daygrid-day-frame'); if (!frame) return;
+            const box = document.createElement('div');
+            box.className = 'day-chips';
+            ['mine', 'pending', 'booked'].forEach(k => {
+                if (!c[k]) return;
+                const chip = document.createElement('span');
+                chip.className = 'day-chip dc-' + k;
+                chip.title = c[k] + ' ' + CHIP[k].toLowerCase();
+                chip.innerHTML = '<i></i><b>' + c[k] + '</b><em>' + CHIP[k] + '</em>';
+                box.appendChild(chip);
+            });
+            frame.appendChild(box);
+        });
+    }
+    const repaint = () => setTimeout(paintChips, 0);
 
     const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
         initialView: small ? 'listWeek' : 'dayGridMonth',
@@ -138,7 +161,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (filter.value) url.searchParams.set('facility_id', filter.value);
             fetch(url, { credentials: 'same-origin' }).then(r => r.json()).then(success).catch(failure);
         },
+        datesSet: repaint,
+        windowResize: repaint,
         eventsSet: function () {
+            repaint();
             // Arrived from the dashboard: open that booking's popup once it has loaded.
             if (!wantBooking) return;
             const ev = calendar.getEventById(wantBooking);
@@ -147,6 +173,8 @@ document.addEventListener('DOMContentLoaded', function () {
         eventClick: function (info) { info.jsEvent.preventDefault(); showEvent(info.event); },
         <?php if (! is_manager()): ?>
         dateClick: function (info) { showDay(info.dateStr, info.dateStr.length > 10 ? info.dateStr.substring(11, 16) : ''); },
+        <?php else: ?>
+        dateClick: function (info) { calendar.changeView('timeGridDay', info.dateStr.substring(0, 10)); },
         <?php endif; ?>
     });
     calendar.render();
