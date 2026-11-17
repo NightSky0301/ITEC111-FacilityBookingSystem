@@ -11,7 +11,7 @@
     </div>
     <div class="page-actions">
         <label class="visually-hidden" for="facilityFilter">Facility</label>
-        <select id="facilityFilter" class="form-select">
+        <select id="facilityFilter" class="form-select" data-dd>
             <option value="">All facilities</option>
             <?php foreach ($facilities as $f): ?>
                 <option value="<?= (int) $f['id'] ?>" <?= (int) service('request')->getGet('facility_id') === (int) $f['id'] ? 'selected' : '' ?>><?= esc($f['name']) ?></option>
@@ -20,10 +20,11 @@
     </div>
 </div>
 
-<div class="legend">
-    <span><i style="background:#f6dedb;border-left:4px solid #a93d36"></i> Booked</span>
-    <span><i style="background:#fbf1d9;border-left:4px solid #c28a1c"></i> Waiting for approval</span>
-    <span><i style="background:#e3eeee;border-left:4px solid #0e3b3f"></i> <?= is_manager() ? 'Your own booking' : 'Your booking' ?></span>
+<div class="legend" role="list" aria-label="Calendar legend">
+    <span class="legend-title">Legend</span>
+    <span role="listitem"><i class="lg-booked" aria-hidden="true"></i> Booked</span>
+    <span role="listitem"><i class="lg-pending" aria-hidden="true"></i> Waiting for approval</span>
+    <span role="listitem"><i class="lg-mine" aria-hidden="true"></i> <?= is_manager() ? 'Your own booking' : 'Your booking' ?></span>
 </div>
 
 <div class="panel cal-fc"><div class="panel-body"><div id="calendar"></div></div></div>

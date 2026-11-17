@@ -31,7 +31,7 @@
             <td class="text-end text-nowrap">
                 <a href="<?= site_url('facilities/court/' . (int) $f['id']) ?>" class="btn btn-sm btn-outline-secondary">Schedule</a>
                 <a href="<?= site_url('admin/facilities/' . (int) $f['id'] . '/edit') ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                <form method="post" action="<?= site_url('admin/facilities/' . (int) $f['id'] . '/delete') ?>" class="d-inline" onsubmit="return confirm('Delete this facility? Facilities with booking history are set to inactive instead.')">
+                <form method="post" action="<?= site_url('admin/facilities/' . (int) $f['id'] . '/delete') ?>" class="d-inline" data-confirm="<?= esc($f['name'] . ' will be moved to the Archive. Booking history is kept and you can restore it any time.', 'attr') ?>" data-confirm-title="Delete this facility?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
                     <?= csrf_field() ?>
                     <button class="btn btn-sm btn-outline-danger">Delete</button>
                 </form>

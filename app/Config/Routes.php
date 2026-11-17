@@ -13,6 +13,10 @@ $routes->post('login', 'Auth::attemptLogin');
 $routes->get('register', 'Auth::register');
 $routes->post('register', 'Auth::attemptRegister');
 $routes->get('logout', 'Auth::logout');
+$routes->get('forgot-password', 'PasswordReset::forgot');
+$routes->post('forgot-password', 'PasswordReset::sendLink');
+$routes->get('reset-password/(:segment)', 'PasswordReset::reset/$1');
+$routes->post('reset-password/(:segment)', 'PasswordReset::update/$1');
 
 // ---------- Logged-in users (customer + staff + admin) ----------
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
@@ -65,4 +69,11 @@ $routes->group('admin', ['filter' => 'admin', 'namespace' => 'App\Controllers\Ad
     $routes->get('users/(:num)/edit', 'Users::edit/$1');
     $routes->post('users/(:num)', 'Users::update/$1');
     $routes->post('users/(:num)/toggle', 'Users::toggle/$1');
+    $routes->post('users/(:num)/delete', 'Users::delete/$1');
+
+    $routes->post('bookings/(:num)/delete', 'Bookings::delete/$1');
+
+    // Archive: deleted facilities, users and bookings, with restore
+    $routes->get('archive', 'Archive::index');
+    $routes->post('archive/(:segment)/(:num)/restore', 'Archive::restore/$1/$2');
 });

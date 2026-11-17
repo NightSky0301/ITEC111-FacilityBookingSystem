@@ -175,7 +175,7 @@
 
                     <td class="c-act text-end">
                         <?php if ($canCancel): ?>
-                            <form method="post" action="<?= site_url('bookings/' . (int) $b['id'] . '/cancel') ?>" onsubmit="return confirm('<?= esc($confirmText, 'js') ?>')">
+                            <form method="post" action="<?= site_url('bookings/' . (int) $b['id'] . '/cancel') ?>" data-confirm="<?= esc($confirmText, 'attr') ?>" data-confirm-title="Cancel this booking?" data-confirm-ok="Yes, cancel" data-confirm-cancel="Keep it" data-confirm-icon="bi-calendar-x">
                                 <?= csrf_field() ?>
                                 <button class="btn btn-sm btn-outline-danger">Cancel</button>
                             </form>

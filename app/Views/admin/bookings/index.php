@@ -8,13 +8,13 @@
 </div>
 
 <form method="get" class="filter-bar">
-    <select name="status" class="form-select" aria-label="Filter by status" onchange="this.form.submit()">
+    <select name="status" class="form-select" data-dd aria-label="Filter by status" onchange="this.form.submit()">
         <option value="">All statuses</option>
         <?php foreach (['pending', 'approved', 'rejected', 'cancelled'] as $s): ?>
             <option value="<?= $s ?>" <?= $status === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
         <?php endforeach; ?>
     </select>
-    <select name="facility_id" class="form-select" aria-label="Filter by facility" onchange="this.form.submit()">
+    <select name="facility_id" class="form-select" data-dd aria-label="Filter by facility" onchange="this.form.submit()">
         <option value="">All facilities</option>
         <?php foreach ($facilities as $f): ?>
             <option value="<?= (int) $f['id'] ?>" <?= (int) $facilityId === (int) $f['id'] ? 'selected' : '' ?>><?= esc($f['name']) ?></option>
@@ -58,10 +58,17 @@
                         </div>
                     </form>
                 <?php elseif ($b['status'] === 'approved'): ?>
-                    <form method="post" class="action-stack" onsubmit="return confirm('Cancel this approved booking?')">
+                    <form method="post" class="action-stack" data-confirm="The customer will be notified that this approved booking was cancelled." data-confirm-title="Cancel this booking?" data-confirm-ok="Cancel booking" data-confirm-cancel="Keep it" data-confirm-icon="bi-calendar-x">
                         <?= csrf_field() ?>
                         <input type="text" name="admin_remarks" class="form-control form-control-sm" placeholder="Reason (optional)" aria-label="Reason">
                         <div class="btn-row"><button formaction="<?= site_url('manage/bookings/' . (int) $b['id'] . '/cancel') ?>" class="btn btn-sm btn-outline-danger">Cancel booking</button></div>
+                    </form>
+                <?php endif; ?>
+                <?php if (is_admin()): ?>
+                    <form method="post" action="<?= site_url('admin/bookings/' . (int) $b['id'] . '/delete') ?>" class="mt-1"
+                          data-confirm="This booking will be moved to the Archive and its time slot freed. You can restore it from the Archive." data-confirm-title="Delete this booking?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
+                        <?= csrf_field() ?>
+                        <button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-trash me-1"></i>Delete</button>
                     </form>
                 <?php endif; ?>
             </td>

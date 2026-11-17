@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= esc($title ?? 'Facility Booking') ?></title>
+    <title><?= esc($title ?? 'Athletix') ?></title>
     <link rel="preload" href="<?= base_url('assets/vendor/fonts/fraunces-600.woff2') ?>" as="font" type="font/woff2" crossorigin>
     <link href="<?= base_url('assets/vendor/bootstrap.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/vendor/icons/bootstrap-icons.min.css') ?>" rel="stylesheet">
@@ -12,10 +12,7 @@
 <body>
 <div class="auth-split">
     <aside class="auth-art">
-        <a class="brand" href="<?= site_url('/') ?>">
-            <span class="brand-mark"><i class="bi bi-trophy"></i></span>
-            <span>Facility Booking</span>
-        </a>
+        <a class="brand brand-hero" href="<?= site_url('/') ?>" aria-label="Athletix"><span class="brand-logo brand-logo-hero"><img src="<?= base_url('assets/img/logo-lg.png') ?>" alt="" width="72" height="72"></span><span class="brand-word">Athleti<b>x</b></span></a>
         <div>
             <h2>Reserve your court in minutes.</h2>
             <p>Basketball, volleyball, pickleball and more. See which courts are free, send a request, and get notified when it is approved.</p>
@@ -25,9 +22,8 @@
 
     <section class="auth-panel">
         <div class="auth-box">
-            <a class="brand auth-brand-mobile" href="<?= site_url('/') ?>">
-                <span class="brand-mark" style="color: var(--brass); border-color: var(--brass)"><i class="bi bi-trophy"></i></span>
-                <span>Facility Booking</span>
+            <a class="auth-logo-link" href="<?= site_url('/') ?>" aria-label="<?= esc('Athletix') ?>">
+                <img class="auth-logo" src="<?= base_url('assets/img/logo-lg.png') ?>" alt="" width="120" height="120">
             </a>
             <?= $this->include('layouts/alerts') ?>
             <?= $this->renderSection('content') ?>
@@ -36,5 +32,6 @@
 </div>
 <script src="<?= base_url('assets/vendor/bootstrap.bundle.min.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>
+<?= $this->renderSection('scripts') ?>
 </body>
 </html>

@@ -56,8 +56,8 @@ class NotificationService
         try {
             $email = service('email');
             $email->setTo($to);
-            $email->setSubject('[Facility Booking] ' . $subject);
-            $email->setMessage('<p>' . nl2br(esc($message)) . '</p><hr><small>Facility Booking System</small>');
+            $email->setSubject('[Athletix] ' . $subject);
+            $email->setMessage('<p>' . nl2br(esc($message)) . '</p><hr><small>Athletix</small>');
 
             if (! $email->send(false)) {
                 log_message('error', 'Email to ' . $to . ' failed: ' . $email->printDebugger(['headers']));

@@ -68,6 +68,12 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; letter-spac
     border: 1.5px solid var(--brass-light); border-radius: 10px; color: var(--brass-light); font-size: 1.05rem;
 }
 
+.brand-logo {
+    width: 60px; height: 60px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+    background: #fbf7ee; border: 2px solid var(--brass-light); border-radius: 50%; box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+.brand-logo img { width: 54px; height: 54px; object-fit: contain; display: block; }
+
 /* Navigation: one rounded track, the current page is a white pill */
 .site-nav {
     display: flex; flex-direction: row; gap: .2rem; padding: .28rem; margin: 0; list-style: none;
@@ -219,7 +225,11 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; letter-spac
 .flash .flash-text { flex: 1; }
 .flash ul { margin: 0; padding-left: 1.1rem; }
 .flash-close { border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 0 .25rem; }
-.flash-ok { border-left-color: var(--ok); } .flash-ok i { color: var(--ok); }
+.flash-ok {
+    background: var(--lagoon); border-color: var(--lagoon); border-left-color: var(--brass-light); border-left-width: 7px;
+    color: #fff; font-weight: 500; box-shadow: 0 4px 14px rgba(14, 59, 63, .25);
+}
+.flash-ok i { color: var(--brass-light); } .flash-ok .flash-close { color: rgba(255, 255, 255, .8); } .flash-ok .flash-close:hover { color: #fff; }
 .flash-bad { border-left-color: var(--bad); } .flash-bad i { color: var(--bad); }
 
 /* ---------- Status pills ---------- */
@@ -555,7 +565,7 @@ a.cal-day:focus-visible { outline: 2px solid var(--lagoon); outline-offset: 2px;
 .filter-bar .form-select { width: auto; min-width: 190px; }
 
 /* ---------- Auth ---------- */
-.auth-split { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+.auth-split { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .auth-art { position: relative; overflow: hidden; background: var(--lagoon); color: #fff; padding: 2.5rem 3.5rem; display: flex; flex-direction: column; justify-content: space-between; }
 .auth-art::before {
     content: ''; position: absolute; right: -200px; bottom: -200px; width: 640px; height: 640px; border-radius: 50%;
@@ -993,6 +1003,10 @@ html { zoom: var(--ui-zoom); }
 .is-soon .sess-state { color: var(--wait); }
 .is-due .sess-state { background: var(--brass); color: #fff; }
 .is-arrived .sess-state { background: var(--ok); color: #fff; }
+a.sess-card { text-decoration: none; }
+.is-pending .sess-state { background: var(--wait-soft, #fdf0d5); color: var(--wait); }
+.is-approved .sess-state { background: var(--ok); color: #fff; }
+.is-rejected .sess-state { background: var(--bad); color: #fff; }
 .is-done { opacity: .78; }
 .sess-body { display: flex; flex-direction: column; gap: .15rem; padding: .85rem 1rem 1rem; }
 .sess-time { font-weight: 700; color: var(--lagoon); font-size: .95rem; }
@@ -1021,3 +1035,203 @@ html { zoom: var(--ui-zoom); }
 
 .cal-fc .fc .fc-daygrid-day-frame { min-height: 118px; }
 .legend i { width: 18px; height: 12px; }
+
+
+/* ---------- Confirmation pop-up ---------- */
+.confirm-modal { border: 1.5px solid var(--brass); border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px rgba(14, 59, 63, .35); }
+.modal-dialog:has(.confirm-modal) { max-width: 440px; }
+.confirm-head { background: var(--lagoon); border-bottom: 3px solid var(--brass); padding: 1.6rem 1.5rem 1.3rem; text-align: center; }
+.confirm-icon { width: 58px; height: 58px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.6rem; margin-bottom: .7rem; background: #fbf7ee; border: 2px solid var(--brass-light); color: var(--bad); }
+.confirm-icon.tone-brass { color: var(--brass); }
+.confirm-title { margin: 0; color: #fff; font-size: 1.4rem; }
+.confirm-body { padding: 1.4rem 1.75rem .6rem; text-align: center; }
+.confirm-body p { margin: 0; color: var(--ink); font-size: 1.02rem; line-height: 1.5; }
+.confirm-foot { display: flex; gap: .75rem; padding: 1.1rem 1.5rem 1.5rem; }
+.confirm-foot .btn { flex: 1; padding: .6rem 1rem; font-weight: 600; }
+
+/* ---------- Archive tabs ---------- */
+.arc-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+.arc-tab { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem 1.15rem; border-radius: 999px; background: #fff; border: 1.5px solid var(--line-strong); color: var(--ink); font-weight: 600; text-decoration: none; transition: background .15s, border-color .15s; }
+.arc-tab:hover { border-color: var(--brass); color: var(--ink); }
+.arc-tab.active { background: var(--lagoon); border-color: var(--lagoon); color: #fff; }
+.arc-count { min-width: 1.6rem; padding: .05rem .5rem; border-radius: 999px; background: var(--brass-light); color: #2a1d05; font-size: .8rem; text-align: center; }
+
+
+/* ---------- Calendar: green top band, clearer legend, brass facility select ---------- */
+.cal-fc { overflow: hidden; border-radius: 18px; border-width: 1.5px; }
+.cal-fc .fc .fc-header-toolbar {
+    margin: -1.25rem -1.35rem 1.25rem; padding: 1.05rem 1.35rem; background: var(--lagoon); border-bottom: 3px solid var(--brass);
+}
+.cal-fc .fc .fc-toolbar-title { color: #fff; font-size: 1.5rem; }
+.cal-fc .fc .fc-header-toolbar .fc-button { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .28); color: #fff; }
+.cal-fc .fc .fc-header-toolbar .fc-button:hover:not(:disabled) { background: rgba(255, 255, 255, .2); border-color: var(--brass-light); color: #fff; }
+.cal-fc .fc .fc-header-toolbar .fc-button-primary:not(:disabled).fc-button-active,
+.cal-fc .fc .fc-header-toolbar .fc-button-primary:not(:disabled):active { background: var(--brass); border-color: var(--brass-light); color: #fff; }
+.cal-fc .fc .fc-header-toolbar .fc-button:disabled { opacity: .5; color: #fff; }
+@media (max-width: 575.98px) { .cal-fc .fc .fc-header-toolbar { margin: -1rem -1rem 1rem; padding: .9rem 1rem; } }
+
+.legend { gap: .75rem; align-items: center; margin-bottom: 1.1rem; font-size: 1rem; color: var(--ink); }
+.legend-title { font-weight: 700; font-size: .8rem !important; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); padding-right: .25rem; }
+.legend span:not(.legend-title) {
+    padding: .55rem 1rem .55rem .75rem; background: #fff; border: 1.5px solid var(--line-strong); border-radius: 999px;
+    font-weight: 600; gap: .6rem; box-shadow: 0 1px 3px rgba(14, 59, 63, .06);
+}
+.legend i { width: 30px; height: 18px; border-radius: 5px; border-left: 6px solid; }
+.legend .lg-booked  { background: #a93d36; border-color: #7a2621; }
+.legend .lg-pending { background: #b07a12; border-color: #7a5410; }
+.legend .lg-mine    { background: var(--lagoon); border-color: #072a2d; }
+
+.page-actions .form-select.select-brass, .select-brass {
+    background-color: var(--brass); color: #fff; border: 1.5px solid #8a611c; font-weight: 600; font-size: 1rem; padding: .6rem 2.6rem .6rem 1.1rem;
+    border-radius: 12px; box-shadow: 0 4px 12px rgba(168, 120, 43, .3); cursor: pointer; min-width: 230px;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+.select-brass:hover { background-color: #b78531; }
+.select-brass:focus { border-color: var(--brass-light); box-shadow: 0 0 0 .22rem rgba(216, 178, 106, .45); }
+.select-brass option { background: #fff; color: var(--ink); }
+
+
+/* ---------- Registration: password field, strength meter, rules ---------- */
+.pw-field { position: relative; }
+.pw-field .form-control { padding-right: 3rem; }
+.pw-eye { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border: 0; background: transparent; color: var(--muted); border-radius: 8px; font-size: 1.15rem; display: inline-flex; align-items: center; justify-content: center; }
+.pw-eye:hover { color: var(--lagoon); background: #f1efe8; }
+.pw-eye:focus-visible { outline: 3px solid var(--brass); outline-offset: 1px; }
+.pw-meter { height: 8px; border-radius: 999px; background: #e4e8e6; margin-top: .6rem; overflow: hidden; }
+.pw-bar { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--bad); transition: width .25s, background .25s; }
+.pw-bar.lv1 { background: #b3261e; } .pw-bar.lv2 { background: #d4592a; } .pw-bar.lv3 { background: #d99a1f; } .pw-bar.lv4 { background: #6fa33a; } .pw-bar.lv5 { background: #1f8a4c; }
+.pw-meter-text { font-size: .85rem; color: var(--muted); margin-top: .35rem; }
+.pw-meter-text .lv1, .pw-meter-text .lv2 { color: #b3261e; } .pw-meter-text .lv3 { color: #96660a; } .pw-meter-text .lv4, .pw-meter-text .lv5 { color: #1f7a42; }
+.pw-rules { list-style: none; padding: 0; margin: .55rem 0 0; display: grid; gap: .2rem; font-size: .85rem; color: var(--muted); }
+.pw-rules li { display: flex; align-items: center; gap: .5rem; }
+.pw-rules li.ok { color: #1f7a42; font-weight: 600; }
+.pw-match { font-size: .85rem; margin-top: .4rem; min-height: 1.1em; }
+.pw-match.ok { color: #1f7a42; font-weight: 600; } .pw-match.bad { color: #b3261e; }
+
+
+/* ---------- Auth logo (plain, on the light side) ---------- */
+.auth-logo-link { display: block; text-align: center; margin-bottom: 1.25rem; }
+.auth-logo { width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(14, 59, 63, .18)); }
+
+/* ---------- Green custom dropdown ---------- */
+.dd { position: relative; display: inline-block; min-width: 210px; }
+.dd-native { position: absolute !important; opacity: 0; pointer-events: none; width: 1px !important; height: 1px !important; min-width: 0 !important; padding: 0 !important; border: 0 !important; }
+.dd-btn {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .75rem; text-align: left;
+    background: var(--lagoon); color: #fff; border: 1.5px solid var(--brass); border-radius: 12px; padding: .62rem 1rem .62rem 1.1rem;
+    font: inherit; font-weight: 600; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 12px rgba(14, 59, 63, .22); transition: background .15s, box-shadow .15s;
+}
+.dd-btn:hover { background: #13494e; }
+.dd-btn:focus-visible { outline: 3px solid var(--brass-light); outline-offset: 2px; }
+.dd-chev { color: var(--brass-light); font-size: .95rem; transition: transform .18s; }
+.dd.open .dd-chev { transform: rotate(180deg); }
+.dd-menu {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 1040; margin: 0; padding: .4rem; list-style: none;
+    min-width: 100%; max-height: 320px; overflow-y: auto; background: #fff; border: 1.5px solid var(--brass); border-radius: 14px; box-shadow: 0 16px 36px rgba(14, 59, 63, .28);
+}
+.dd.open .dd-menu { display: block; }
+.dd-menu li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .6rem .8rem; border-radius: 9px; color: var(--ink); font-weight: 500; cursor: pointer; white-space: nowrap; outline: none; }
+.dd-menu li:hover, .dd-menu li:focus { background: #eaf2f1; color: var(--lagoon); }
+.dd-menu li.sel { background: var(--lagoon); color: #fff; font-weight: 600; }
+.dd-menu li .dd-check { visibility: hidden; color: var(--brass-light); }
+.dd-menu li.sel .dd-check { visibility: visible; }
+.page-actions .dd { min-width: 230px; }
+
+/* ---------- Forgot password ---------- */
+.forgot-done { display: flex; gap: 1rem; align-items: flex-start; background: #fff; border: 1.5px solid var(--brass); border-radius: 14px; padding: 1.1rem 1.2rem; margin-bottom: 1.5rem; }
+.forgot-done > i { font-size: 1.8rem; color: var(--brass); line-height: 1; }
+.forgot-done strong { color: var(--lagoon); }
+.forgot-done p { margin: .25rem 0 0; color: var(--muted); font-size: .95rem; }
+
+
+/* ---------- Login <-> Create account: 3D slide ----------
+   The dark art half and the form half swap sides in 3D: the form half swings forward past the viewer,
+   the art half falls back behind it. The form itself also flips in on the Y axis.
+   JS only toggles .is-register (end state) and .to-register / .to-login (while moving). */
+.auth-stage {
+    --slide-ms: 850ms;
+    height: calc(100vh / var(--ui-zoom)); min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+    perspective: 2400px; perspective-origin: 50% 40%;
+    background: linear-gradient(90deg, var(--lagoon) 50%, var(--mist) 50%);
+}
+.auth-stage .auth-art   { z-index: 1; backface-visibility: hidden; }
+.auth-stage .auth-panel {
+    z-index: 2; position: relative; display: flex; overflow: hidden;   /* login: static, no scrolling */
+    padding: 2.5rem 1.5rem; box-shadow: 0 0 40px rgba(14, 59, 63, .12);
+    perspective: 1100px; backface-visibility: hidden;
+}
+/* Only the Create account side scrolls (it has more fields) */
+.auth-stage.is-register .auth-panel { overflow-y: auto; }
+/* end state: halves swapped */
+.auth-stage.is-register .auth-art   { transform: translateX(100%); }
+.auth-stage.is-register .auth-panel { transform: translateX(-100%); }
+
+/* while moving: arc through depth */
+.auth-stage.to-register .auth-art   { animation: art-to-right var(--slide-ms) cubic-bezier(.65, 0, .25, 1); }
+.auth-stage.to-register .auth-panel { animation: panel-to-left var(--slide-ms) cubic-bezier(.65, 0, .25, 1); box-shadow: -30px 0 70px rgba(14, 59, 63, .28); }
+.auth-stage.to-login .auth-art      { animation: art-to-left var(--slide-ms) cubic-bezier(.65, 0, .25, 1); }
+.auth-stage.to-login .auth-panel    { animation: panel-to-right var(--slide-ms) cubic-bezier(.65, 0, .25, 1); box-shadow: 30px 0 70px rgba(14, 59, 63, .28); }
+.auth-stage.is-moving .auth-art, .auth-stage.is-moving .auth-panel { will-change: transform; }
+
+@keyframes art-to-right   { 0% { transform: translateX(0);    filter: brightness(1); }
+                            50% { transform: translateX(52%) translateZ(-320px) rotateY(-26deg); filter: brightness(.7); }
+                            100% { transform: translateX(100%); filter: brightness(1); } }
+@keyframes panel-to-left  { 0% { transform: translateX(0); }
+                            50% { transform: translateX(-52%) translateZ(200px) rotateY(18deg); }
+                            100% { transform: translateX(-100%); } }
+@keyframes art-to-left    { 0% { transform: translateX(100%); filter: brightness(1); }
+                            50% { transform: translateX(48%) translateZ(-320px) rotateY(26deg); filter: brightness(.7); }
+                            100% { transform: translateX(0); filter: brightness(1); } }
+@keyframes panel-to-right { 0% { transform: translateX(-100%); }
+                            50% { transform: translateX(-48%) translateZ(200px) rotateY(-18deg); }
+                            100% { transform: translateX(0); } }
+
+/* Only the active form takes up space (so it is centred and never scrolls for the other one's height).
+   The inactive one waits off to the side, turned away, and flips in. */
+.auth-panel > .auth-box {
+    margin: auto; transform-origin: 50% 50%;
+    opacity: 0; visibility: hidden;
+    transition: opacity .3s ease, transform var(--slide-ms) cubic-bezier(.65, 0, .25, 1), visibility 0s linear .3s;
+}
+.auth-panel > .auth-box[inert] { position: absolute; inset: 0; height: fit-content; pointer-events: none; }
+.auth-panel > .auth-box[data-for="login"][inert]    { transform: rotateY(-70deg) translateZ(-80px); }
+.auth-panel > .auth-box[data-for="register"][inert] { transform: rotateY(70deg) translateZ(-80px); }
+.auth-panel > .auth-box:not([inert]) {
+    opacity: 1; visibility: visible; transform: none;
+    transition: opacity .35s ease .35s, transform var(--slide-ms) cubic-bezier(.22, 1, .36, 1) .1s, visibility 0s;
+}
+
+.art-copies { display: grid; }
+.art-copies > .art-copy { grid-area: 1 / 1; align-self: center; opacity: 0; visibility: hidden; transform: translateY(14px);
+    transition: opacity .3s ease, transform .5s ease, visibility 0s linear .3s; }
+.art-copies > .art-copy:not([inert]) { opacity: 1; visibility: visible; transform: none; transition: opacity .4s ease .35s, transform .6s ease .3s, visibility 0s; }
+
+/* Small screens: the art half is hidden, so just flip the forms. */
+@media (max-width: 899.98px) {
+    .auth-stage.is-register .auth-art, .auth-stage.is-register .auth-panel { transform: none; }
+    .auth-stage.to-register .auth-art, .auth-stage.to-register .auth-panel,
+    .auth-stage.to-login .auth-art, .auth-stage.to-login .auth-panel { animation: none; }
+    .auth-stage .auth-panel { grid-column: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .auth-stage .auth-art, .auth-stage .auth-panel, .auth-panel > .auth-box, .art-copy { animation: none !important; transition: none !important; }
+}
+
+
+/* ---------- Athletix brand ---------- */
+.site-header .brand { padding: .55rem 0; gap: .85rem; }
+.brand-word { font-family: var(--font-display); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; line-height: 1; }
+.brand-word b { font-weight: 600; color: var(--brass-light); }
+.site-header .brand-word { font-size: 1.35rem; }
+
+/* Login / register: big logo badge + wordmark */
+.auth-art .brand-hero { gap: 1.15rem; padding: 0; align-self: flex-start; }
+.auth-art .brand-hero .brand-logo-hero { width: 84px; height: 84px; border-width: 3px; box-shadow: 0 6px 22px rgba(0, 0, 0, .35); }
+.auth-art .brand-hero .brand-logo-hero img { width: 76px; height: 76px; }
+.auth-art .brand-hero .brand-word {
+    font-size: clamp(2.1rem, 3.4vw, 3rem); font-weight: 700; letter-spacing: .2em; color: #fff;
+    text-shadow: 0 2px 18px rgba(0, 0, 0, .25);
+}
+.auth-art .brand-hero .brand-word b { color: var(--brass-light); }

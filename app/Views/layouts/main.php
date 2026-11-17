@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= esc($title ?? 'Facility Booking') ?></title>
+    <title><?= esc($title ?? 'Athletix') ?></title>
     <link rel="preload" href="<?= base_url('assets/vendor/fonts/fraunces-600.woff2') ?>" as="font" type="font/woff2" crossorigin>
     <link href="<?= base_url('assets/vendor/bootstrap.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/vendor/icons/bootstrap-icons.min.css') ?>" rel="stylesheet">
@@ -25,8 +25,8 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container-xl">
             <a class="brand" href="<?= site_url('dashboard') ?>">
-                <span class="brand-mark"><i class="bi bi-trophy"></i></span>
-                <span>Facility Booking</span>
+                <span class="brand-logo"><img src="<?= base_url('assets/img/logo.png') ?>" alt="" width="56" height="56"></span>
+                <span class="brand-word">Athleti<b>x</b></span>
             </a>
 
             <button class="nav-toggle d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-label="Open menu">
@@ -42,6 +42,7 @@
                         <?php if (is_admin()): ?>
                             <li class="nav-item"><a class="nav-link <?= $active('admin', 'facilities') ?>" href="<?= site_url('admin/facilities') ?>">Facilities</a></li>
                             <li class="nav-item"><a class="nav-link <?= $active('admin', 'users') ?>" href="<?= site_url('admin/users') ?>">Users</a></li>
+                            <li class="nav-item"><a class="nav-link <?= $active('admin', 'archive') ?>" href="<?= site_url('admin/archive') ?>">Archive</a></li>
                         <?php else: ?>
                             <li class="nav-item"><a class="nav-link <?= $active('facilities') ?: ($seg1 === 'bookings' && $seg2 === 'new' ? 'active' : '') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
                         <?php endif; ?>
@@ -104,6 +105,8 @@
         </div>
     </div>
 </div>
+
+<?= $this->include('layouts/_confirm') ?>
 
 <script src="<?= base_url('assets/vendor/bootstrap.bundle.min.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>

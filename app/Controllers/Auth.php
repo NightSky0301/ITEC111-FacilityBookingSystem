@@ -11,7 +11,7 @@ class Auth extends BaseController
         if (session()->get('user_id')) {
             return redirect()->to('/dashboard');
         }
-        return view('auth/login');
+        return view('auth/portal', ['mode' => 'login']);
     }
 
     public function attemptLogin()
@@ -50,16 +50,16 @@ class Auth extends BaseController
         if (session()->get('user_id')) {
             return redirect()->to('/dashboard');
         }
-        return view('auth/register');
+        return view('auth/portal', ['mode' => 'register']);
     }
 
     public function attemptRegister()
     {
         $rules = [
-            'name'             => 'required|min_length[2]|max_length[120]',
+            'name'             => ['rules' => 'required|min_length[2]|max_length[120]|regex_match[/^[^0-9]+$/]', 'errors' => ['regex_match' => 'Full name cannot contain numbers.']],
             'email'            => 'required|valid_email|max_length[150]|is_unique[users.email]',
-            'phone'            => 'permit_empty|max_length[30]',
-            'password'         => 'required|min_length[6]',
+            'phone'            => ['rules' => 'permit_empty|regex_match[/^[0-9]{7,15}$/]', 'errors' => ['regex_match' => 'Phone must be 7 to 15 digits, numbers only.']],
+            'password'         => ['rules' => 'required|min_length[8]|max_length[72]|regex_match[/^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$/]', 'errors' => ['regex_match' => 'Password needs an uppercase letter, a letter, a number and a special character.']],
             'password_confirm' => 'required|matches[password]',
         ];
         if (! $this->validate($rules)) {

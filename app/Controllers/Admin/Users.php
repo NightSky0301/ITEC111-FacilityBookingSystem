@@ -127,4 +127,22 @@ class Users extends BaseController
 
         return redirect()->to('/admin/users')->with('success', $user['name'] . ($new === 'active' ? ' can log in again.' : ' has been deactivated and logged out.'));
     }
+
+    /** Moves an account to the Archive (it can no longer log in). Restore it from there. */
+    public function delete(int $id)
+    {
+        if ($id === (int) session()->get('user_id')) {
+            return redirect()->to('/admin/users')->with('error', 'You cannot delete your own account.');
+        }
+
+        $model = new UserModel();
+        $user  = $model->find($id);
+        if (! $user) {
+            return redirect()->to('/admin/users')->with('error', 'User not found.');
+        }
+
+        $model->delete($id);
+
+        return redirect()->to('/admin/users')->with('success', $user['name'] . ' moved to the Archive.');
+    }
 }

@@ -11,6 +11,8 @@ class FacilityModel extends Model
     protected $returnType    = 'array';
     protected $allowedFields = ['name', 'type', 'description', 'image', 'capacity', 'price_per_hour', 'status'];
     protected $useTimestamps = true;
+    protected $useSoftDeletes = true;   // deleted rows go to the Archive and can be restored
+    protected $deletedField   = 'deleted_at';
 
     /** Hours shown on the availability page (24h clock). Last slot is CLOSE_HOUR - 1. */
     public const OPEN_HOUR  = 6;

@@ -15,6 +15,8 @@ class BookingModel extends Model
         'approved_by', 'arrived_at', 'arrived_by',
     ];
     protected $useTimestamps = true;
+    protected $useSoftDeletes = true;   // deleted rows go to the Archive and can be restored
+    protected $deletedField   = 'deleted_at';
 
     /**
      * Is the facility already taken (APPROVED booking) in this time range?

@@ -11,6 +11,8 @@ class UserModel extends Model
     protected $returnType    = 'array';
     protected $allowedFields = ['name', 'email', 'phone', 'password', 'role', 'status'];
     protected $useTimestamps = true;
+    protected $useSoftDeletes = true;   // deleted rows go to the Archive and can be restored
+    protected $deletedField   = 'deleted_at';
 
     /** Roles and what they mean. Shown on the Users page. */
     public const ROLES = [

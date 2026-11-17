@@ -28,6 +28,7 @@ class Calendar extends BaseController
             ->select('bookings.*, facilities.name AS facility_name, facilities.price_per_hour AS facility_price, facilities.type AS facility_type, users.name AS customer_name')
             ->join('facilities', 'facilities.id = bookings.facility_id', 'left')
             ->join('users', 'users.id = bookings.user_id', 'left')
+            ->where('facilities.deleted_at', null)
             ->whereIn('bookings.status', ['pending', 'approved'])
             ->where('bookings.start_at <', $endAt)
             ->where('bookings.end_at >', $startAt);

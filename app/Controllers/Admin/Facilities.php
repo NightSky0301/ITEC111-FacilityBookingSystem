@@ -159,14 +159,8 @@ class Facilities extends BaseController
             return redirect()->to('/admin/facilities')->with('error', 'Facility not found.');
         }
 
-        // Keep booking history intact: facilities that have bookings are deactivated instead of deleted.
-        if ((new BookingModel())->where('facility_id', $id)->countAllResults() > 0) {
-            $model->update($id, ['status' => 'inactive']);
-            return redirect()->to('/admin/facilities')->with('success', 'Facility has booking history, so it was set to inactive instead of deleted.');
-        }
-
-        $this->deleteUpload($facility['image']);
+        // Archived, not erased: booking history stays intact and the admin can restore it from the Archive.
         $model->delete($id);
-        return redirect()->to('/admin/facilities')->with('success', 'Facility deleted.');
+        return redirect()->to('/admin/facilities')->with('success', $facility['name'] . ' moved to the Archive.');
     }
 }

@@ -123,4 +123,17 @@ class Bookings extends BaseController
 
         return redirect()->back()->with('success', 'Booking cancelled.');
     }
+
+    /** Admin only: moves a booking to the Archive. Its time slot is freed. */
+    public function delete(int $id)
+    {
+        $bookings = new BookingModel();
+        if (! $bookings->find($id)) {
+            return redirect()->back()->with('error', 'Booking not found.');
+        }
+
+        $bookings->delete($id);
+
+        return redirect()->back()->with('success', 'Booking moved to the Archive.');
+    }
 }

@@ -14,7 +14,7 @@
     </div>
     <div class="page-actions">
         <?php if ($manager): ?>
-            <a href="<?= site_url('facilities') ?>" class="btn btn-outline-secondary"><i class="bi bi-plus-lg me-1"></i> New booking</a>
+            <a href="<?= site_url('facilities') ?>" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i> New booking</a>
             <a href="<?= site_url('manage/bookings?status=pending') ?>" class="btn btn-gold"><i class="bi bi-inbox me-1"></i> Review requests</a>
         <?php else: ?>
             <a href="<?= site_url('facilities') ?>" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i> New booking</a>
@@ -78,85 +78,6 @@
 <?php if ($manager): ?>
 <?= $this->include('dashboard/_sessions') ?>
 <?php else: ?>
-<section class="panel panel-table">
-    <div class="panel-head">
-        <div>
-            <h2><?= $manager ? 'Session(s) today' : 'Recent bookings' ?></h2>
-            <div class="panel-sub"><?= $manager ? 'Approved bookings happening today' : 'Your most recent requests' ?></div>
-        </div>
-        <a href="<?= $manager ? site_url('manage/bookings?status=approved') : site_url('my-bookings') ?>" class="btn btn-sm btn-outline-secondary">View all <i class="bi bi-arrow-right ms-1"></i></a>
-    </div>
-
-    <?php if (empty($latest)): ?>
-        <div class="empty">
-            <i class="bi bi-calendar-check"></i>
-            <strong><?= $manager ? 'No sessions today' : 'No bookings yet' ?></strong>
-            <?= $manager ? 'Approved bookings for today will show up here.' : 'Pick an activity and a time to make your first booking.' ?>
-            <?php if (! $manager): ?>
-                <div class="mt-3"><a href="<?= site_url('facilities') ?>" class="btn btn-primary btn-sm">Browse courts</a></div>
-            <?php endif; ?>
-        </div>
-    <?php else: ?>
-    <div class="table-responsive">
-        <table class="table data-table table-stack">
-            <thead><tr>
-                <th>Court</th>
-                <?php if ($manager): ?><th>Customer</th><?php endif; ?>
-                <th>When</th>
-                <th><?= $manager ? 'Progress' : 'Status' ?></th>
-            </tr></thead>
-            <tbody>
-            <?php foreach ($latest as $b):
-                $s = strtotime($b['start_at']);
-                $e = strtotime($b['end_at']);
-                $sameDay = date('Y-m-d', $s) === date('Y-m-d', $e);
-                $img = facility_image(['type' => $b['facility_type'] ?? 'other', 'name' => $b['facility_name'] ?? '', 'image' => $b['facility_image'] ?? null]);
-            ?>
-                <tr>
-                    <td class="c-court">
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="<?= $img ?>" alt="" class="table-thumb">
-                            <div>
-                                <div class="cell-title"><?= esc($b['facility_name']) ?></div>
-                                <div class="cell-sub"><?= esc(\App\Models\FacilityModel::activityName((string) ($b['facility_type'] ?? ''))) ?></div>
-                            </div>
-                        </div>
-                    </td>
-                    <?php if ($manager): ?>
-                    <td class="c-cust">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="mini-avatar"><?= esc(strtoupper(mb_substr((string) $b['customer_name'], 0, 1))) ?></span>
-                            <span><?= esc($b['customer_name']) ?></span>
-                        </div>
-                    </td>
-                    <?php endif; ?>
-                    <td class="c-when">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="date-chip"><span class="d"><?= date('j', $s) ?></span><span class="m"><?= date('M', $s) ?></span></div>
-                            <div>
-                                <?php if ($sameDay): ?>
-                                    <div class="cell-title"><?= date('g:i A', $s) ?> – <?= date('g:i A', $e) ?></div>
-                                    <div class="cell-sub"><?= date('l', $s) ?></div>
-                                <?php else: ?>
-                                    <div class="cell-title"><?= esc(fmt_range($b['start_at'], $b['end_at'])) ?></div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="c-status">
-                        <?php if ($manager): $now = time();
-                            if ($now >= $e) { $prog = ['Finished', 'pill-cancelled']; }
-                            elseif ($now >= $s) { $prog = ['In progress', 'pill-approved']; }
-                            else { $prog = ['Upcoming', 'pill-pending']; } ?>
-                            <span class="pill <?= $prog[1] ?>"><?= $prog[0] ?></span>
-                        <?php else: ?><?= status_badge($b['status']) ?><?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-    <?php endif; ?>
-</section>
+<?= $this->include('dashboard/_recent') ?>
 <?php endif; ?>
 <?= $this->endSection() ?>
