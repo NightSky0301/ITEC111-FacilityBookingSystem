@@ -27,7 +27,7 @@
             'upcoming' => $upcoming,
             'done'     => $status === 'approved' && $e <= $now,
             'hours'    => $hours,
-            'total'    => $hours * $price + (float) ($b['addons_total'] ?? 0),
+            'total'    => $hours * $price * (\App\Models\FacilityModel::isPerHead((string) ($b['facility_type'] ?? '')) ? max(1, (int) $b['guests']) : 1) + (float) ($b['addons_total'] ?? 0),
             'tags'     => $tags,
         ];
     }
@@ -133,7 +133,7 @@
                             <img src="<?= $img ?>" alt="" class="table-thumb" loading="lazy">
                             <div class="min-w-0">
                                 <div class="cell-title"><?= esc($b['facility_name']) ?></div>
-                                <div class="cell-sub"><?= esc(\App\Models\FacilityModel::activityName((string) ($b['facility_type'] ?? ''))) ?></div>
+                                <div class="cell-sub"><?= esc(\App\Models\FacilityModel::activityName((string) ($b['facility_type'] ?? ''))) ?><?= \App\Models\FacilityModel::isPerHead((string) ($b['facility_type'] ?? '')) ? ' · ' . (int) $b['guests'] . ' ' . ((int) $b['guests'] === 1 ? 'person' : 'people') : '' ?></div>
                                 <?php if (! empty($b['purpose'])): ?>
                                     <div class="bk-purpose" title="<?= esc($b['purpose'], 'attr') ?>"><i class="bi bi-chat-left-text"></i><span><?= esc($b['purpose']) ?></span></div>
                                 <?php endif; ?>

@@ -17,7 +17,7 @@ class Dashboard extends BaseController
                 'pending'    => $bookings->where('status', 'pending')->countAllResults(),
                 'approved'   => $bookings->where('status', 'approved')->countAllResults(),
                 'facilities' => (new FacilityModel())->where('status', 'active')->countAllResults(),
-                'latest'     => array_slice($bookings->withDetails(['status' => 'pending']), 0, 5),
+                'latest'     => $this->sessionsToday($bookings),
             ];
         } else {
             $mine = $bookings->withDetails(['user_id' => $userId]);
@@ -31,6 +31,17 @@ class Dashboard extends BaseController
         }
 
         return view('dashboard/index', $data);
+    }
+
+    /** Approved bookings that run at any point today, earliest first. */
+    private function sessionsToday(BookingModel $bookings): array
+    {
+        $from = strtotime(date('Y-m-d') . ' 00:00:00');
+        $to   = $from + 86400;
+        $rows = array_filter($bookings->withDetails(['status' => 'approved']), static fn ($b) => strtotime($b['start_at']) < $to && strtotime($b['end_at']) > $from);
+        usort($rows, static fn ($a, $b) => strtotime($a['start_at']) <=> strtotime($b['start_at']));
+
+        return array_values($rows);
     }
 
     /** The soonest approved booking that has not finished yet. */

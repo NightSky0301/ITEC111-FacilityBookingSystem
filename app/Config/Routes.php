@@ -46,6 +46,7 @@ $routes->group('manage', ['filter' => 'staff', 'namespace' => 'App\Controllers\A
     $routes->get('bookings', 'Bookings::index');
     $routes->post('bookings/(:num)/approve', 'Bookings::approve/$1');
     $routes->post('bookings/(:num)/reject', 'Bookings::reject/$1');
+    $routes->post('bookings/(:num)/arrive', 'Bookings::arrive/$1');
     $routes->post('bookings/(:num)/cancel', 'Bookings::cancel/$1');
 });
 

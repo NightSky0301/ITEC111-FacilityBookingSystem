@@ -21,9 +21,9 @@
 </div>
 
 <div class="legend">
-    <span><i style="background:#a93d36"></i> Booked</span>
-    <span><i style="background:#c28a1c"></i> Waiting for approval</span>
-    <?php if (! is_manager()): ?><span><i style="background:#0e3b3f"></i> Your booking</span><?php endif; ?>
+    <span><i style="background:#f6dedb;border-left:4px solid #a93d36"></i> Booked</span>
+    <span><i style="background:#fbf1d9;border-left:4px solid #c28a1c"></i> Waiting for approval</span>
+    <span><i style="background:#e3eeee;border-left:4px solid #0e3b3f"></i> <?= is_manager() ? 'Your own booking' : 'Your booking' ?></span>
 </div>
 
 <div class="panel cal-fc"><div class="panel-body"><div id="calendar"></div></div></div>
@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let html = row('bi-calendar3', 'Date', esc(day)) +
             row('bi-clock', 'Time', esc(t(s) + ' – ' + t(e)) + ' <span class="ev-muted">· ' + hrs + '</span>') +
             row('bi-flag', 'Status', '<span class="pill pill-' + esc(p.status) + '">' + esc(p.status.charAt(0).toUpperCase() + p.status.slice(1)) + '</span>');
+        if (p.people) html += row('bi-people', 'People', esc(p.people + (p.people === 1 ? ' person' : ' people')));
         if (p.addons && p.addons.length) html += row('bi-plus-circle', 'Add-ons', esc(p.addons.join(', ')));
         if (p.purpose) html += row('bi-chat-left-text', 'Notes', esc(p.purpose));
         if (p.total !== null && p.total !== undefined) html += '<div class="ev-total"><span>Total payment</span><strong>' + peso(p.total) + '</strong></div>';
@@ -118,6 +119,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function paintChips() {
         const root = document.getElementById('calendar');
         root.querySelectorAll('.day-chips').forEach(n => n.remove());
+        root.querySelectorAll('.has-ev').forEach(n => n.classList.remove('has-ev'));
         if (calendar.view.type !== 'dayGridMonth') return;
         const by = {};
         calendar.getEvents().forEach(e => {
@@ -127,6 +129,7 @@ document.addEventListener('DOMContentLoaded', function () {
         root.querySelectorAll('.fc-daygrid-day[data-date]').forEach(cell => {
             const c = by[cell.dataset.date]; if (!c) return;
             const frame = cell.querySelector('.fc-daygrid-day-frame'); if (!frame) return;
+            cell.classList.add('has-ev');
             const box = document.createElement('div');
             box.className = 'day-chips';
             ['mine', 'pending', 'booked'].forEach(k => {
@@ -134,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const chip = document.createElement('span');
                 chip.className = 'day-chip dc-' + k;
                 chip.title = c[k] + ' ' + CHIP[k].toLowerCase();
-                chip.innerHTML = '<i></i><b>' + c[k] + '</b><em>' + CHIP[k] + '</em>';
+                chip.innerHTML = '<b>' + c[k] + '</b><em>' + CHIP[k] + '</em>';
                 box.appendChild(chip);
             });
             frame.appendChild(box);

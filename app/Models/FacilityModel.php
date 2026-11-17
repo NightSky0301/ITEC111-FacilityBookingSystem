@@ -29,10 +29,20 @@ class FacilityModel extends Model
         return $hours * 60;
     }
 
-    /** Total price: the hourly rate for every hour booked. */
-    public static function totalPrice(float $hourlyRate, int $hours): float
+    /** Facility types that are booked per person (the price is per head, per hour). */
+    public const PER_HEAD = ['gym'];
+
+    public static function isPerHead(array|string $facilityOrType): bool
     {
-        return round($hourlyRate * $hours, 2);
+        $type = is_array($facilityOrType) ? (string) ($facilityOrType['type'] ?? '') : $facilityOrType;
+
+        return in_array($type, self::PER_HEAD, true);
+    }
+
+    /** Total price: the hourly rate for every hour booked, times the number of people for per-head facilities. */
+    public static function totalPrice(float $hourlyRate, int $hours, int $people = 1): float
+    {
+        return round($hourlyRate * $hours * max(1, $people), 2);
     }
 
     /** Facility types shown in the dropdowns (also the "activities" customers choose first). */
@@ -42,8 +52,10 @@ class FacilityModel extends Model
         'pickleball'    => 'Pickleball Court',
         'volleyball'    => 'Volleyball Court',
         'tennis'        => 'Tennis Court',
-        'futsal'        => 'Futsal / Football',
+        'futsal'        => 'Futsal Court',
+        'football'      => 'Football Court',
         'multipurpose'  => 'Multipurpose Court',
+        'gym'           => 'Gym',
         'other'         => 'Other',
     ];
 
@@ -54,8 +66,10 @@ class FacilityModel extends Model
         'pickleball'   => ['Pickleball',   'Standard courts with nets and lines'],
         'volleyball'   => ['Volleyball',   'Indoor court with adjustable net'],
         'tennis'       => ['Tennis',       'Hard courts for singles and doubles'],
-        'futsal'       => ['Futsal / Football', 'Small-sided games'],
+        'futsal'       => ['Futsal', 'Small-sided indoor games'],
+        'football'     => ['Football', 'Full-size outdoor pitch'],
         'multipurpose' => ['Multipurpose', 'Events, tournaments and practice'],
+        'gym'          => ['Gym',          'Workout floor, booked per person'],
         'other'        => ['Other',        'Other facilities'],
     ];
 
@@ -70,7 +84,9 @@ class FacilityModel extends Model
         'volleyball'   => [12, 18],
         'tennis'       => [2, 4],
         'futsal'       => [10, 14],
+        'football'     => [14, 22],
         'multipurpose' => [10, 30],
+        'gym'          => [1, 15],
     ];
 
     /** @return array{0:int,1:int} [min, max] people the court comfortably holds. */
@@ -82,9 +98,18 @@ class FacilityModel extends Model
         return [min($range[0], max($range[1], $capacity)), max($range[1], $capacity)];
     }
 
+    /** Most people a per-head facility takes at the same time. */
+    public static function maxPeople(array $facility): int
+    {
+        return max(1, (int) ($facility['capacity'] ?? 1));
+    }
+
     /** "10–15 people" or "Up to 4 people". */
     public static function peopleLabel(array $facility): string
     {
+        if (self::isPerHead($facility)) {
+            return 'Up to ' . self::maxPeople($facility) . ' people at a time';
+        }
         [$min, $max] = self::peopleRange($facility);
 
         return $min >= $max ? 'Up to ' . $max . ' people' : $min . '–' . $max . ' people';

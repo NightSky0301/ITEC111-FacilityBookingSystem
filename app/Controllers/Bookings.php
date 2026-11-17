@@ -48,6 +48,8 @@ class Bookings extends BaseController
                 'img'   => facility_image($f),
                 'people' => FacilityModel::peopleLabel($f),
                 'outdoor' => facility_is_outdoor($f),
+                'head'  => FacilityModel::isPerHead($f),
+                'max'   => FacilityModel::maxPeople($f),
             ], $facilities->active()),
             'addons'     => Addons::CATALOG,
             'eveningFrom' => Addons::EVENING_FROM,
@@ -70,11 +72,28 @@ class Bookings extends BaseController
         $dayStart = strtotime($date . ' 00:00:00');
         $dayEnd   = $dayStart + 86400;
         $busy     = [];
-        foreach ((new BookingModel())->sessionsBetween($facilityId, date('Y-m-d H:i:s', $dayStart), date('Y-m-d H:i:s', $dayEnd)) as $b) {
-            $busy[] = [
-                (int) max(0, round((strtotime($b['start_at']) - $dayStart) / 60)),
-                (int) min(1440, round((strtotime($b['end_at']) - $dayStart) / 60)),
-            ];
+        $sessions = [];
+        $facility = (new FacilityModel())->find($facilityId);
+        $bookings = new BookingModel();
+        $head     = $facility && FacilityModel::isPerHead($facility);
+
+        if ($head) {
+            // Per-head facility: a half hour is "full" when the people already approved plus the people
+            // in this request would go over the limit. Everyone else can still book the other half hours.
+            $people = max(1, min(FacilityModel::maxPeople($facility), (int) $this->request->getGet('people')));
+            for ($m = FacilityModel::OPEN_HOUR * 60; $m < FacilityModel::CLOSE_HOUR * 60; $m += 30) {
+                $from = date('Y-m-d H:i:s', $dayStart + $m * 60);
+                $to   = date('Y-m-d H:i:s', $dayStart + ($m + 30) * 60);
+                if (! $bookings->hasRoom($facility, $from, $to, $people)) {
+                    $last = count($busy) - 1;
+                    if ($last >= 0 && $busy[$last][1] === $m) { $busy[$last][1] = $m + 30; } else { $busy[] = [$m, $m + 30]; }
+                }
+            }
+        }
+        foreach ($bookings->sessionsBetween($facilityId, date('Y-m-d H:i:s', $dayStart), date('Y-m-d H:i:s', $dayEnd)) as $b) {
+            $s = (int) max(0, round((strtotime($b['start_at']) - $dayStart) / 60));
+            $e = (int) min(1440, round((strtotime($b['end_at']) - $dayStart) / 60));
+            if ($head) { $sessions[] = [$s, $e, max(1, (int) $b['guests'])]; } else { $busy[] = [$s, $e]; }
         }
 
         return $this->response->setJSON([
@@ -84,6 +103,9 @@ class Bookings extends BaseController
             'open'  => FacilityModel::OPEN_HOUR * 60,
             'close' => FacilityModel::CLOSE_HOUR * 60,
             'busy'  => $busy,
+            'head'  => $head,
+            'cap'   => $head ? FacilityModel::maxPeople($facility) : null,
+            'sessions' => $sessions,
         ]);
     }
 
@@ -137,26 +159,40 @@ class Bookings extends BaseController
             return redirect()->back()->withInput()->with('error', 'Bookings must fall within opening hours (' . date('g:i A', $opens) . ' – ' . date('g:i A', $closes) . '). Choose an earlier time in or fewer hours.');
         }
 
-        // The form no longer asks for a head count; the suggested number of people is information only.
-        $guests = FacilityModel::peopleRange($facility)[1];
+        // Courts are booked as a whole; the suggested number of people is information only.
+        // The gym is booked per person: the customer chooses how many, up to its limit.
+        $perHead = FacilityModel::isPerHead($facility);
+        $guests  = FacilityModel::peopleRange($facility)[1];
+        if ($perHead) {
+            $rawPeople = trim((string) $this->request->getPost('people'));
+            $guests    = ctype_digit($rawPeople) ? (int) $rawPeople : 0;
+            if ($guests < 1 || $guests > FacilityModel::maxPeople($facility)) {
+                return redirect()->back()->withInput()->with('error', 'Choose between 1 and ' . FacilityModel::maxPeople($facility) . ' people for the gym.');
+            }
+        }
 
         // Add-ons: lights (evening only), fan or AC (one of them), rentals. Priced here, never taken from the form.
         $keys   = (array) $this->request->getPost('addons');
         $keys[] = (string) $this->request->getPost('cooling');
-        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours, facility_is_outdoor($facility));
+        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours, facility_is_outdoor($facility), $perHead ? $guests : 1);
         if (is_string($addons)) {
             return redirect()->back()->withInput()->with('error', $addons);
         }
 
         $startAt  = date('Y-m-d H:i:s', $startTs);
         $endAt    = date('Y-m-d H:i:s', $endTs);
-        $total    = FacilityModel::totalPrice((float) $facility['price_per_hour'], $hours) + $addons['total'];
+        $total    = FacilityModel::totalPrice((float) $facility['price_per_hour'], $hours, $perHead ? $guests : 1) + $addons['total'];
         $bookings = new BookingModel();
 
-        if ($bookings->hasConflict((int) $facility['id'], $startAt, $endAt)) {
+        if ($perHead) {
+            if (! $bookings->hasRoom($facility, $startAt, $endAt, $guests)) {
+                return redirect()->back()->withInput()->with('error', 'Sorry, the gym does not have room for ' . $guests . ' ' . ($guests === 1 ? 'person' : 'people') . ' at that time (limit ' . FacilityModel::maxPeople($facility) . '). Pick another time or fewer people.');
+            }
+        } elseif ($bookings->hasConflict((int) $facility['id'], $startAt, $endAt)) {
             return redirect()->back()->withInput()->with('error', 'Sorry, that time is already booked. Please check the schedule and pick another time.');
         }
 
+        $auto = is_manager();
         $id = $bookings->insert([
             'facility_id' => $facility['id'],
             'user_id'     => (int) session()->get('user_id'),
@@ -166,10 +202,17 @@ class Bookings extends BaseController
             'addons'      => $addons['items'] ? json_encode($addons['items']) : null,
             'addons_total' => $addons['total'],
             'purpose'     => trim((string) $this->request->getPost('purpose')),
-            'status'      => 'pending',
+            'status'      => $auto ? 'approved' : 'pending',
+            'approved_by' => $auto ? (int) session()->get('user_id') : null,
         ], true);
 
         $notify = new NotificationService();
+        if ($auto) {
+            // Admin and staff bookings need no approval: the time is theirs straight away.
+            $notify->notifyUser((int) session()->get('user_id'), 'Booking confirmed', 'Your booking for ' . $facility['name'] . ($perHead ? ' (' . $guests . ' ' . ($guests === 1 ? 'person' : 'people') . ')' : '') . ' (' . fmt_dt($startAt) . ' - ' . fmt_dt($endAt) . ') is confirmed.', (int) $id);
+
+            return redirect()->to('/manage/bookings?status=approved')->with('success', 'Booked ' . fmt_range($startAt, $endAt) . ' (₱' . number_format($total, 2) . '). It is confirmed, no approval needed.');
+        }
         $notify->notifyManagers(
             'New booking request',
             session()->get('name') . ' requested ' . $facility['name'] . ' from ' . fmt_dt($startAt) . ' to ' . fmt_dt($endAt) . '.',
@@ -178,7 +221,7 @@ class Bookings extends BaseController
         $notify->notifyUser(
             (int) session()->get('user_id'),
             'Booking request sent',
-            'Your request for ' . $facility['name'] . ' (' . fmt_dt($startAt) . ' - ' . fmt_dt($endAt) . ') is waiting for admin approval.',
+            'Your request for ' . $facility['name'] . ($perHead ? ' (' . $guests . ' ' . ($guests === 1 ? 'person' : 'people') . ')' : '') . ' (' . fmt_dt($startAt) . ' - ' . fmt_dt($endAt) . ') is waiting for admin approval.',
             (int) $id
         );
 

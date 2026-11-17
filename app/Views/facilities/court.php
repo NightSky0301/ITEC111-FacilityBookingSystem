@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<?= $this->setVar('step', 3)->setVar('backUrl', site_url('facilities/' . $facility['type']))->setVar('backLabel', ($activity ?? 'Back') . ' courts')->include('facilities/_stepper') ?>
+<?= $this->setVar('step', 3)->include('facilities/_stepper') ?>
 <?php
     $dateStr  = $date->format('Y-m-d');
     $rate     = (float) $facility['price_per_hour'];
@@ -13,7 +13,7 @@
 <div class="page-head">
     <div>
         <h1><?= esc($facility['name']) ?></h1>
-        <p><?= esc($activity) ?> · <?= esc(\App\Models\FacilityModel::peopleLabel($facility)) ?> · ₱<?= number_format($rate, 0) ?> per hour · Open <?= esc($opens) ?> – <?= esc($closes) ?></p>
+        <p><?= esc($activity) ?> · <?= esc(\App\Models\FacilityModel::peopleLabel($facility)) ?> · ₱<?= number_format($rate, 0) ?> <?= \App\Models\FacilityModel::isPerHead($facility) ? 'per person, per hour' : 'per hour' ?> · Open <?= esc($opens) ?> – <?= esc($closes) ?></p>
     </div>
     <div class="page-actions">
         <?php if ($live['in_use']): ?>
@@ -79,7 +79,7 @@
 
     <!-- Court info + sessions -->
     <div class="col-lg-5">
-        <?php if (! $isManager && ! $isPast): ?>
+        <?php if (! $isPast): ?>
             <a class="btn btn-primary w-100 mb-4" href="<?= esc($bookUrl) ?>"><i class="bi bi-calendar-plus me-1"></i> Book <?= esc($date->format('D, M j')) ?></a>
         <?php endif; ?>
         <div class="panel mb-4 overflow-hidden">
@@ -88,7 +88,7 @@
             <div class="rate-note">
                 <i class="bi bi-clock-history" aria-hidden="true"></i>
                 <div>
-                    <strong>₱<?= number_format($rate, 2) ?> per hour · 1 hour minimum</strong>
+                    <strong>₱<?= number_format($rate, 2) ?> <?= \App\Models\FacilityModel::isPerHead($facility) ? 'per person, per hour' : 'per hour' ?> · 1 hour minimum</strong>
                     <span>Pick a date here, then set your time in on the next page and add hours with +. Your time out is worked out for you.</span>
                 </div>
             </div>

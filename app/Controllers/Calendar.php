@@ -25,7 +25,7 @@ class Calendar extends BaseController
         $endAt   = $end ? date('Y-m-d H:i:s', strtotime($end)) : date('Y-m-t 23:59:59');
 
         $builder = (new BookingModel())
-            ->select('bookings.*, facilities.name AS facility_name, facilities.price_per_hour AS facility_price, users.name AS customer_name')
+            ->select('bookings.*, facilities.name AS facility_name, facilities.price_per_hour AS facility_price, facilities.type AS facility_type, users.name AS customer_name')
             ->join('facilities', 'facilities.id = bookings.facility_id', 'left')
             ->join('users', 'users.id = bookings.user_id', 'left')
             ->whereIn('bookings.status', ['pending', 'approved'])
@@ -91,7 +91,8 @@ class Calendar extends BaseController
                     'facility_id' => (int) $b['facility_id'],
                     'customer'    => $isAdmin ? $b['customer_name'] : null,
                     'hours'       => $hours,
-                    'total'       => $private ? $hours * (float) $b['facility_price'] + (float) ($b['addons_total'] ?? 0) : null,
+                    'people'      => \App\Models\FacilityModel::isPerHead((string) $b['facility_type']) ? max(1, (int) $b['guests']) : null,
+                    'total'       => $private ? $hours * (float) $b['facility_price'] * (\App\Models\FacilityModel::isPerHead((string) $b['facility_type']) ? max(1, (int) $b['guests']) : 1) + (float) ($b['addons_total'] ?? 0) : null,
                     'addons'      => $addons,
                     'purpose'     => $private ? $b['purpose'] : null,
                 ],

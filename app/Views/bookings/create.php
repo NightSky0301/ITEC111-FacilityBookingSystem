@@ -13,19 +13,19 @@
     $dateLabel = date('Y-m-d') === $dateValue ? 'Today' : date('D', strtotime($dateValue));
     $dateLabel .= ', ' . date('M j', strtotime($dateValue));
 ?>
-<div class="page-head">
-    <div>
-        <a href="<?= site_url('facilities') ?>" class="back-link"><i class="bi bi-arrow-left"></i> Browse courts and availability</a>
-        <h1>New booking</h1>
-        <p>Pick a court, a day and a time. The facility manager reviews every request, and you will be notified of the result.</p>
-    </div>
-</div>
+<?= $this->setVar('step', 4)->setVar('type', $selectedType)->setVar('courtUrl', $selectedId ? site_url('facilities/court/' . $selectedId) : null)->include('facilities/_stepper') ?>
+
+<header class="activity-hero">
+    <h1>New booking</h1>
+    <p>Choose a time, add any extras and send your request.</p>
+</header>
 
 <form method="post" action="<?= site_url('bookings') ?>" id="bookForm" novalidate>
 <?= csrf_field() ?>
 <input type="hidden" name="start_time" id="startTime" value="<?= esc($timeValue) ?>">
 <input type="hidden" name="hours" id="hours" value="<?= $hours ?>">
 <input type="hidden" name="start_date" id="startDate" value="<?= esc($dateValue) ?>">
+<input type="hidden" name="people" id="people" value="<?= max(1, (int) old('people')) ?>" disabled>
 
 <div class="row g-4">
     <div class="col-lg-7">
@@ -54,11 +54,28 @@
                             <span class="bf-court-body">
                                 <strong><?= esc($c['name']) ?></strong>
                                 <span><i class="bi bi-people"></i> <?= esc($c['people']) ?></span>
-                                <span class="bf-price">₱<?= number_format($c['price'], 0) ?> <small>/ hour</small></span>
+                                <span class="bf-price">₱<?= number_format($c['price'], 0) ?> <small><?= ! empty($c['head']) ? '/ person / hour' : '/ hour' ?></small></span>
                             </span>
                             <i class="bi bi-check-circle-fill bf-tick"></i>
                         </label>
                     <?php endforeach; ?>
+                </div>
+            </section>
+
+            <section class="bf-sec" id="headSec" hidden>
+                <div class="duration-box">
+                    <div class="duration-row">
+                        <span class="duration-icon"><i class="bi bi-people"></i></span>
+                        <div class="duration-text">
+                            <strong>How many people?</strong>
+                            <span id="headHint">The gym is booked per person.</span>
+                        </div>
+                        <div class="ext-stepper" role="group" aria-label="Number of people">
+                            <button type="button" class="ext-btn" id="pMinus" aria-label="One less person"><i class="bi bi-dash-lg"></i></button>
+                            <output class="ext-value" id="pValue" for="pMinus pPlus">1</output>
+                            <button type="button" class="ext-btn" id="pPlus" aria-label="One more person"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -95,7 +112,7 @@
 
             <section class="bf-sec">
                 <h2 class="bf-h">Add-ons <span class="text-muted fw-normal">(optional)</span></h2>
-                <div class="bf-cool" role="radiogroup" aria-label="Cooling">
+                <div class="bf-cool" id="coolBox" role="radiogroup" aria-label="Cooling">
                     <label class="bf-cool-opt"><input type="radio" name="cooling" value="" checked><span><b>No cooling</b><small>Natural airflow</small></span></label>
                     <?php foreach ($addons as $key => $a): if ($a['group'] !== 'cooling') continue; ?>
                         <label class="bf-cool-opt"><input type="radio" name="cooling" value="<?= esc($key) ?>" data-addon="<?= esc($key) ?>" data-indoor="<?= ! empty($a['indoor']) ? '1' : '0' ?>" <?= old('cooling') === $key ? 'checked' : '' ?>>
@@ -107,13 +124,13 @@
                         <label class="bf-extra" data-addon="<?= esc($key) ?>" data-types="<?= esc(json_encode($a['types']), 'attr') ?>" data-evening="<?= $a['evening'] ? '1' : '0' ?>">
                             <input type="checkbox" name="addons[]" value="<?= esc($key) ?>" <?= in_array($key, (array) old('addons'), true) ? 'checked' : '' ?>>
                             <span class="bf-extra-body"><b><?= esc($a['label']) ?></b><small data-note="<?= esc($a['note'], 'attr') ?>"><?= esc($a['note']) ?></small></span>
-                            <span class="bf-extra-price">+₱<?= number_format($a['price']) ?><small><?= $a['per'] === 'hour' ? ' / hr' : '' ?></small></span>
+                            <span class="bf-extra-price">+₱<?= number_format($a['price']) ?><small><?= $a['per'] === 'hour' ? ' / hr' : ($a['per'] === 'person' ? ' / person' : '') ?></small></span>
                         </label>
                     <?php endforeach; ?>
                 </div>
             </section>
 
-            <section class="bf-sec">
+            <section class="bf-sec" id="suggestSec">
                 <div class="bf-people" id="peopleBox">
                     <span class="duration-icon"><i class="bi bi-people"></i></span>
                     <div>
@@ -138,8 +155,9 @@
                 <div class="row-line"><dt>Date</dt><dd id="sDate">–</dd></div>
                 <div class="row-line"><dt>Arrival</dt><dd id="sStart">–</dd></div>
                 <div class="row-line"><dt>Departure</dt><dd id="sEnd">–</dd></div>
+                <div class="row-line" id="sPeopleRow" hidden><dt>People</dt><dd id="sPeople">–</dd></div>
                 <div class="row-line"><dt>Length</dt><dd id="sDuration">–</dd></div>
-                <div class="row-line"><dt>Court <span id="sRate" class="sub"></span></dt><dd id="sCourt">–</dd></div>
+                <div class="row-line"><dt><span id="sCourtLbl">Court</span> <span id="sRate" class="sub"></span></dt><dd id="sCourt">–</dd></div>
                 <div id="sAddons"></div>
             </dl>
             <div class="total"><span class="text-muted">Total payment</span><strong id="sTotal">–</strong></div>
@@ -203,8 +221,11 @@ window.addEventListener('error', function (e) {
     let infoAt = 0;             // performance.now() when it arrived, to keep the server clock ticking
     let picked = toMin(timeIn.value);
     let note = '';
+    let people = Math.max(1, parseInt($('people').value, 10) || 1);
 
     const court = () => { const r = radios.find(x => x.checked); return r ? COURTS.find(c => c.id === +r.value) : null; };
+    const isHead = () => { const c = court(); return !!(c && c.head); };
+    const mult = () => isHead() ? people : 1;
     const nowMin = () => info ? info.now + Math.floor((performance.now() - infoAt) / 60000) : null;
 
     function setSport(type) {
@@ -281,7 +302,7 @@ window.addEventListener('error', function (e) {
                 g.list.forEach(([s, st]) => {
                     const b = document.createElement('button');
                     b.type = 'button'; b.className = 'bf-slot is-' + st; b.dataset.min = s; b.textContent = win(s);
-                    if (st !== 'free') { b.disabled = true; b.title = st === 'past' ? 'This time has passed' : st === 'busy' ? 'Already booked' : 'Too close to closing time'; }
+                    if (st !== 'free') { b.disabled = true; b.title = st === 'past' ? 'This time has passed' : st === 'busy' ? (isHead() ? 'No room for ' + people + (people === 1 ? ' person' : ' people') : 'Already booked') : 'Too close to closing time'; }
                     if (picked === s) { b.classList.add('is-picked'); b.setAttribute('aria-pressed', 'true'); }
                     grid.appendChild(b);
                 });
@@ -300,10 +321,10 @@ window.addEventListener('error', function (e) {
         const c = court(), d = dateIn.value;
         info = null; renderSlots(); summary();
         if (!c || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
-        const key = c.id + d;
-        fetch(busyUrl + '?facility_id=' + c.id + '&date=' + d, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        const key = c.id + d + '|' + people;
+        fetch(busyUrl + '?facility_id=' + c.id + '&date=' + d + (c.head ? '&people=' + people : ''), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
             .then(r => r.ok ? r.json() : Promise.reject())
-            .then(j => { if (key !== (court() || {}).id + dateIn.value) return; info = j; infoAt = performance.now(); renderSlots(); summary(); })
+            .then(j => { if (key !== (court() || {}).id + dateIn.value + '|' + people) return; info = j; infoAt = performance.now(); renderSlots(); summary(); })
             .catch(() => { slotsEl.innerHTML = '<p class="bf-empty">Could not load times. Refresh the page and try again.</p>'; });
     }
 
@@ -322,6 +343,9 @@ window.addEventListener('error', function (e) {
             if (off && r.checked) cool.find(x => x.value === '').checked = true;
             small.textContent = off ? 'Indoor courts only (not on Court B)' : small.dataset.note;
         });
+        const head = !!c && c.head;
+        $('coolBox').hidden = head;
+        if (head) { const none = cool.find(x => x.value === ''); if (none) none.checked = true; }
         extras.forEach(e => {
             const types = JSON.parse(e.dataset.types), small = e.querySelector('small');
             const wrongType = types && (!c || types.indexOf(c.type) < 0);
@@ -342,16 +366,23 @@ window.addEventListener('error', function (e) {
         $('sStart').textContent = picked !== null ? clock(picked) : '–';
         $('sEnd').textContent = picked !== null ? clock(picked + hours * 60) : '–';
         $('sDuration').textContent = fmtHrs(hours);
-        $('sRate').textContent = c ? '(' + fmtHrs(hours) + ' × ' + peso(c.price).replace('.00', '') + ')' : '';
-        $('sCourt').textContent = c ? peso(c.price * hours) : '–';
+        const head = !!c && c.head, m = head ? people : 1;
+        $('headSec').hidden = !head; $('suggestSec').hidden = head; $('people').disabled = !head; $('people').value = people;
+        $('sPeopleRow').hidden = !head; $('sPeople').textContent = people + (people === 1 ? ' person' : ' people');
+        $('sCourtLbl').textContent = head ? 'Gym access' : 'Court';
+        $('pValue').textContent = people; $('pMinus').disabled = people <= 1; $('pPlus').disabled = !head || people >= c.max;
+        $('headHint').textContent = head ? 'Up to ' + c.max + ' people at a time. ' + peso(c.price) + ' per person, per hour.' : '';
+        $('sRate').textContent = c ? '(' + (head ? people + (people === 1 ? ' person × ' : ' people × ') : '') + fmtHrs(hours) + ' × ' + peso(c.price).replace('.00', '') + ')' : '';
+        $('sCourt').textContent = c ? peso(c.price * hours * m) : '–';
         syncAddons(c);
         let add = 0, rows = '';
         chosen().forEach(k => {
-            const a = ADDONS[k], amt = a.per === 'hour' ? a.price * hours : a.price; add += amt;
-            rows += '<div class="row-line"><dt>' + a.label + ' <span class="sub">' + (a.per === 'hour' ? '(' + fmtHrs(hours) + ' × ₱' + a.price + ')' : '(flat)') + '</span></dt><dd>' + peso(amt) + '</dd></div>';
+            const a = ADDONS[k], amt = a.per === 'hour' ? a.price * hours : a.per === 'person' ? a.price * m : a.per === 'person_hour' ? a.price * m * hours : a.price; add += amt;
+            const sub = a.per === 'hour' ? '(' + fmtHrs(hours) + ' × ₱' + a.price + ')' : a.per === 'person' ? '(' + m + (m === 1 ? ' person' : ' people') + ' × ₱' + a.price + ')' : '(flat)';
+            rows += '<div class="row-line"><dt>' + a.label + ' <span class="sub">' + sub + '</span></dt><dd>' + peso(amt) + '</dd></div>';
         });
         $('sAddons').innerHTML = rows;
-        $('sTotal').textContent = c ? peso(c.price * hours + add) : '–';
+        $('sTotal').textContent = c ? peso(c.price * hours * m + add) : '–';
         $('peopleText').textContent = c ? c.people + ' fit comfortably on ' + c.name + '. For your information only.' : 'Choose a court to see how many people it fits.';
         $('peopleBox').classList.toggle('is-on', !!c);
 
@@ -360,7 +391,7 @@ window.addEventListener('error', function (e) {
         hoursIn.value = hours; $('hrValue').textContent = fmtHrs(hours);
         $('hrMinus').disabled = hours <= MIN; $('hrPlus').disabled = hours >= limit;
         $('durHint').textContent = hours >= MAX ? 'Longest booking reached (' + fmtHrs(MAX) + ').'
-            : (hours >= limit && stayLimitText() ? stayLimitText() : (c ? peso(c.price) + ' per hour. Each + adds one hour.' : 'Courts are rented per hour. Each + adds one hour.'));
+            : (hours >= limit && stayLimitText() ? stayLimitText() : (c ? peso(c.price) + (head ? ' per person, per hour.' : ' per hour.') + ' Each + adds one hour.' : 'Courts are rented per hour. Each + adds one hour.'));
 
         const ready = !!c && picked !== null && /^\d{4}-\d{2}-\d{2}$/.test(dv);
         $('submitBtn').disabled = !ready;
@@ -371,7 +402,7 @@ window.addEventListener('error', function (e) {
     }
 
     acts.forEach(a => a.addEventListener('click', () => { setSport(a.dataset.type); picked = null; timeIn.value = ''; note = ''; load(); }));
-    radios.forEach(r => r.addEventListener('change', () => { picked = null; timeIn.value = ''; note = ''; load(); }));
+    radios.forEach(r => r.addEventListener('change', () => { people = Math.min(people, (court() || {max: people}).max || people); picked = null; timeIn.value = ''; note = ''; load(); }));
     slotsEl.addEventListener('click', e => {
         const h = e.target.closest('.bf-grp-head');
         if (h && !h.disabled) { openKey = openKey === h.dataset.key ? null : h.dataset.key; renderSlots(); return; }
@@ -380,6 +411,10 @@ window.addEventListener('error', function (e) {
         openKey = null; renderSlots(); summary();
     });
     extras.forEach(e => e.addEventListener('change', summary)); cool.forEach(r => r.addEventListener('change', summary));
+    // Gym: changing the head count changes which times still have room, so reload them.
+    function setPeople(n) { people = n; note = ''; load(); }
+    $('pMinus').addEventListener('click', () => { if (people > 1) setPeople(people - 1); });
+    $('pPlus').addEventListener('click', () => { const c = court(); if (c && c.head && people < c.max) setPeople(people + 1); });
     $('hrMinus').addEventListener('click', () => { if (hours > MIN) { hours--; note = ''; summary(); } });
     $('hrPlus').addEventListener('click', () => { if (hours < maxStay()) { hours++; note = ''; summary(); } });
     // Popup: what is already booked on this court on the chosen day.
@@ -391,7 +426,7 @@ window.addEventListener('error', function (e) {
         $('schTitle').textContent = c.name;
         $('schBody').innerHTML = '<p class="bf-empty m-3">Loading schedule…</p>';
         schedModal.show();
-        fetch(busyUrl + '?facility_id=' + c.id + '&date=' + dv, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        fetch(busyUrl + '?facility_id=' + c.id + '&date=' + dv + (c.head ? '&people=' + people : ''), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(j => {
                 const span = j.close - j.open, pct = m => Math.max(0, Math.min(100, (m - j.open) / span * 100));

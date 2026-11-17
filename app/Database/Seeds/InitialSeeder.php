@@ -53,10 +53,20 @@ class InitialSeeder extends Seeder
             ['Pickleball Court B', 'pickleball', 'Outdoor court with net and lines and night lights. Paddles can be rented at the counter.', 4, 350],
             ['Volleyball Court A', 'volleyball', 'Indoor court with adjustable net and wooden floor.', 18, 450],
             ['Volleyball Court B', 'volleyball', 'Outdoor sand court with night lights. Ball not included.', 18, 400],
+            ['Futsal Court A', 'futsal', 'Indoor futsal court with goals, line markings and bright lighting.', 14, 700],
+            ['Football Court', 'football', 'Full-size outdoor pitch with goals, line markings, team benches and floodlights. Open air.', 22, 1200],
+            ['Tennis Court A', 'tennis', 'Indoor hard court with a net, full markings and stand lights.', 4, 450],
+            ['Tennis Court B', 'tennis', 'Outdoor hard court with a net and full markings. Open air, so no air-conditioning.', 4, 350],
+            ['Gym', 'gym', 'Open workout floor with cardio machines, free weights and a stretching area. Booked per person, up to 15 people at a time.', 15, 100],
         ];
 
         $rows = [];
         foreach ($courts as [$name, $type, $description, $capacity, $price]) {
+            // The gym migration may already have added the Gym; never add a second one.
+            if (($type === 'gym' || in_array($name, ['Futsal Court A', 'Football Court', 'Tennis Court A', 'Tennis Court B'], true))
+                && $this->db->table('facilities')->where($type === 'gym' ? 'type' : 'name', $type === 'gym' ? 'gym' : $name)->countAllResults() > 0) {
+                continue;
+            }
             $rows[] = [
                 'name'           => $name,
                 'type'           => $type,

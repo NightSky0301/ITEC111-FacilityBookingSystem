@@ -57,7 +57,9 @@ if (! function_exists('facility_icon')) {
             'badminton'     => 'bi-feather',
             'tennis'        => 'bi-lightning-charge',
             'futsal'        => 'bi-trophy',
+            'football'      => 'bi-flag',
             'multipurpose'  => 'bi-grid-3x3-gap',
+            'gym'           => 'bi-heart-pulse',
             'other'         => 'bi-geo-alt',
         ];
         return $icons[$type] ?? 'bi-geo-alt';
@@ -68,6 +70,10 @@ if (! function_exists('facility_is_outdoor')) {
     /** Every "Court B" (or numbered 2) is the outdoor court next to Court A. */
     function facility_is_outdoor(array $facility): bool
     {
+        // The football pitch is open-air only; every other "Court B" (or numbered 2) is the outdoor court.
+        if (($facility['type'] ?? '') === 'football') {
+            return true;
+        }
         return (bool) preg_match('/\s(B|2)$/i', trim((string) ($facility['name'] ?? '')));
     }
 }
@@ -86,9 +92,12 @@ if (! function_exists('facility_image')) {
         $type    = (string) ($facility['type'] ?? 'other');
         $variant = facility_is_outdoor($facility) ? 'b' : 'a';
 
+        // Photos (jpg or png) come first; the drawn illustration (svg) is the fallback.
         foreach ([$type . '-' . $variant, $type . '-a', 'other-a'] as $name) {
-            if (is_file(FCPATH . 'assets/img/courts/' . $name . '.svg')) {
-                return base_url('assets/img/courts/' . $name . '.svg');
+            foreach (['jpg', 'png', 'svg'] as $ext) {
+                if (is_file(FCPATH . 'assets/img/courts/' . $name . '.' . $ext)) {
+                    return base_url('assets/img/courts/' . $name . '.' . $ext);
+                }
             }
         }
         return base_url('assets/img/courts/other-a.svg');
@@ -134,8 +143,10 @@ if (! function_exists('facility_icon_html')) {
             'basketball'   => 'fa-basketball',
             'volleyball'   => 'fa-volleyball',
             'pickleball'   => 'fa-table-tennis-paddle-ball',
-            'futsal'       => 'fa-futbol',
+            'futsal'       => 'fa-person-running',
+            'football'     => 'fa-futbol',
             'multipurpose' => 'fa-border-all',
+            'gym'          => 'fa-dumbbell',
         ];
         if (isset($fa[$type])) {
             return '<i class="fa-solid ' . $fa[$type] . '" aria-hidden="true"></i>';
@@ -151,5 +162,22 @@ if (! function_exists('facility_icon_html')) {
             return $svg('<circle cx="12" cy="12" r="9"/><path d="M4.2 7.5c3.8 2 3.8 7 0 9M19.8 7.5c-3.8 2-3.8 7 0 9"/>');
         }
         return '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>';
+    }
+}
+
+if (! function_exists('approval_label')) {
+    /** "Approved by Admin" / "Approved by Staff: Christian" (first name only); plain "Approved" for older bookings. */
+    function approval_label(array $b): string
+    {
+        $role = $b['approver_role'] ?? null;
+        if (! $role) {
+            return 'Approved';
+        }
+        if ($role === 'admin') {
+            return 'Approved by Admin';
+        }
+        $first = explode(' ', trim((string) ($b['approver_name'] ?? '')))[0];
+
+        return 'Approved by Staff' . ($first !== '' ? ': ' . $first : '');
     }
 }
