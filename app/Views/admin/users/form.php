@@ -11,11 +11,11 @@
 <div class="row g-4">
 <div class="col-lg-7">
 <div class="panel"><div class="panel-body">
-<form method="post" action="<?= $editing ? site_url('admin/users/' . (int) $user['id']) : site_url('admin/users') ?>">
+<form method="post" id="regForm" novalidate <?= $editing ? 'data-optional-password="1"' : '' ?> action="<?= $editing ? site_url('admin/users/' . (int) $user['id']) : site_url('admin/users') ?>">
     <?= csrf_field() ?>
     <div class="mb-3">
         <label class="form-label" for="name">Full name</label>
-        <input type="text" id="name" name="name" class="form-control" value="<?= esc(old('name', $user['name'] ?? '')) ?>" required>
+        <input type="text" id="name" name="name" class="form-control" value="<?= esc(old('name', $user['name'] ?? '')) ?>" maxlength="120" pattern="[^0-9]+" title="Letters only. Numbers are not allowed." required>
     </div>
     <div class="mb-3">
         <label class="form-label" for="email">Email (used to log in)</label>
@@ -24,7 +24,7 @@
     <div class="row">
         <div class="col-sm-6 mb-3">
             <label class="form-label" for="phone">Phone <span class="text-muted fw-normal">(optional)</span></label>
-            <input type="text" id="phone" name="phone" class="form-control" value="<?= esc(old('phone', $user['phone'] ?? '')) ?>">
+            <input type="tel" id="phone" name="phone" class="form-control" value="<?= esc(old('phone', $user['phone'] ?? '')) ?>" inputmode="numeric" maxlength="15" pattern="[0-9]{7,15}" title="Digits only, 7 to 15 numbers.">
         </div>
         <div class="col-sm-6 mb-3">
             <label class="form-label" for="role">Role</label>
@@ -39,13 +39,32 @@
             <?php endif; ?>
         </div>
     </div>
+    <div class="mb-3">
+        <label class="form-label" for="password"><?= $editing ? 'New password' : 'Password' ?><?= $editing ? ' <span class="text-muted fw-normal">(leave empty to keep the current one)</span>' : '' ?></label>
+        <div class="pw-field">
+            <input type="password" id="password" name="password" class="form-control" minlength="8" autocomplete="new-password" <?= $editing ? '' : 'required' ?>>
+            <button type="button" class="pw-eye" data-target="password" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye"></i></button>
+        </div>
+        <div class="pw-meter" aria-hidden="true"><span id="pwBar" class="pw-bar"></span></div>
+        <div class="pw-meter-text" id="pwMeterText" aria-live="polite">Strength: <strong id="pwLabel">Enter a password</strong></div>
+        <ul class="pw-rules" id="pwRules">
+            <li data-rule="len"><i class="bi bi-circle"></i> At least 8 characters</li>
+            <li data-rule="upper"><i class="bi bi-circle"></i> One uppercase letter (A-Z)</li>
+            <li data-rule="letter"><i class="bi bi-circle"></i> One letter (a-z)</li>
+            <li data-rule="num"><i class="bi bi-circle"></i> One number (0-9)</li>
+            <li data-rule="special"><i class="bi bi-circle"></i> One special character (! @ # $ %)</li>
+        </ul>
+    </div>
     <div class="mb-4">
-        <label class="form-label" for="password"><?= $editing ? 'New password' : 'Password' ?></label>
-        <input type="password" id="password" name="password" class="form-control" minlength="6" autocomplete="new-password" <?= $editing ? '' : 'required' ?>>
-        <div class="form-text">At least 6 characters.</div>
+        <label class="form-label" for="password_confirm"><?= $editing ? 'Confirm new password' : 'Confirm password' ?></label>
+        <div class="pw-field">
+            <input type="password" id="password_confirm" name="password_confirm" class="form-control" autocomplete="new-password" <?= $editing ? '' : 'required' ?>>
+            <button type="button" class="pw-eye" data-target="password_confirm" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye"></i></button>
+        </div>
+        <div class="pw-match" id="pwMatch" aria-live="polite"></div>
     </div>
     <div class="d-flex gap-2">
-        <button class="btn btn-primary">Save user</button>
+        <button class="btn btn-primary" id="regSubmit">Save user</button>
         <a href="<?= site_url('admin/users') ?>" class="btn btn-outline-secondary">Cancel</a>
     </div>
 </form>
@@ -76,4 +95,8 @@
 </div></div>
 </div>
 </div>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script src="<?= base_url('assets/js/register.js') ?>"></script>
 <?= $this->endSection() ?>

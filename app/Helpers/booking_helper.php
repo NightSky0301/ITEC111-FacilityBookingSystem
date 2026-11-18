@@ -67,14 +67,27 @@ if (! function_exists('facility_icon')) {
 }
 
 if (! function_exists('facility_is_outdoor')) {
-    /** Every "Court B" (or numbered 2) is the outdoor court next to Court A. */
+    /**
+     * Indoor or outdoor. Gym, futsal and multipurpose are always indoor, football is always outdoor.
+     * Every other court says it in its name: "Basketball Court (Outdoor)". Older "Court B" / "2" names still count as outdoor.
+     */
     function facility_is_outdoor(array $facility): bool
     {
-        // The football pitch is open-air only; every other "Court B" (or numbered 2) is the outdoor court.
-        if (($facility['type'] ?? '') === 'football') {
+        $type = (string) ($facility['type'] ?? '');
+        $name = trim((string) ($facility['name'] ?? ''));
+        if (in_array($type, ['gym', 'futsal', 'multipurpose'], true)) {
+            return false;
+        }
+        if ($type === 'football') {
             return true;
         }
-        return (bool) preg_match('/\s(B|2)$/i', trim((string) ($facility['name'] ?? '')));
+        if (stripos($name, 'outdoor') !== false) {
+            return true;
+        }
+        if (stripos($name, 'indoor') !== false) {
+            return false;
+        }
+        return (bool) preg_match('/\s(B|2)$/i', $name);
     }
 }
 
@@ -181,3 +194,35 @@ if (! function_exists('approval_label')) {
         return 'Approved by Staff' . ($first !== '' ? ': ' . $first : '');
     }
 }
+
+if (! function_exists('arrival_window')) {
+    /** [start, end) timestamps of the arrival window the customer chose in the booking form. */
+    function arrival_window(array $b): array
+    {
+        $start = strtotime($b['start_at']);
+
+        return [$start, $start + \App\Models\BookingModel::ARRIVAL_WINDOW_MIN * 60];
+    }
+}
+
+if (! function_exists('arrival_state')) {
+    /**
+     * Where an approved booking stands on the desk's Session(s) today list.
+     * Returns [key, label, css class]: upcoming, open (confirm now), missed (did not arrive), arrived, finished.
+     */
+    function arrival_state(array $b, ?int $now = null): array
+    {
+        $now = $now ?? time();
+        [$ws, $we] = arrival_window($b);
+        $end = strtotime($b['end_at']);
+
+        if (! empty($b['arrived_at'])) {
+            return $now >= $end ? ['finished', 'Arrived · Finished', 'is-arrived is-done'] : ['arrived', 'Arrived', 'is-arrived'];
+        }
+        if ($now < $ws) { return ['upcoming', 'Upcoming', 'is-soon']; }
+        if ($now < $we) { return ['open', 'Waiting for arrival', 'is-due']; }
+
+        return ['missed', 'Did not arrive', 'is-missed'];
+    }
+}
+

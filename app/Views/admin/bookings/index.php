@@ -44,7 +44,8 @@
             <td>
                 <?php if ($b['status'] === 'approved'): ?>
                     <span class="pill pill-approved"><?= esc(approval_label($b)) ?></span>
-                    <?php if (! empty($b['arrived_at'])): ?><div class="cell-sub mt-1"><i class="bi bi-person-check"></i> Arrived <?= esc(date('g:i A', strtotime($b['arrived_at']))) ?></div><?php endif; ?>
+                    <?php if (! empty($b['arrived_at'])): ?><div class="cell-sub mt-1"><i class="bi bi-person-check"></i> Arrived <?= esc(date('g:i A', strtotime($b['arrived_at']))) ?></div>
+                    <?php elseif ($b['status'] === 'approved' && arrival_state($b)[0] === 'missed'): ?><div class="cell-sub mt-1 text-danger"><i class="bi bi-person-x"></i> Did not arrive</div><?php endif; ?>
                 <?php else: ?><?= status_badge($b['status']) ?><?php endif; ?>
                 <?php if ($b['admin_remarks']): ?><div class="cell-sub mt-1"><?= esc($b['admin_remarks']) ?></div><?php endif; ?></td>
             <td>

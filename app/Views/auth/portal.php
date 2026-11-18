@@ -18,7 +18,7 @@ $brand = 'Athletix';
 <body>
 <div class="auth-split auth-stage <?= $isReg ? 'is-register' : '' ?>" id="authStage" data-login-url="<?= site_url('login') ?>" data-register-url="<?= site_url('register') ?>">
     <aside class="auth-art">
-        <a class="brand brand-hero" href="<?= site_url('/') ?>" aria-label="<?= esc($brand) ?>"><span class="brand-logo brand-logo-hero"><img src="<?= base_url('assets/img/logo-lg.png') ?>" alt="" width="72" height="72"></span><span class="brand-word">Athleti<b>x</b></span></a>
+        <a class="brand brand-hero" href="<?= site_url('/') ?>" aria-label="<?= esc($brand) ?>"><span class="brand-word">Athleti<b>x</b></span></a>
         <div class="art-copies">
             <div class="art-copy" data-for="login" <?= $isReg ? 'inert' : '' ?>>
                 <h2>Reserve your court in minutes.</h2>

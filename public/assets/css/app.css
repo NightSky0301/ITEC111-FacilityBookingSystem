@@ -1227,7 +1227,7 @@ a.sess-card { text-decoration: none; }
 .site-header .brand-word { font-size: 1.35rem; }
 
 /* Login / register: big logo badge + wordmark */
-.auth-art .brand-hero { gap: 1.15rem; padding: 0; align-self: flex-start; }
+.auth-art .brand-hero { padding: .6rem 0; align-self: center; justify-content: center; text-align: center; }
 .auth-art .brand-hero .brand-logo-hero { width: 84px; height: 84px; border-width: 3px; box-shadow: 0 6px 22px rgba(0, 0, 0, .35); }
 .auth-art .brand-hero .brand-logo-hero img { width: 76px; height: 76px; }
 .auth-art .brand-hero .brand-word {
@@ -1235,3 +1235,17 @@ a.sess-card { text-decoration: none; }
     text-shadow: 0 2px 18px rgba(0, 0, 0, .25);
 }
 .auth-art .brand-hero .brand-word b { color: var(--brass-light); }
+
+.is-missed .sess-state { background: var(--bad); color: #fff; }
+.is-missed { border-color: rgba(176, 58, 46, .45); }
+
+
+/* ---------- Table action buttons (Users) ---------- */
+.btn-act { border: 0; border-radius: 8px; color: #fff; font-weight: 600; padding: .4rem .85rem; display: inline-flex; align-items: center; gap: .4rem; transition: filter .15s, transform .1s; }
+.btn-act:hover { color: #fff; filter: brightness(1.12); }
+.btn-act:active { transform: translateY(1px); }
+.btn-act-edit  { background: var(--lagoon); }
+.btn-act-brass { background: var(--brass); }
+.btn-act-red   { background: var(--bad); }
+.btn-act-ghost { background: #fff; color: var(--lagoon); border: 1.5px solid var(--lagoon); }
+.btn-act-ghost:hover { color: var(--lagoon); background: #eaf2f1; }

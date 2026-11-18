@@ -12,7 +12,7 @@ namespace App\Libraries;
  *          'extra'   -> any combination
  *   evening  true    -> only when the arrival time is 5:00 PM or later (lights)
  *   types    null    -> every activity, otherwise only the listed activity types
- *   indoor   true    -> not offered on outdoor courts (Court B)
+ *   indoor   true    -> not offered on outdoor courts
  * Change prices here.
  */
 class Addons
@@ -66,7 +66,7 @@ class Addons
                 return 'One of the add-ons is not available for this court.';
             }
             if (! empty($a['indoor']) && $outdoor) {
-                return $a['label'] . ' is only available on indoor courts (Court A).';
+                return $a['label'] . ' is only available on indoor courts.';
             }
             if ($a['evening'] && $startMinute < self::EVENING_FROM) {
                 return $a['label'] . ' is only available for evening arrivals (5:00 PM or later).';

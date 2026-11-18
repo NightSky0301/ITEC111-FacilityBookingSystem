@@ -23,10 +23,9 @@ $nowTs = time();
             $s = strtotime($b['start_at']);
             $e = strtotime($b['end_at']);
             $arrived = ! empty($b['arrived_at']);
-            if ($arrived)           { $state = ['Arrived', 'is-arrived']; }
-            elseif ($nowTs >= $e)   { $state = ['Finished', 'is-done']; }
-            elseif ($nowTs >= $s)   { $state = ['Waiting for arrival', 'is-due']; }
-            else                    { $state = ['Upcoming', 'is-soon']; }
+            [$wStart, $wEnd] = arrival_window($b);
+            $state = arrival_state($b, $nowTs);
+            $state = [$state[1], $state[2]];
             $perHead = \App\Models\FacilityModel::isPerHead((string) ($b['facility_type'] ?? ''));
             $img = facility_image(['type' => $b['facility_type'] ?? 'other', 'name' => $b['facility_name'] ?? '', 'image' => $b['facility_image'] ?? null]);
         ?>
@@ -36,13 +35,14 @@ $nowTs = time();
             data-customer="<?= esc($b['customer_name'], 'attr') ?>"
             data-court="<?= esc($b['facility_name'], 'attr') ?>"
             data-start="<?= $s ?>" data-end="<?= $e ?>"
-            data-arrival="<?= esc(date('g:i A', $s), 'attr') ?>"
+            data-wend="<?= $wEnd ?>"
+            data-arrival="<?= esc(date('g:i A', $wStart) . ' – ' . date('g:i A', $wEnd), 'attr') ?>"
             data-range="<?= esc(fmt_range($b['start_at'], $b['end_at']), 'attr') ?>"
             data-people="<?= $perHead ? (int) $b['guests'] . ' ' . ((int) $b['guests'] === 1 ? 'person' : 'people') : '' ?>"
             data-arrived="<?= $arrived ? esc(date('g:i A', strtotime($b['arrived_at'])), 'attr') : '' ?>"
             data-img="<?= esc($img, 'attr') ?>">
             <span class="sess-photo" style="background-image:url('<?= esc($img, 'attr') ?>')">
-                <span class="sess-state"><?= $state[0] ?></span>
+                <span class="sess-state" data-state><?= $state[0] ?></span>
             </span>
             <span class="sess-body">
                 <span class="sess-time"><?= date('g:i A', $s) ?> – <?= date('g:i A', $e) ?></span>
@@ -69,7 +69,7 @@ $nowTs = time();
                 <dl class="sess-dl">
                     <div><dt>Customer</dt><dd id="sessCustomer">–</dd></div>
                     <div><dt>Court</dt><dd id="sessCourt">–</dd></div>
-                    <div><dt>Arrival time</dt><dd id="sessArrival">–</dd></div>
+                    <div><dt>Arrival window</dt><dd id="sessArrival">–</dd></div>
                     <div><dt>Booked for</dt><dd id="sessRange">–</dd></div>
                     <div id="sessPeopleRow"><dt>People</dt><dd id="sessPeople">–</dd></div>
                 </dl>
@@ -94,29 +94,47 @@ $nowTs = time();
     const arriveUrl = '<?= site_url('manage/bookings') ?>';
     let cur = null;
 
+    // Same rules as the server (arrival_state in booking_helper.php): the confirm button works only inside the arrival window.
+    function stateOf(d) {
+        const t = Math.floor(now() / 60000) * 60000, s = +d.start * 1000, w = +d.wend * 1000, e = +d.end * 1000;
+        if (d.arrived) return now() >= e ? ['finished', 'Arrived · Finished', 'is-arrived is-done'] : ['arrived', 'Arrived', 'is-arrived'];
+        if (t < s) return ['upcoming', 'Upcoming', 'is-soon'];
+        if (now() < w) return ['open', 'Waiting for arrival', 'is-due'];
+        return ['missed', 'Did not arrive', 'is-missed'];
+    }
+
+    function paintCards() {
+        document.querySelectorAll('.sess-card[data-start]').forEach(function (c) {
+            const st = stateOf(c.dataset);
+            c.className = 'sess-card ' + st[2];
+            const el = c.querySelector('[data-state]'); if (el) el.textContent = st[1];
+        });
+    }
+
     function refresh() {
+        paintCards();
         if (!cur) return;
-        const t = Math.floor(now() / 60000) * 60000;   // to the minute, like the server
-        const s = cur.start * 1000, e = cur.end * 1000;
-        const btn = $('sessBtn'), hint = $('sessHint');
-        if (cur.arrived) {
-            btn.disabled = true; btn.textContent = 'Arrival confirmed'; hint.textContent = 'Checked in at ' + cur.arrived + '.';
-        } else if (t < s) {
-            const mins = Math.ceil((s - now()) / 60000);
-            btn.disabled = true; btn.textContent = 'Confirm Arrival';
-            hint.textContent = 'Available at ' + cur.arrival + ' (in ' + mins + (mins === 1 ? ' minute' : ' minutes') + ').';
-        } else if (now() >= e) {
-            btn.disabled = true; btn.textContent = 'Confirm Arrival'; hint.textContent = 'This session has finished.';
+        const st = stateOf(cur), btn = $('sessBtn'), hint = $('sessHint');
+        $('sessState').textContent = st[0] === 'open' || st[0] === 'upcoming' ? 'Session today' : st[1];
+        btn.textContent = 'Confirm Arrival';
+        btn.disabled = st[0] !== 'open';
+        if (st[0] === 'arrived' || st[0] === 'finished') {
+            btn.textContent = 'Arrival confirmed';
+            hint.textContent = 'Checked in at ' + cur.arrived + '.' + (st[0] === 'finished' ? ' The session has finished.' : '');
+        } else if (st[0] === 'upcoming') {
+            const mins = Math.ceil((cur.start * 1000 - now()) / 60000);
+            hint.textContent = 'Arrival can be confirmed from ' + cur.arrival + ' (opens in ' + mins + (mins === 1 ? ' minute' : ' minutes') + ').';
+        } else if (st[0] === 'open') {
+            hint.textContent = 'Arrival window is open (' + cur.arrival + '). Confirm when the customer is here.';
         } else {
-            btn.disabled = false; btn.textContent = 'Confirm Arrival'; hint.textContent = 'The arrival time has come. Confirm when the customer is here.';
+            hint.textContent = 'The arrival window (' + cur.arrival + ') has passed. This booking is marked as Did not arrive.';
         }
     }
 
     document.getElementById('sessModal').addEventListener('show.bs.modal', function (ev) {
         const d = ev.relatedTarget.dataset;
-        cur = { id: d.id, start: +d.start, end: +d.end, arrival: d.arrival, arrived: d.arrived };
+        cur = { id: d.id, start: +d.start, end: +d.end, wend: +d.wend, arrival: d.arrival, arrived: d.arrived };
         $('sessTitle').textContent = d.court;
-        $('sessState').textContent = d.arrived ? 'Arrived' : 'Session today';
         $('sessCustomer').textContent = d.customer;
         $('sessCourt').textContent = d.court;
         $('sessArrival').textContent = d.arrival;
@@ -126,6 +144,7 @@ $nowTs = time();
         $('sessForm').action = arriveUrl + '/' + d.id + '/arrive';
         refresh();
     });
+    paintCards();
     setInterval(refresh, 1000);
 })();
 </script>

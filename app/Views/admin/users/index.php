@@ -17,12 +17,18 @@
     </select>
 </form>
 
-<div class="panel">
+<section class="tbl-panel">
+    <div class="sess-head">
+        <div>
+            <h2>All accounts</h2>
+            <div class="sess-sub"><?= count($users) ?> <?= count($users) === 1 ? 'account' : 'accounts' ?><?= $role ? ' · ' . esc($roles[$role] ?? $role) : '' ?></div>
+        </div>
+    </div>
 <?php if (empty($users)): ?>
     <div class="empty"><i class="bi bi-people"></i><strong>No users found</strong>Try a different filter.</div>
 <?php else: ?>
 <div class="table-responsive">
-<table class="table data-table table-hover">
+<table class="table data-table table-hover tbl-brass">
     <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Status</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($users as $u): $status = $u['status'] ?? 'active'; $isMe = (int) $u['id'] === $meId; ?>
@@ -35,21 +41,21 @@
             <td><?= esc($u['phone']) ?: '<span class="text-muted">–</span>' ?></td>
             <td><?= status_badge($status) ?></td>
             <td class="text-end text-nowrap">
-                <a href="<?= site_url('admin/users/' . (int) $u['id'] . '/edit') ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                <a href="<?= site_url('admin/users/' . (int) $u['id'] . '/edit') ?>" class="btn btn-sm btn-act btn-act-edit"><i class="bi bi-pencil-square"></i> Edit</a>
                 <?php if (! $isMe): ?>
                     <form method="post" action="<?= site_url('admin/users/' . (int) $u['id'] . '/toggle') ?>" class="d-inline"
                           <?= $status === 'active' ? 'data-confirm="' . esc('They will be logged out and cannot log in until you reactivate ' . $u['name'] . '\'s account.', 'attr') . '" data-confirm-title="Deactivate this account?" data-confirm-ok="Deactivate" data-confirm-icon="bi-person-slash"' : '' ?>>
                         <?= csrf_field() ?>
                         <?php if ($status === 'active'): ?>
-                            <button class="btn btn-sm btn-outline-danger">Deactivate</button>
+                            <button class="btn btn-sm btn-act btn-act-brass"><i class="bi bi-person-slash"></i> Deactivate</button>
                         <?php else: ?>
-                            <button class="btn btn-sm btn-outline-secondary">Reactivate</button>
+                            <button class="btn btn-sm btn-act btn-act-ghost"><i class="bi bi-person-check"></i> Reactivate</button>
                         <?php endif; ?>
                     </form>
                     <form method="post" action="<?= site_url('admin/users/' . (int) $u['id'] . '/delete') ?>" class="d-inline"
                           data-confirm="<?= esc($u['name'] . ' will be moved to the Archive and can no longer log in. You can restore the account from the Archive.', 'attr') ?>" data-confirm-title="Delete this account?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
                         <?= csrf_field() ?>
-                        <button class="btn btn-sm btn-outline-danger">Delete</button>
+                        <button class="btn btn-sm btn-act btn-act-red"><i class="bi bi-trash"></i> Delete</button>
                     </form>
                 <?php endif; ?>
             </td>
@@ -59,5 +65,5 @@
 </table>
 </div>
 <?php endif; ?>
-</div>
+</section>
 <?= $this->endSection() ?>

@@ -50,11 +50,16 @@
     pw.addEventListener('input', check);
     pc.addEventListener('input', matchCheck);
 
-    // The account cannot be created until every rule is met.
+    const form = $('regForm');
+    const optionalPw = form.dataset.optionalPassword === '1';   // Edit user: leave empty to keep the current password
+    if (phone) phone.value = phone.value.replace(/[^0-9]/g, '');
+
+    // The account cannot be saved until every rule is met.
     $('regForm').addEventListener('submit', function (e) {
         let msg = '';
         if (name && (!name.value.trim() || name.value.trim().length < 2)) msg = 'Enter your full name (letters only, no numbers).';
         else if (phone && phone.value && !/^[0-9]{7,15}$/.test(phone.value)) msg = 'Phone must be 7 to 15 digits.';
+        else if (optionalPw && !pw.value && !pc.value) msg = '';
         else if (!check()) msg = 'Your password must meet every requirement listed below it.';
         else if (!matchCheck()) msg = 'The two passwords do not match.';
         if (msg) {

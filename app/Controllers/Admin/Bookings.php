@@ -55,7 +55,7 @@ class Bookings extends BaseController
         return redirect()->back()->with('success', 'Booking approved.');
     }
 
-    /** Desk confirms the customer has arrived. Only possible once the arrival time has come (to the minute). */
+    /** Desk confirms the customer has arrived. Only possible inside the customer's arrival window. */
     public function arrive(int $id)
     {
         $bookings = new BookingModel();
@@ -67,12 +67,15 @@ class Bookings extends BaseController
         if (! empty($booking['arrived_at'])) {
             return redirect()->back()->with('error', 'This arrival is already confirmed.');
         }
-        $now = strtotime(date('Y-m-d H:i:00'));
-        if ($now < strtotime($booking['start_at'])) {
-            return redirect()->back()->with('error', 'Too early: arrival can be confirmed from ' . date('g:i A', strtotime($booking['start_at'])) . '.');
+        // Arrival can only be confirmed inside the arrival window the customer chose (e.g. 12:00 PM – 12:30 PM).
+        [$ws, $we] = arrival_window($booking);
+        $label     = date('g:i A', $ws) . ' – ' . date('g:i A', $we);
+        $now       = strtotime(date('Y-m-d H:i:00'));
+        if ($now < $ws) {
+            return redirect()->back()->with('error', 'Too early: arrival can be confirmed from ' . $label . '.');
         }
-        if (time() >= strtotime($booking['end_at'])) {
-            return redirect()->back()->with('error', 'This session has already finished.');
+        if (time() >= $we) {
+            return redirect()->back()->with('error', 'The arrival window (' . $label . ') has passed, so this booking counts as Did not arrive.');
         }
 
         $bookings->update($id, ['arrived_at' => date('Y-m-d H:i:s'), 'arrived_by' => (int) session()->get('user_id')]);

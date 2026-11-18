@@ -335,13 +335,13 @@ window.addEventListener('error', function (e) {
     };
     // Show only the extras that suit this court, and lights only for evening arrivals.
     function syncAddons(c) {
-        // Air-conditioning is for indoor courts only; Court B is outdoors.
+        // Air-conditioning is for indoor courts only; outdoor courts have no air-conditioning.
         cool.forEach(r => {
             if (r.dataset.indoor !== '1') return;
             const off = !!c && c.outdoor, small = r.closest('label').querySelector('small');
             r.disabled = off; r.closest('label').classList.toggle('is-off', off);
             if (off && r.checked) cool.find(x => x.value === '').checked = true;
-            small.textContent = off ? 'Indoor courts only (not on Court B)' : small.dataset.note;
+            small.textContent = off ? 'Indoor courts only (not on outdoor courts)' : small.dataset.note;
         });
         const head = !!c && c.head;
         $('coolBox').hidden = head;

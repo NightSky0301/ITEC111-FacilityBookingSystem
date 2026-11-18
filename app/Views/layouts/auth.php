@@ -12,7 +12,7 @@
 <body>
 <div class="auth-split">
     <aside class="auth-art">
-        <a class="brand brand-hero" href="<?= site_url('/') ?>" aria-label="Athletix"><span class="brand-logo brand-logo-hero"><img src="<?= base_url('assets/img/logo-lg.png') ?>" alt="" width="72" height="72"></span><span class="brand-word">Athleti<b>x</b></span></a>
+        <a class="brand brand-hero" href="<?= site_url('/') ?>" aria-label="Athletix"><span class="brand-word">Athleti<b>x</b></span></a>
         <div>
             <h2>Reserve your court in minutes.</h2>
             <p>Basketball, volleyball, pickleball and more. See which courts are free, send a request, and get notified when it is approved.</p>

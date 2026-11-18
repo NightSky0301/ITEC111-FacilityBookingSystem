@@ -6,6 +6,9 @@ use CodeIgniter\Model;
 
 class BookingModel extends Model
 {
+    /** The customer picks a 30-minute arrival window when booking (e.g. 12:00 – 12:30). Arrival can only be confirmed inside it. */
+    public const ARRIVAL_WINDOW_MIN = 30;
+
     protected $table         = 'bookings';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
