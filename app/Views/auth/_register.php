@@ -2,9 +2,19 @@
 <p class="lead-in">Register to reserve courts and other facilities.</p>
 <form method="post" action="<?= site_url('register') ?>" id="regForm" novalidate>
     <?= csrf_field() ?>
-    <div class="mb-3">
-        <label class="form-label" for="name">Full name</label>
-        <input type="text" id="name" name="name" class="form-control" value="<?= esc($mode === 'register' ? old('name') : '') ?>" autocomplete="name" maxlength="120" pattern="[^0-9]+" title="Letters only. Numbers are not allowed." required>
+    <div class="row g-3 mb-3 name-row">
+        <div class="col-12 col-md-4">
+            <label class="form-label" for="first_name">First name</label>
+            <input type="text" id="first_name" name="first_name" class="form-control name-part" value="<?= esc($mode === 'register' ? old('first_name') : '') ?>" autocomplete="given-name" maxlength="50" pattern="[^0-9]+" title="Letters only. Numbers are not allowed." required>
+        </div>
+        <div class="col-12 col-md-4">
+            <label class="form-label" for="middle_name">Middle name</label>
+            <input type="text" id="middle_name" name="middle_name" class="form-control name-part" value="<?= esc($mode === 'register' ? old('middle_name') : '') ?>" autocomplete="additional-name" maxlength="50" pattern="[^0-9]*" title="Letters only. Numbers are not allowed.">
+        </div>
+        <div class="col-12 col-md-4">
+            <label class="form-label" for="last_name">Last name</label>
+            <input type="text" id="last_name" name="last_name" class="form-control name-part" value="<?= esc($mode === 'register' ? old('last_name') : '') ?>" autocomplete="family-name" maxlength="50" pattern="[^0-9]+" title="Letters only. Numbers are not allowed." required>
+        </div>
     </div>
     <div class="mb-3">
         <label class="form-label" for="email">Email</label>

@@ -56,7 +56,9 @@ class Auth extends BaseController
     public function attemptRegister()
     {
         $rules = [
-            'name'             => ['rules' => 'required|min_length[2]|max_length[120]|regex_match[/^[^0-9]+$/]', 'errors' => ['regex_match' => 'Full name cannot contain numbers.']],
+            'first_name'       => ['label' => 'First name', 'rules' => 'required|min_length[2]|max_length[50]|regex_match[/^[^0-9]+$/]', 'errors' => ['regex_match' => 'First name cannot contain numbers.']],
+            'middle_name'      => ['label' => 'Middle name', 'rules' => 'permit_empty|max_length[50]|regex_match[/^[^0-9]+$/]', 'errors' => ['regex_match' => 'Middle name cannot contain numbers.']],
+            'last_name'        => ['label' => 'Last name', 'rules' => 'required|min_length[2]|max_length[50]|regex_match[/^[^0-9]+$/]', 'errors' => ['regex_match' => 'Last name cannot contain numbers.']],
             'email'            => 'required|valid_email|max_length[150]|is_unique[users.email]',
             'phone'            => ['rules' => 'permit_empty|regex_match[/^[0-9]{7,15}$/]', 'errors' => ['regex_match' => 'Phone must be 7 to 15 digits, numbers only.']],
             'password'         => ['rules' => 'required|min_length[8]|max_length[72]|regex_match[/^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).+$/]', 'errors' => ['regex_match' => 'Password needs an uppercase letter, a letter, a number and a special character.']],
@@ -66,9 +68,16 @@ class Auth extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
+        // The users table keeps one "name" column: First Middle Last.
+        $parts = array_filter(array_map(
+            fn ($k) => trim((string) preg_replace('/\s+/', ' ', (string) $this->request->getPost($k))),
+            ['first_name', 'middle_name', 'last_name']
+        ), static fn ($v) => $v !== '');
+        $fullName = implode(' ', $parts);
+
         // Public sign-ups are always customers. Admins are created by seeding / database.
         (new UserModel())->insert([
-            'name'     => trim($this->request->getPost('name')),
+            'name'     => $fullName,
             'email'    => strtolower(trim($this->request->getPost('email'))),
             'phone'    => trim((string) $this->request->getPost('phone')),
             'password' => password_hash((string) $this->request->getPost('password'), PASSWORD_DEFAULT),

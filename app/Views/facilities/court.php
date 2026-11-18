@@ -15,7 +15,7 @@
         <h1><?= esc($facility['name']) ?></h1>
         <p><?= esc($activity) ?> · <?= esc(\App\Models\FacilityModel::peopleLabel($facility)) ?> · ₱<?= number_format($rate, 0) ?> <?= \App\Models\FacilityModel::isPerHead($facility) ? 'per person, per hour' : 'per hour' ?> · Open <?= esc($opens) ?> – <?= esc($closes) ?></p>
     </div>
-    <div class="page-actions">
+    <div class="page-actions" id="courtLive">
         <?php if ($live['in_use']): ?>
             <span class="live-chip is-busy">In use until <?= esc(fmt_time($live['until'])) ?></span>
         <?php else: ?>
@@ -24,7 +24,7 @@
     </div>
 </div>
 
-<div class="row g-4">
+<div class="row g-4" id="courtView">
     <!-- Calendar -->
     <div class="col-lg-7">
         <div class="panel cal-panel h-100">
@@ -121,4 +121,7 @@
         </div>
     </div>
 </div>
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
+<script src="<?= base_url('assets/js/court-calendar.js') ?>"></script>
 <?= $this->endSection() ?>

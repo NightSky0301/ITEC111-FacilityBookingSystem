@@ -1241,11 +1241,73 @@ a.sess-card { text-decoration: none; }
 
 
 /* ---------- Table action buttons (Users) ---------- */
-.btn-act { border: 0; border-radius: 8px; color: #fff; font-weight: 600; padding: .4rem .85rem; display: inline-flex; align-items: center; gap: .4rem; transition: filter .15s, transform .1s; }
-.btn-act:hover { color: #fff; filter: brightness(1.12); }
-.btn-act:active { transform: translateY(1px); }
-.btn-act-edit  { background: var(--lagoon); }
-.btn-act-brass { background: var(--brass); }
-.btn-act-red   { background: var(--bad); }
-.btn-act-ghost { background: #fff; color: var(--lagoon); border: 1.5px solid var(--lagoon); }
-.btn-act-ghost:hover { color: var(--lagoon); background: #eaf2f1; }
+/* Table action buttons: fixed look. They never change colour on hover, focus or click. */
+.btn.btn-act { border: 1.5px solid transparent; border-radius: 8px; font-weight: 600; padding: .4rem .85rem; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; white-space: nowrap; filter: none; transform: none; box-shadow: none; transition: none; }
+.btn.btn-act-edit,  .btn.btn-act-edit:hover,  .btn.btn-act-edit:focus,  .btn.btn-act-edit:active,  .btn.btn-act-edit:focus-visible  { background: var(--lagoon); border-color: var(--lagoon); color: #fff; box-shadow: none; filter: none; }
+.btn.btn-act-brass, .btn.btn-act-brass:hover, .btn.btn-act-brass:focus, .btn.btn-act-brass:active, .btn.btn-act-brass:focus-visible { background: var(--brass); border-color: var(--brass); color: #fff; box-shadow: none; filter: none; }
+.btn.btn-act-red,   .btn.btn-act-red:hover,   .btn.btn-act-red:focus,   .btn.btn-act-red:active,   .btn.btn-act-red:focus-visible   { background: var(--bad); border-color: var(--bad); color: #fff; box-shadow: none; filter: none; }
+.btn.btn-act-ghost, .btn.btn-act-ghost:hover, .btn.btn-act-ghost:focus, .btn.btn-act-ghost:active, .btn.btn-act-ghost:focus-visible { background: #fff; border-color: var(--lagoon); color: var(--lagoon); box-shadow: none; filter: none; }
+.btn.btn-act-ghost-red, .btn.btn-act-ghost-red:hover, .btn.btn-act-ghost-red:focus, .btn.btn-act-ghost-red:active, .btn.btn-act-ghost-red:focus-visible { background: #fff; border-color: var(--bad); color: var(--bad); box-shadow: none; filter: none; }
+.btn.btn-act:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* Admin / staff bookings table */
+.bk-adm td { vertical-align: middle; padding-top: 1rem; padding-bottom: 1rem; }
+.bk-person { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+.bk-avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--lagoon); color: #fff; display: grid; place-items: center; font-weight: 700; font-family: 'Fraunces', serif; border: 2px solid var(--brass); }
+.bk-person .cell-sub { overflow-wrap: anywhere; }
+.bk-fac { min-width: 0; }
+.bk-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+.bk-chip { display: inline-flex; align-items: center; gap: .3rem; background: var(--mist); border: 1px solid var(--line); border-radius: 999px; padding: .1rem .55rem; font-size: .78rem; color: var(--ink); }
+.bk-chip i { color: var(--brass); }
+.bk-purpose { color: var(--muted); font-size: .85rem; margin-top: .3rem; font-style: italic; }
+.bk-when { min-width: 0; }
+.bk-actions { display: flex; flex-direction: column; gap: .45rem; width: 220px; max-width: 100%; }
+.bk-actions form { margin: 0; }
+.bk-actions .btn-row { display: flex; gap: .4rem; }
+.bk-actions .btn-row .btn { flex: 1; }
+.bk-actions .btn-del { width: 100%; }
+
+/* Registration: first / middle / last name on one row */
+.name-row .form-label { white-space: nowrap; }
+
+/* Court page: soft fade while a day/month is being refreshed in place */
+#courtView { transition: opacity .15s ease; }
+#courtView.is-loading { opacity: .55; pointer-events: none; }
+
+/* Bookings table: fixed column shares so nothing is pushed out of the panel */
+.bk-adm { table-layout: fixed; width: 100%; }
+.bk-adm th:nth-child(1), .bk-adm td:nth-child(1) { width: 21%; }
+.bk-adm th:nth-child(2), .bk-adm td:nth-child(2) { width: 17%; }
+.bk-adm th:nth-child(3), .bk-adm td:nth-child(3) { width: 24%; }
+.bk-adm th:nth-child(4), .bk-adm td:nth-child(4) { width: 16%; }
+.bk-adm th:nth-child(5), .bk-adm td:nth-child(5) { width: 22%; }
+.bk-adm td { overflow-wrap: anywhere; }
+.bk-adm .pill { white-space: normal; display: inline-block; line-height: 1.3; }
+.bk-adm .bk-chip { white-space: normal; border-radius: 12px; }
+.bk-actions form, .bk-actions .form-control { min-width: 0; }
+@media (max-width: 991.98px) {
+    .bk-adm { table-layout: auto; min-width: 900px; }
+}
+
+/* Bookings table: When column, status pills */
+.bk-when-wrap { display: flex; align-items: flex-start; gap: .75rem; }
+.bk-datetile { flex: none; width: 48px; border: 1.5px solid var(--lagoon); border-radius: 10px; overflow: hidden; text-align: center; background: #fff; }
+.bk-dt-mon { display: block; background: var(--lagoon); color: #fff; font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .12rem 0; border-bottom: 2px solid var(--brass); }
+.bk-dt-day { display: block; font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.35rem; line-height: 1.5; color: var(--lagoon); }
+.bk-when-info { min-width: 0; }
+.bk-when-day { white-space: nowrap; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+.bk-when-time { white-space: nowrap; display: flex; align-items: center; gap: .35rem; font-weight: 700; color: var(--ink); margin-top: .1rem; }
+.bk-when-time i { color: var(--brass); }
+.bk-when-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .4rem; }
+.bk-tag { white-space: nowrap; display: inline-flex; align-items: center; gap: .3rem; padding: .12rem .55rem; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--off-soft); color: var(--off); border: 1px solid transparent; }
+.bk-tag.is-today { background: var(--wait-soft); color: var(--wait); }
+.bk-tag.is-soon  { background: var(--ok-soft); color: var(--ok); }
+.bk-tag.is-live  { background: var(--lagoon); color: #fff; }
+.bk-tag.is-past  { background: var(--off-soft); color: var(--off); }
+.bk-status .pill { margin: 0 .3rem .35rem 0; }
+.pill-missed { background: var(--bad-soft); color: var(--bad); }
+.pill-arrived { background: #e3eeee; color: var(--lagoon); }
+.pill-missed::before, .pill-arrived::before { display: none; }
+.pill-missed i, .pill-arrived i { font-size: .9em; }
+.bk-remark { display: flex; gap: .4rem; align-items: flex-start; margin-top: .25rem; padding: .4rem .6rem; background: var(--mist); border-left: 3px solid var(--brass); border-radius: 6px; color: var(--ink); font-size: .85rem; }
+.bk-remark i { color: var(--brass); margin-top: .12rem; }

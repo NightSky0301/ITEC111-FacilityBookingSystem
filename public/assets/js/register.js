@@ -1,10 +1,11 @@
 // Registration form: name without numbers, phone digits only, password eye toggles, strength meter and rules.
 (function () {
     const $ = id => document.getElementById(id);
-    const name = $('name'), phone = $('phone'), pw = $('password'), pc = $('password_confirm');
+    const name = $('name'), nameParts = document.querySelectorAll('.name-part'), phone = $('phone'), pw = $('password'), pc = $('password_confirm');
     if (!pw) return;
 
     if (name) name.addEventListener('input', () => { name.value = name.value.replace(/[0-9]/g, ''); });
+    nameParts.forEach(el => el.addEventListener('input', () => { el.value = el.value.replace(/[0-9]/g, ''); }));
     if (phone) phone.addEventListener('input', () => { phone.value = phone.value.replace(/[^0-9]/g, ''); });
 
     const rules = {
@@ -58,6 +59,7 @@
     $('regForm').addEventListener('submit', function (e) {
         let msg = '';
         if (name && (!name.value.trim() || name.value.trim().length < 2)) msg = 'Enter your full name (letters only, no numbers).';
+        else if (nameParts.length && [...nameParts].some(el => el.required && el.value.trim().length < 2)) msg = 'Enter your first and last name (letters only, no numbers).';
         else if (phone && phone.value && !/^[0-9]{7,15}$/.test(phone.value)) msg = 'Phone must be 7 to 15 digits.';
         else if (optionalPw && !pw.value && !pc.value) msg = '';
         else if (!check()) msg = 'Your password must meet every requirement listed below it.';
