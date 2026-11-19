@@ -2,11 +2,6 @@
 <?= $this->section('content') ?>
 <?= $this->setVar('step', 1)->include('facilities/_stepper') ?>
 
-<header class="activity-hero">
-    <h1>What would you like to play?</h1>
-    <p>Pick an activity first. Then choose a court and see when it is free.</p>
-</header>
-
 <?php if (empty($cards)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-geo-alt"></i><strong>No courts yet</strong>The facility manager has not added any courts.</div></div>
 <?php else: ?>

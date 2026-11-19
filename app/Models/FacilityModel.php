@@ -20,10 +20,46 @@ class FacilityModel extends Model
 
     /**
      * Booking length. Courts are rented per hour: a booking is MIN_HOURS (1 hour) or more,
-     * added one hour at a time with the +/- stepper, up to MAX_HOURS.
+     * added one hour at a time with the +/- stepper, up to the hours the facility is open in one day.
+     * For longer stays the customer picks days, weeks or months instead (see stay()).
      */
     public const MIN_HOURS = 1;
-    public const MAX_HOURS = 5;
+    public const MAX_HOURS = self::CLOSE_HOUR - self::OPEN_HOUR;
+
+    /**
+     * Longer stays: unit => [fewest, most, days in one unit]. A month is 30 days.
+     * A stay starts at the chosen arrival time on the first day and ends at closing time on the last day.
+     */
+    public const STAY_UNITS = [
+        'day'   => [1, 6, 1],
+        'week'  => [1, 3, 7],
+        'month' => [1, 6, 30],
+    ];
+
+    /**
+     * Works out a days / weeks / months stay that begins at $startTs.
+     *
+     * @return array{days:int,endTs:int,hours:float}|null  null when the unit or the count is not allowed
+     */
+    public static function stay(string $unit, int $count, int $startTs): ?array
+    {
+        if (! isset(self::STAY_UNITS[$unit])) {
+            return null;
+        }
+        [$min, $max, $per] = self::STAY_UNITS[$unit];
+        if ($count < $min || $count > $max) {
+            return null;
+        }
+
+        $days      = $count * $per;
+        $first     = date('Y-m-d', $startTs);
+        $lastDay   = date('Y-m-d', strtotime($first . ' +' . ($days - 1) . ' days'));
+        $endTs     = strtotime($lastDay . sprintf(' %02d:00', self::CLOSE_HOUR));
+        $startMin  = (int) date('G', $startTs) * 60 + (int) date('i', $startTs);
+        $hours     = (self::CLOSE_HOUR * 60 - $startMin) / 60 + ($days - 1) * (self::CLOSE_HOUR - self::OPEN_HOUR);
+
+        return ['days' => $days, 'endTs' => $endTs, 'hours' => round($hours, 2)];
+    }
 
     /** Booking length in minutes for a number of whole hours. */
     public static function durationMinutes(int $hours): int
@@ -42,7 +78,7 @@ class FacilityModel extends Model
     }
 
     /** Total price: the hourly rate for every hour booked, times the number of people for per-head facilities. */
-    public static function totalPrice(float $hourlyRate, int $hours, int $people = 1): float
+    public static function totalPrice(float $hourlyRate, int|float $hours, int $people = 1): float
     {
         return round($hourlyRate * $hours * max(1, $people), 2);
     }

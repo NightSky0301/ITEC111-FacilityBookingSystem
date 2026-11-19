@@ -57,6 +57,9 @@ class Bookings extends BaseController
             'close'      => FacilityModel::CLOSE_HOUR,
             'minHours'   => FacilityModel::MIN_HOURS,
             'maxHours'   => FacilityModel::MAX_HOURS,
+            'stayUnits'  => FacilityModel::STAY_UNITS,
+            'refPool'    => Addons::REFEREE_POOL,
+            'dayHours'   => FacilityModel::CLOSE_HOUR - FacilityModel::OPEN_HOUR,
         ]);
     }
 
@@ -106,6 +109,46 @@ class Bookings extends BaseController
             'head'  => $head,
             'cap'   => $head ? FacilityModel::maxPeople($facility) : null,
             'sessions' => $sessions,
+            'refPool'  => Addons::REFEREE_POOL,
+            'ref'      => $bookings->refereeUsage($dayStart, FacilityModel::OPEN_HOUR * 60, FacilityModel::CLOSE_HOUR * 60),
+        ]);
+    }
+
+    /** JSON: is the court free for a whole stay (days / weeks / months) that starts at this date and time? */
+    public function span()
+    {
+        $facilityId = (int) $this->request->getGet('facility_id');
+        $date       = (string) $this->request->getGet('date');
+        $time       = (string) $this->request->getGet('time');
+        $unit       = (string) $this->request->getGet('unit');
+        $count      = (int) $this->request->getGet('count');
+        $facility   = (new FacilityModel())->find($facilityId);
+        $dt         = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)
+            ? \DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time) : false;
+        $stay = $dt ? FacilityModel::stay($unit, $count, $dt->getTimestamp()) : null;
+        if (! $facility || ! $stay) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Bad request']);
+        }
+
+        $startAt  = date('Y-m-d H:i:s', $dt->getTimestamp());
+        $endAt    = date('Y-m-d H:i:s', $stay['endTs']);
+        $bookings = new BookingModel();
+        if (FacilityModel::isPerHead($facility)) {
+            $people = max(1, min(FacilityModel::maxPeople($facility), (int) $this->request->getGet('people')));
+            $free   = $bookings->hasRoom($facility, $startAt, $endAt, $people);
+            $clash  = null;
+        } else {
+            $clash = $bookings->firstClash($facilityId, $startAt, $endAt);
+            $free  = $clash === null;
+        }
+
+        return $this->response->setJSON([
+            'free'   => $free,
+            'clash'  => $clash ? date('D, M j', strtotime($clash)) : null,
+            'days'   => $stay['days'],
+            'hours'  => $stay['hours'],
+            'endDay' => date('D, M j, Y', $stay['endTs']),
+            'endAt'  => date('g:i A', $stay['endTs']),
         ]);
     }
 
@@ -143,20 +186,36 @@ class Bookings extends BaseController
             return redirect()->back()->withInput()->with('error', 'That time has already passed. Please choose a time from now onward.');
         }
 
-        // Courts are rented per hour: 1 hour minimum, added one hour at a time with the + / - stepper.
-        // The time out is always calculated here (time in + hours), never taken from the form.
-        $rawHours = trim((string) $this->request->getPost('hours'));
-        $hours    = $rawHours === '' ? FacilityModel::MIN_HOURS : (ctype_digit($rawHours) ? (int) $rawHours : 0);
-        if ($hours < FacilityModel::MIN_HOURS || $hours > FacilityModel::MAX_HOURS) {
-            return redirect()->back()->withInput()->with('error', 'A booking is ' . FacilityModel::MIN_HOURS . ' to ' . FacilityModel::MAX_HOURS . ' hours, added one hour at a time.');
-        }
-        $endTs = $startTs + FacilityModel::durationMinutes($hours) * 60;
+        // Hourly booking (1 hour minimum, one hour at a time) OR a longer stay of days / weeks / months.
+        // The time out is always calculated here, never taken from the form.
+        $stayUnit  = trim((string) $this->request->getPost('stay_unit'));
+        $stayCount = (int) $this->request->getPost('stay_count');
+        $stay      = null;
+        if ($stayUnit !== '') {
+            $stay = FacilityModel::stay($stayUnit, $stayCount, $startTs);
+            if (! $stay) {
+                return redirect()->back()->withInput()->with('error', 'Please choose how many days, weeks or months you need.');
+            }
+            $hours = $stay['hours'];
+            $endTs = $stay['endTs'];
+            $opens = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::OPEN_HOUR));
+            if ($startTs < $opens || $startTs >= strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::CLOSE_HOUR))) {
+                return redirect()->back()->withInput()->with('error', 'Please choose an arrival time inside opening hours.');
+            }
+        } else {
+            $rawHours = trim((string) $this->request->getPost('hours'));
+            $hours    = $rawHours === '' ? FacilityModel::MIN_HOURS : (ctype_digit($rawHours) ? (int) $rawHours : 0);
+            if ($hours < FacilityModel::MIN_HOURS || $hours > FacilityModel::MAX_HOURS) {
+                return redirect()->back()->withInput()->with('error', 'An hourly booking is ' . FacilityModel::MIN_HOURS . ' to ' . FacilityModel::MAX_HOURS . ' hours, added one hour at a time. For longer, choose days, weeks or months.');
+            }
+            $endTs = $startTs + FacilityModel::durationMinutes($hours) * 60;
 
-        // The whole session has to fall inside opening hours, on the same day.
-        $opens  = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::OPEN_HOUR));
-        $closes = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::CLOSE_HOUR));
-        if ($startTs < $opens || $endTs > $closes) {
-            return redirect()->back()->withInput()->with('error', 'Bookings must fall within opening hours (' . date('g:i A', $opens) . ' – ' . date('g:i A', $closes) . '). Choose an earlier time in or fewer hours.');
+            // The whole session has to fall inside opening hours, on the same day.
+            $opens  = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::OPEN_HOUR));
+            $closes = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::CLOSE_HOUR));
+            if ($startTs < $opens || $endTs > $closes) {
+                return redirect()->back()->withInput()->with('error', 'Bookings must fall within opening hours (' . date('g:i A', $opens) . ' – ' . date('g:i A', $closes) . '). Choose an earlier time in or fewer hours.');
+            }
         }
 
         // Courts are booked as a whole; the suggested number of people is information only.
@@ -174,7 +233,7 @@ class Bookings extends BaseController
         // Add-ons: lights (evening only), fan or AC (one of them), rentals. Priced here, never taken from the form.
         $keys   = (array) $this->request->getPost('addons');
         $keys[] = (string) $this->request->getPost('cooling');
-        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours, facility_is_outdoor($facility), $perHead ? $guests : 1);
+        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours, facility_is_outdoor($facility), $perHead ? $guests : 1, $stay !== null);
         if (is_string($addons)) {
             return redirect()->back()->withInput()->with('error', $addons);
         }
@@ -192,6 +251,11 @@ class Bookings extends BaseController
             return redirect()->back()->withInput()->with('error', 'Sorry, that time is already booked. Please check the schedule and pick another time.');
         }
 
+        $wantsReferee = in_array(Addons::REFEREE_KEY, array_column($addons['items'], 'key'), true);
+        if ($wantsReferee && ! $bookings->refereeAvailable($startAt, $endAt)) {
+            return redirect()->back()->withInput()->with('error', 'Sorry, all ' . Addons::REFEREE_POOL . ' referees are already booked during that time. Pick another time or remove the referee.');
+        }
+
         $auto = is_manager();
         $id = $bookings->insert([
             'facility_id' => $facility['id'],
@@ -205,6 +269,14 @@ class Bookings extends BaseController
             'status'      => $auto ? 'approved' : 'pending',
             'approved_by' => $auto ? (int) session()->get('user_id') : null,
         ], true);
+
+        // Two customers can press "Send" at the same moment: check again now that this booking is saved,
+        // and undo it if it took a referee that was not there.
+        if ($wantsReferee && $bookings->refereePeak($startAt, $endAt) > Addons::REFEREE_POOL) {
+            $bookings->delete($id, true);
+
+            return redirect()->back()->withInput()->with('error', 'Sorry, the last referee was just taken by another booking. Pick another time or remove the referee.');
+        }
 
         $notify = new NotificationService();
         if ($auto) {

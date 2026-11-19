@@ -20,6 +20,10 @@ class Addons
     /** Arrival time (minutes after midnight) from which the "Evening" extras are offered. */
     public const EVENING_FROM = 17 * 60;
 
+    /** Referees are shared by the whole system: this many can be out on games at the same time. */
+    public const REFEREE_POOL = 5;
+    public const REFEREE_KEY  = 'referee';
+
     public const CATALOG = [
         'lights'  => ['label' => 'Court lights',        'note' => 'Evening arrivals only',          'price' => 150, 'per' => 'hour',    'group' => 'extra',   'evening' => true,  'types' => ['basketball', 'badminton', 'pickleball', 'volleyball', 'tennis', 'futsal', 'football', 'multipurpose', 'other']],
         'fan'     => ['label' => 'Electric fan',        'note' => 'Stand fans around the court',    'price' => 50,  'per' => 'hour',    'group' => 'cooling', 'evening' => false, 'types' => ['basketball', 'badminton', 'pickleball', 'volleyball', 'tennis', 'futsal', 'football', 'multipurpose', 'other']],
@@ -33,7 +37,7 @@ class Addons
         'referee' => ['label' => 'Referee',             'note' => 'Officiates your game',           'price' => 300, 'per' => 'session', 'group' => 'extra',   'evening' => false, 'types' => ['basketball', 'volleyball', 'futsal', 'football']],
     ];
 
-    public static function amount(string $key, int $hours, int $people = 1): float
+    public static function amount(string $key, int|float $hours, int $people = 1): float
     {
         $a = self::CATALOG[$key];
 
@@ -51,7 +55,7 @@ class Addons
      * @param  string[] $keys
      * @return array{items:array<int,array>,total:float}|string  items to store, or an error message
      */
-    public static function resolve(array $keys, string $type, int $startMinute, int $hours, bool $outdoor = false, int $people = 1)
+    public static function resolve(array $keys, string $type, int $startMinute, int|float $hours, bool $outdoor = false, int $people = 1, bool $longStay = false)
     {
         $items   = [];
         $total   = 0.0;
@@ -65,6 +69,9 @@ class Addons
             if (! $a || ($a['types'] !== null && ! in_array($type, $a['types'], true))) {
                 return 'One of the add-ons is not available for this court.';
             }
+            if ($longStay && $key === self::REFEREE_KEY) {
+                return 'A referee can only be added to hourly bookings, not to stays of days, weeks or months.';
+            }
             if (! empty($a['indoor']) && $outdoor) {
                 return $a['label'] . ' is only available on indoor courts.';
             }
@@ -75,8 +82,8 @@ class Addons
                 return 'Choose either a fan or air-conditioning, not both.';
             }
             $amount  = self::amount($key, $hours, $people);
-            $total  += $amount;
-            $items[] = ['key' => $key, 'label' => $a['label'], 'per' => $a['per'], 'price' => $a['price'], 'amount' => $amount];
+            $total  += round($amount, 2);
+            $items[] = ['key' => $key, 'label' => $a['label'], 'per' => $a['per'], 'price' => $a['price'], 'amount' => round($amount, 2)];
         }
 
         return ['items' => $items, 'total' => $total];

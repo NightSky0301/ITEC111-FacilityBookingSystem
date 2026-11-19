@@ -36,29 +36,47 @@
             $ts = strtotime($b['start_at']); $te = strtotime($b['end_at']);
             $sameDay = date('Y-m-d', $ts) === date('Y-m-d', $te);
             $mins = max(0, (int) round(($te - $ts) / 60));
-            $len = intdiv($mins, 60) . ' hr' . (intdiv($mins, 60) === 1 ? '' : 's') . ($mins % 60 ? ' ' . ($mins % 60) . ' min' : '');
+            if ($sameDay) {
+                $len = intdiv($mins, 60) . ' hr' . (intdiv($mins, 60) === 1 ? '' : 's') . ($mins % 60 ? ' ' . ($mins % 60) . ' min' : '');
+            } else {
+                $nDays = (int) round((strtotime(date('Y-m-d', $te)) - strtotime(date('Y-m-d', $ts))) / 86400) + 1;
+                $len   = $nDays . ' days';
+            }
             $addons = ! empty($b['addons']) ? (json_decode($b['addons'], true) ?: []) : [];
         ?>
         <tr>
-            <td>
+            <td class="bk-cust">
                 <div class="bk-person">
                     <span class="bk-avatar" aria-hidden="true"><?= esc(mb_strtoupper(mb_substr(trim($b['customer_name']), 0, 1))) ?></span>
                     <div><div class="cell-title"><?= esc($b['customer_name']) ?></div><div class="cell-sub"><?= esc($b['customer_email']) ?></div></div>
                 </div>
+                <?php if (trim((string) $b['purpose']) !== ''): ?>
+                <div class="bk-note-wrap">
+                    <button type="button" class="btn btn-sm btn-act btn-act-ghost bk-note-btn"
+                            data-note-name="<?= esc($b['customer_name'], 'attr') ?>"
+                            data-note-facility="<?= esc($b['facility_name'], 'attr') ?>"
+                            data-note-text="<?= esc($b['purpose'], 'attr') ?>"><i class="bi bi-sticky"></i> Note(s)</button>
+                </div>
+                <?php endif; ?>
             </td>
             <td class="bk-fac">
                 <div class="cell-title"><?= esc($b['facility_name']) ?></div>
                 <?php
                     $perHead = \App\Models\FacilityModel::isPerHead((string) ($b['facility_type'] ?? ''));
-                    $hasAdd  = ! empty($addons);
+                    $addLabels = array_values(array_filter(array_column($addons, 'label')));
                 ?>
-                <?php if ($perHead || $hasAdd): ?>
-                <div class="bk-chips">
-                    <?php if ($perHead): ?><span class="bk-chip"><i class="bi bi-people"></i><?= (int) $b['guests'] ?> <?= (int) $b['guests'] === 1 ? 'person' : 'people' ?></span><?php endif; ?>
-                    <?php if ($hasAdd): ?><span class="bk-chip"><i class="bi bi-plus-circle"></i><?= esc(implode(', ', array_column($addons, 'label'))) ?> · ₱<?= number_format((float) $b['addons_total'], 2) ?></span><?php endif; ?>
+                <?php if ($perHead): ?>
+                    <div class="bk-chips"><span class="bk-chip"><i class="bi bi-people"></i><?= (int) $b['guests'] ?> <?= (int) $b['guests'] === 1 ? 'person' : 'people' ?></span></div>
+                <?php endif; ?>
+                <?php if ($addLabels): ?>
+                <div class="bk-addons">
+                    <div class="bk-addons-title">Add-ons</div>
+                    <ul>
+                        <?php foreach ($addLabels as $lbl): ?><li><i class="bi bi-plus-circle"></i><?= esc($lbl) ?></li><?php endforeach; ?>
+                    </ul>
+                    <div class="bk-addons-total">₱<?= number_format((float) $b['addons_total'], 2) ?></div>
                 </div>
                 <?php endif; ?>
-                <?php if ($b['purpose']): ?><div class="bk-purpose">“<?= esc($b['purpose']) ?>”</div><?php endif; ?>
             </td>
             <td class="bk-when">
                 <?php
@@ -88,28 +106,31 @@
             <td class="bk-status">
                 <?php if ($b['status'] === 'approved'): ?>
                     <span class="pill pill-approved"><?= esc(approval_label($b)) ?></span>
-                    <?php if (! empty($b['arrived_at'])): ?><span class="pill pill-arrived"><i class="bi bi-person-check"></i> Arrived <?= esc(date('g:i A', strtotime($b['arrived_at']))) ?></span>
-                    <?php elseif (arrival_state($b)[0] === 'missed'): ?><span class="pill pill-missed"><i class="bi bi-person-x"></i> Did not arrive</span><?php endif; ?>
+                    <?php if (! empty($b['arrived_at'])): ?><span class="pill pill-arrived">Arrived <?= esc(date('g:i A', strtotime($b['arrived_at']))) ?></span>
+                    <?php elseif (arrival_state($b)[0] === 'missed'): ?><span class="pill pill-missed">Did not arrive</span><?php endif; ?>
                 <?php else: ?><?= status_badge($b['status']) ?><?php endif; ?>
                 <?php if ($b['admin_remarks']): ?><div class="bk-remark"><i class="bi bi-chat-left-text"></i><span><?= esc($b['admin_remarks']) ?></span></div><?php endif; ?>
             </td>
             <td>
               <div class="bk-actions">
                 <?php if ($b['status'] === 'pending'): ?>
-                    <form method="post">
-                        <?= csrf_field() ?>
-                        <input type="text" name="admin_remarks" class="form-control form-control-sm mb-2" placeholder="Remarks (optional)" aria-label="Remarks">
-                        <div class="btn-row">
-                            <button formaction="<?= site_url('manage/bookings/' . (int) $b['id'] . '/approve') ?>" class="btn btn-sm btn-act btn-act-edit"><i class="bi bi-check-lg"></i> Approve</button>
-                            <button formaction="<?= site_url('manage/bookings/' . (int) $b['id'] . '/reject') ?>" class="btn btn-sm btn-act btn-act-red"><i class="bi bi-x-lg"></i> Reject</button>
-                        </div>
-                    </form>
+                    <div class="btn-row">
+                        <form method="post" action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/approve') ?>">
+                            <?= csrf_field() ?>
+                            <button class="btn btn-sm btn-act btn-act-edit"><i class="bi bi-check-lg"></i> Approve</button>
+                        </form>
+                        <button type="button" class="btn btn-sm btn-act btn-act-red bk-reason-btn"
+                                data-action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/reject') ?>"
+                                data-title="Reject this booking?" data-ok="Reject booking" data-icon="bi-x-circle" data-tone="danger"
+                                data-text="<?= esc('Reject ' . $b['customer_name'] . '\'s request for ' . $b['facility_name'] . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-x-lg"></i> Reject</button>
+                    </div>
                 <?php elseif ($b['status'] === 'approved'): ?>
-                    <form method="post" data-confirm="The customer will be notified that this approved booking was cancelled." data-confirm-title="Cancel this booking?" data-confirm-ok="Cancel booking" data-confirm-cancel="Keep it" data-confirm-icon="bi-calendar-x">
-                        <?= csrf_field() ?>
-                        <input type="text" name="admin_remarks" class="form-control form-control-sm mb-2" placeholder="Reason (optional)" aria-label="Reason">
-                        <div class="btn-row"><button formaction="<?= site_url('manage/bookings/' . (int) $b['id'] . '/cancel') ?>" class="btn btn-sm btn-act btn-act-brass"><i class="bi bi-calendar-x"></i> Cancel booking</button></div>
-                    </form>
+                    <div class="btn-row">
+                        <button type="button" class="btn btn-sm btn-act btn-act-brass bk-reason-btn"
+                                data-action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/cancel') ?>"
+                                data-title="Cancel this booking?" data-ok="Cancel booking" data-icon="bi-calendar-x" data-tone="brass"
+                                data-text="<?= esc('Cancel the approved booking of ' . $b['customer_name'] . ' for ' . $b['facility_name'] . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-calendar-x"></i> Cancel booking</button>
+                    </div>
                 <?php endif; ?>
                 <?php if (is_admin()): ?>
                     <form method="post" action="<?= site_url('admin/bookings/' . (int) $b['id'] . '/delete') ?>"
@@ -127,4 +148,78 @@
 </div>
 <?php endif; ?>
 </section>
+<?= $this->endSection() ?>
+<?= $this->section('scripts') ?>
+<!-- Reason pop-up (Reject / Cancel booking) -->
+<div class="modal fade" id="reasonModal" tabindex="-1" aria-labelledby="reasonTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" class="modal-content confirm-modal" id="reasonForm">
+            <?= csrf_field() ?>
+            <div class="confirm-head">
+                <span class="confirm-icon" id="reasonIcon"><i class="bi bi-x-circle"></i></span>
+                <h2 class="confirm-title" id="reasonTitle">Reason</h2>
+            </div>
+            <div class="confirm-body text-start">
+                <p id="reasonText" class="text-center mb-3"></p>
+                <label for="reasonInput" class="form-label fw-semibold">Reason <span class="text-muted fw-normal">(optional)</span></label>
+                <textarea id="reasonInput" name="admin_remarks" class="form-control" rows="3" maxlength="255" placeholder="Tell the customer why"></textarea>
+                <div class="form-text">The customer sees this reason in their notification.</div>
+            </div>
+            <div class="confirm-foot">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button>
+                <button type="submit" class="btn btn-danger" id="reasonOk">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Customer note pop-up -->
+<div class="modal fade" id="noteModal" tabindex="-1" aria-labelledby="noteTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content confirm-modal">
+            <div class="confirm-head">
+                <span class="confirm-icon tone-brass"><i class="bi bi-sticky"></i></span>
+                <h2 class="confirm-title" id="noteTitle">Customer note</h2>
+                <div class="note-sub" id="noteSub"></div>
+            </div>
+            <div class="confirm-body"><p id="noteText" class="note-text"></p></div>
+            <div class="confirm-foot"><button type="button" class="btn btn-gold" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    if (!window.bootstrap) return;
+    var reasonEl = document.getElementById('reasonModal'), noteEl = document.getElementById('noteModal');
+    var reason = bootstrap.Modal.getOrCreateInstance(reasonEl), note = bootstrap.Modal.getOrCreateInstance(noteEl);
+    var form = document.getElementById('reasonForm'), input = document.getElementById('reasonInput');
+
+    document.addEventListener('click', function (e) {
+        var r = e.target.closest('.bk-reason-btn');
+        if (r) {
+            var d = r.dataset, tone = d.tone || 'danger';
+            form.action = d.action;
+            input.value = '';
+            document.getElementById('reasonTitle').textContent = d.title;
+            document.getElementById('reasonText').textContent = d.text;
+            var ic = document.getElementById('reasonIcon');
+            ic.className = 'confirm-icon tone-' + tone;
+            ic.innerHTML = '<i class="bi ' + d.icon + '"></i>';
+            var ok = document.getElementById('reasonOk');
+            ok.textContent = d.ok;
+            ok.className = 'btn ' + (tone === 'danger' ? 'btn-danger' : 'btn-gold');
+            reason.show();
+            return;
+        }
+        var n = e.target.closest('.bk-note-btn');
+        if (n) {
+            document.getElementById('noteSub').textContent = n.dataset.noteName + ' · ' + n.dataset.noteFacility;
+            document.getElementById('noteText').textContent = n.dataset.noteText;
+            note.show();
+        }
+    });
+    reasonEl.addEventListener('shown.bs.modal', function () { input.focus(); });
+    form.addEventListener('submit', function () { document.getElementById('reasonOk').disabled = true; });
+})();
+</script>
 <?= $this->endSection() ?>

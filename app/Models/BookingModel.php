@@ -83,6 +83,96 @@ class BookingModel extends Model
         return $this->peakPeople((int) $facility['id'], $startAt, $endAt, $ignoreId) + $people <= FacilityModel::maxPeople($facility);
     }
 
+    // ------------------------------------------------------------------ Referee pool
+    // Referees are shared by every facility. A referee is "out" only between the start and the end of the
+    // booking that has one, so he is back in the pool the moment that booking ends (or is cancelled / rejected).
+
+    /** Pending and approved bookings with a referee that overlap [$from, $to). */
+    private function refereeBookings(string $from, string $to, ?int $ignoreId = null): array
+    {
+        $builder = $this->select('id, start_at, end_at')
+            ->whereIn('status', ['pending', 'approved'])
+            ->like('addons', '"key":"' . \App\Libraries\Addons::REFEREE_KEY . '"')
+            ->where('start_at <', $to)
+            ->where('end_at >', $from);
+        if ($ignoreId !== null) {
+            $builder->where('id !=', $ignoreId);
+        }
+
+        return $builder->findAll();
+    }
+
+    /** Most referees out at the same moment anywhere in [$startAt, $endAt). */
+    public function refereePeak(string $startAt, string $endAt, ?int $ignoreId = null): int
+    {
+        $rows = $this->refereeBookings($startAt, $endAt, $ignoreId);
+        if (! $rows) {
+            return 0;
+        }
+        $from   = strtotime($startAt);
+        $to     = strtotime($endAt);
+        $points = [$from];
+        foreach ($rows as $r) {
+            foreach ([strtotime($r['start_at']), strtotime($r['end_at'])] as $t) {
+                if ($t > $from && $t < $to) {
+                    $points[] = $t;
+                }
+            }
+        }
+        $peak = 0;
+        foreach (array_unique($points) as $t) {
+            $n = 0;
+            foreach ($rows as $r) {
+                if (strtotime($r['start_at']) <= $t && strtotime($r['end_at']) > $t) {
+                    $n++;
+                }
+            }
+            $peak = max($peak, $n);
+        }
+
+        return $peak;
+    }
+
+    /** Can one more referee be added anywhere in this time range? */
+    public function refereeAvailable(string $startAt, string $endAt, ?int $ignoreId = null): bool
+    {
+        return $this->refereePeak($startAt, $endAt, $ignoreId) < \App\Libraries\Addons::REFEREE_POOL;
+    }
+
+    /**
+     * Referees out in every half hour of one day, for the booking form: one number per half hour from
+     * $openMin to $closeMin (minutes after midnight).
+     *
+     * @return int[]
+     */
+    public function refereeUsage(int $dayStartTs, int $openMin, int $closeMin): array
+    {
+        $rows  = $this->refereeBookings(date('Y-m-d H:i:s', $dayStartTs), date('Y-m-d H:i:s', $dayStartTs + 86400));
+        $slots = [];
+        for ($m = $openMin; $m < $closeMin; $m += 30) {
+            $a = $dayStartTs + $m * 60;
+            $b = $a + 1800;
+            $n = 0;
+            foreach ($rows as $r) {
+                if (strtotime($r['start_at']) < $b && strtotime($r['end_at']) > $a) {
+                    $n++;
+                }
+            }
+            $slots[] = $n;
+        }
+
+        return $slots;
+    }
+
+    /** Start of the first approved booking that overlaps the range, or null (used to explain a blocked stay). */
+    public function firstClash(int $facilityId, string $startAt, string $endAt): ?string
+    {
+        $row = $this->where('facility_id', $facilityId)->where('status', 'approved')
+            ->where('start_at <', $endAt)->where('end_at >', $startAt)->orderBy('start_at')->first();
+
+        return $row ? max($row['start_at'], $startAt) : null;
+    }
+
     /** Bookings of one facility that overlap [$from, $to), with the customer's name. */
     public function sessionsBetween(int $facilityId, string $from, string $to, array $statuses = ['approved']): array
     {

@@ -15,11 +15,6 @@
 ?>
 <?= $this->setVar('step', 4)->setVar('type', $selectedType)->setVar('courtUrl', $selectedId ? site_url('facilities/court/' . $selectedId) : null)->include('facilities/_stepper') ?>
 
-<header class="activity-hero">
-    <h1>New booking</h1>
-    <p>Choose a time, add any extras and send your request.</p>
-</header>
-
 <form method="post" action="<?= site_url('bookings') ?>" id="bookForm" novalidate>
 <?= csrf_field() ?>
 <input type="hidden" name="start_time" id="startTime" value="<?= esc($timeValue) ?>">
@@ -32,20 +27,8 @@
         <div class="panel bf"><div class="panel-body">
 
             <section class="bf-sec">
-                <h2 class="bf-h">Activity</h2>
-                <div class="bf-acts" id="acts" role="radiogroup" aria-label="Activity">
-                    <?php foreach ($activities as $type => $label): ?>
-                        <button type="button" class="bf-act" role="radio" data-type="<?= esc($type) ?>" aria-checked="<?= $selectedType === $type ? 'true' : 'false' ?>">
-                            <span class="bf-act-ic"><?= facility_icon_html($type) ?></span>
-                            <span><?= esc($label) ?></span>
-                        </button>
-                    <?php endforeach; ?>
-                </div>
-            </section>
-
-            <section class="bf-sec">
                 <h2 class="bf-h">Court</h2>
-                <p class="bf-empty" id="courtEmpty">Choose an activity to see its courts.</p>
+                <p class="bf-empty" id="courtEmpty" hidden>No courts are open right now.</p>
                 <div class="bf-courts" id="courts">
                     <?php foreach ($courts as $c): ?>
                         <label class="bf-court" data-type="<?= esc($c['type']) ?>" hidden>
@@ -94,7 +77,7 @@
             </section>
 
             <section class="bf-sec">
-                <div class="duration-box">
+                <div class="duration-box" id="hoursBox">
                     <div class="duration-row">
                         <span class="duration-icon"><i class="bi bi-clock-history"></i></span>
                         <div class="duration-text">
@@ -108,6 +91,16 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <section class="bf-sec" id="staySec">
+                <div class="bf-h-row">
+                    <h2 class="bf-h">Need it longer?</h2>
+                    <span class="bf-open" id="stayHint">Book by the day, week or month instead of hours</span>
+                </div>
+                <div id="stayAcc" class="bf-acc"></div>
+                <input type="hidden" name="stay_unit" id="stayUnit" value="" disabled>
+                <input type="hidden" name="stay_count" id="stayCount" value="" disabled>
             </section>
 
             <section class="bf-sec">
@@ -200,15 +193,17 @@ window.addEventListener('error', function (e) {
 (function () {
     const ADDONS = <?= (json_encode($addons, JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}') ?>, EVENING = <?= (int) $eveningFrom ?>;
     const MIN = <?= (int) $minHours ?>, MAX = <?= (int) $maxHours ?>;
+    const STAY = <?= json_encode($stayUnits) ?>, DAYH = <?= (int) $dayHours ?>, OPENMIN = <?= (int) $open * 60 ?>, CLOSEMIN = <?= (int) $close * 60 ?>, POOL = <?= (int) $refPool ?>;
+    const STAY_NAME = { day: ['Days', 'day', 'days'], week: ['Weeks', 'week', 'weeks'], month: ['Months', 'month', 'months'] };
     const COURTS = <?= (json_encode($courts, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]') ?>;
     const $ = id => document.getElementById(id);
     const dateIn = $('startDate'), timeIn = $('startTime'), hoursIn = $('hours'), slotsEl = $('slots');
     const radios = Array.from(document.querySelectorAll('input[name=facility_id]'));
     const acts = Array.from(document.querySelectorAll('.bf-act')), cards = Array.from(document.querySelectorAll('.bf-court'));
     const extras = Array.from(document.querySelectorAll('.bf-extra')), cool = Array.from(document.querySelectorAll('input[name=cooling]'));
-    const baseUrl = '<?= site_url('facilities/court') ?>', busyUrl = '<?= site_url('bookings/busy') ?>';
+    const baseUrl = '<?= site_url('facilities/court') ?>', busyUrl = '<?= site_url('bookings/busy') ?>', spanUrl = '<?= site_url('bookings/span') ?>';
     const peso = n => '₱' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const fmtHrs = n => n + (n === 1 ? ' hr' : ' hrs');
+    const fmtHrs = n => (Number.isInteger(n) ? n : n.toFixed(1)) + (n === 1 ? ' hr' : ' hrs');
         const clock = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ':' + String(mm).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
     // One arrival button covers a half-hour window, e.g. "6:00 AM – 6:30 AM". The arrival time is its start.
     const win = s => clock(s) + ' – ' + clock(s + 30);
@@ -221,6 +216,14 @@ window.addEventListener('error', function (e) {
     let infoAt = 0;             // performance.now() when it arrived, to keep the server clock ticking
     let picked = toMin(timeIn.value);
     let note = '';
+    let stay = { unit: '<?= esc((string) old('stay_unit'), 'js') ?>', count: <?= (int) old('stay_count') ?> };
+    if (!STAY[stay.unit] || stay.count < 1) stay = { unit: '', count: 0 };
+    let stayOpen = null, span = null, spanSeq = 0;
+    const isStay = () => !!stay.unit;
+    const stayDays = () => isStay() ? stay.count * STAY[stay.unit][2] : 0;
+    const stayHours = (from) => ((CLOSEMIN - from) / 60) + (stayDays() - 1) * DAYH;
+    const billed = () => isStay() ? stayHours(picked !== null ? picked : OPENMIN) : hours;
+    const stayLabel = () => isStay() ? stay.count + ' ' + STAY_NAME[stay.unit][stay.count === 1 ? 1 : 2] + (stay.unit !== 'day' ? ' (' + stayDays() + ' days)' : '') : '';
     let people = Math.max(1, parseInt($('people').value, 10) || 1);
 
     const court = () => { const r = radios.find(x => x.checked); return r ? COURTS.find(c => c.id === +r.value) : null; };
@@ -232,11 +235,11 @@ window.addEventListener('error', function (e) {
         sport = type;
         acts.forEach(a => a.setAttribute('aria-checked', a.dataset.type === type ? 'true' : 'false'));
         let any = false;
-        cards.forEach(c => { const show = c.dataset.type === type; c.hidden = !show; if (show) any = true; });
+        cards.forEach(c => { const show = !type || c.dataset.type === type; c.hidden = !show; if (show) any = true; });
         $('courtEmpty').hidden = any;
-        $('courtEmpty').textContent = type ? 'No courts are open for this activity.' : 'Choose an activity to see its courts.';
+        $('courtEmpty').textContent = type ? 'No courts are open for this activity.' : 'No courts are open right now.';
         const cur = radios.find(x => x.checked);
-        if (cur && cur.closest('.bf-court').dataset.type !== type) cur.checked = false;
+        if (cur && type && cur.closest('.bf-court').dataset.type !== type) cur.checked = false;
         if (type && !radios.some(x => x.checked)) {
             const shown = radios.filter(x => !x.closest('.bf-court').hidden);
             if (shown.length === 1) shown[0].checked = true;   // single court: pick it
@@ -317,6 +320,46 @@ window.addEventListener('error', function (e) {
         }
     }
 
+    // ---- Longer stays: Days / Weeks / Months, same look as the arrival time groups.
+    function renderStay() {
+        const acc = $('stayAcc'); acc.innerHTML = '';
+        Object.keys(STAY).forEach(u => {
+            const [min, max, per] = STAY[u], nm = STAY_NAME[u], on = stay.unit === u, isOpen = stayOpen === u;
+            const wrap = document.createElement('div'); wrap.className = 'bf-grp' + (isOpen ? ' is-open' : '') + (on ? ' has-pick' : '');
+            const head = document.createElement('button'); head.type = 'button'; head.className = 'bf-grp-head'; head.dataset.unit = u;
+            head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            head.innerHTML = '<span class="bf-grp-name"><b>' + nm[0] + '</b><small>' + min + ' to ' + max + (per > 1 ? ' · ' + per + ' days each' : '') + '</small></span>' +
+                '<span class="bf-grp-meta">' + (on ? '<em class="bf-grp-pick">' + stay.count + ' ' + nm[stay.count === 1 ? 1 : 2] + '</em>' : '<small>Choose</small>') + '</span>' +
+                '<i class="bi bi-chevron-down bf-grp-chev"></i>';
+            wrap.appendChild(head);
+            if (isOpen) {
+                const grid = document.createElement('div'); grid.className = 'bf-slot-grid';
+                for (let n = min; n <= max; n++) {
+                    const b = document.createElement('button'); b.type = 'button'; b.className = 'bf-slot is-free'; b.dataset.unit = u; b.dataset.count = n;
+                    b.textContent = n + ' ' + nm[n === 1 ? 1 : 2];
+                    if (on && stay.count === n) { b.classList.add('is-picked'); b.setAttribute('aria-pressed', 'true'); }
+                    grid.appendChild(b);
+                }
+                wrap.appendChild(grid);
+            }
+            acc.appendChild(wrap);
+        });
+        $('stayUnit').disabled = $('stayCount').disabled = !isStay();
+        $('stayUnit').value = stay.unit; $('stayCount').value = stay.count || '';
+        $('hoursBox').classList.toggle('is-muted', isStay());
+    }
+    function setStay(unit, count) { stay = unit ? { unit, count } : { unit: '', count: 0 }; note = ''; checkSpan(); renderStay(); summary(); }
+    // Ask the server if the whole stay is free (other bookings may fall on the later days).
+    function checkSpan() {
+        const c = court(), seq = ++spanSeq; span = null;
+        if (!isStay() || !c || picked === null) return;
+        const q = '?facility_id=' + c.id + '&date=' + dateIn.value + '&time=' + timeIn.value + '&unit=' + stay.unit + '&count=' + stay.count + (c.head ? '&people=' + people : '');
+        fetch(spanUrl + q, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(j => { if (seq !== spanSeq) return; span = j; summary(); })
+            .catch(() => { if (seq === spanSeq) { span = { free: false, error: true }; summary(); } });
+    }
+
     function load() {
         const c = court(), d = dateIn.value;
         info = null; renderSlots(); summary();
@@ -324,7 +367,7 @@ window.addEventListener('error', function (e) {
         const key = c.id + d + '|' + people;
         fetch(busyUrl + '?facility_id=' + c.id + '&date=' + d + (c.head ? '&people=' + people : ''), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
             .then(r => r.ok ? r.json() : Promise.reject())
-            .then(j => { if (key !== (court() || {}).id + dateIn.value + '|' + people) return; info = j; infoAt = performance.now(); renderSlots(); summary(); })
+            .then(j => { if (key !== (court() || {}).id + dateIn.value + '|' + people) return; info = j; infoAt = performance.now(); renderSlots(); summary(); checkSpan(); })
             .catch(() => { slotsEl.innerHTML = '<p class="bf-empty">Could not load times. Refresh the page and try again.</p>'; });
     }
 
@@ -334,6 +377,14 @@ window.addEventListener('error', function (e) {
         return out;
     };
     // Show only the extras that suit this court, and lights only for evening arrivals.
+    // Referees still free for the whole of the chosen arrival + hours (the pool is shared by every court).
+    function refFree() {
+        if (!info || !info.ref || picked === null) return null;
+        const i0 = Math.floor((picked - info.open) / 30), n = Math.ceil(hours * 2);
+        let peak = 0;
+        for (let i = Math.max(0, i0); i < Math.min(info.ref.length, i0 + n); i++) peak = Math.max(peak, info.ref[i]);
+        return (info.refPool || POOL) - peak;
+    }
     function syncAddons(c) {
         // Air-conditioning is for indoor courts only; outdoor courts have no air-conditioning.
         cool.forEach(r => {
@@ -350,11 +401,23 @@ window.addEventListener('error', function (e) {
             const types = JSON.parse(e.dataset.types), small = e.querySelector('small');
             const wrongType = types && (!c || types.indexOf(c.type) < 0);
             const dark = e.dataset.evening === '1' && (picked === null || picked < EVENING);
+            let blocked = false, msg = null;
+            if (e.dataset.addon === 'referee' && !wrongType) {
+                if (isStay()) { blocked = true; msg = 'Hourly bookings only'; }
+                else {
+                    const f = refFree();
+                    if (f === null) msg = 'Choose an arrival time to see the free referees';
+                    else if (f <= 0) { blocked = true; msg = 'All ' + POOL + ' referees are booked at this time'; }
+                    else msg = f + ' of ' + POOL + ' referees free at this time';
+                }
+            }
+            const off = dark || blocked, input = e.querySelector('input');
+            if (blocked && input.checked && !isStay()) note = 'The referee is not free for the whole time, so he was removed from your booking.';
             e.hidden = !!wrongType;
-            e.classList.toggle('is-off', dark);
-            e.querySelector('input').disabled = dark || !!wrongType;
-            if (dark || wrongType) e.querySelector('input').checked = false;
-            small.textContent = dark ? (picked === null ? 'Choose an arrival time first (evening only)' : 'Not available for morning or afternoon') : small.dataset.note;
+            e.classList.toggle('is-off', off);
+            input.disabled = off || !!wrongType;
+            if (off || wrongType) input.checked = false;
+            small.textContent = dark ? (picked === null ? 'Choose an arrival time first (evening only)' : 'Not available for morning or afternoon') : (msg !== null ? msg : small.dataset.note);
         });
     }
 
@@ -364,59 +427,80 @@ window.addEventListener('error', function (e) {
         const dv = dateIn.value, dObj = dv ? new Date(dv + 'T00:00') : null;
         $('sDate').textContent = dObj && !isNaN(dObj) ? dObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '–';
         $('sStart').textContent = picked !== null ? clock(picked) : '–';
-        $('sEnd').textContent = picked !== null ? clock(picked + hours * 60) : '–';
-        $('sDuration').textContent = fmtHrs(hours);
+        if (isStay()) {
+            const last = dObj ? new Date(dObj) : null; if (last) last.setDate(last.getDate() + stayDays() - 1);
+            $('sEnd').textContent = picked !== null && last ? last.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + clock(CLOSEMIN) : '–';
+            $('sDuration').textContent = stayLabel();
+        } else {
+            $('sEnd').textContent = picked !== null ? clock(picked + hours * 60) : '–';
+            $('sDuration').textContent = fmtHrs(hours);
+        }
+        const bh = billed();
         const head = !!c && c.head, m = head ? people : 1;
         $('headSec').hidden = !head; $('suggestSec').hidden = head; $('people').disabled = !head; $('people').value = people;
         $('sPeopleRow').hidden = !head; $('sPeople').textContent = people + (people === 1 ? ' person' : ' people');
         $('sCourtLbl').textContent = head ? 'Gym access' : 'Court';
         $('pValue').textContent = people; $('pMinus').disabled = people <= 1; $('pPlus').disabled = !head || people >= c.max;
         $('headHint').textContent = head ? 'Up to ' + c.max + ' people at a time. ' + peso(c.price) + ' per person, per hour.' : '';
-        $('sRate').textContent = c ? '(' + (head ? people + (people === 1 ? ' person × ' : ' people × ') : '') + fmtHrs(hours) + ' × ' + peso(c.price).replace('.00', '') + ')' : '';
-        $('sCourt').textContent = c ? peso(c.price * hours * m) : '–';
+        $('sRate').textContent = c ? '(' + (head ? people + (people === 1 ? ' person × ' : ' people × ') : '') + fmtHrs(bh) + ' × ' + peso(c.price).replace('.00', '') + ')' : '';
+        $('sCourt').textContent = c ? peso(c.price * bh * m) : '–';
         syncAddons(c);
         let add = 0, rows = '';
         chosen().forEach(k => {
-            const a = ADDONS[k], amt = a.per === 'hour' ? a.price * hours : a.per === 'person' ? a.price * m : a.per === 'person_hour' ? a.price * m * hours : a.price; add += amt;
-            const sub = a.per === 'hour' ? '(' + fmtHrs(hours) + ' × ₱' + a.price + ')' : a.per === 'person' ? '(' + m + (m === 1 ? ' person' : ' people') + ' × ₱' + a.price + ')' : '(flat)';
+            const a = ADDONS[k], amt = a.per === 'hour' ? a.price * bh : a.per === 'person' ? a.price * m : a.per === 'person_hour' ? a.price * m * bh : a.price; add += amt;
+            const sub = a.per === 'hour' ? '(' + fmtHrs(bh) + ' × ₱' + a.price + ')' : a.per === 'person' ? '(' + m + (m === 1 ? ' person' : ' people') + ' × ₱' + a.price + ')' : '(flat)';
             rows += '<div class="row-line"><dt>' + a.label + ' <span class="sub">' + sub + '</span></dt><dd>' + peso(amt) + '</dd></div>';
         });
         $('sAddons').innerHTML = rows;
-        $('sTotal').textContent = c ? peso(c.price * hours * m + add) : '–';
+        $('sTotal').textContent = c ? peso(c.price * bh * m + add) : '–';
         $('peopleText').textContent = c ? c.people + ' fit comfortably on ' + c.name + '. For your information only.' : 'Choose a court to see how many people it fits.';
         $('peopleBox').classList.toggle('is-on', !!c);
 
         const limit = maxStay();
-        if (hours > limit) hours = limit;
+        if (!isStay() && hours > limit) hours = limit;
         hoursIn.value = hours; $('hrValue').textContent = fmtHrs(hours);
-        $('hrMinus').disabled = hours <= MIN; $('hrPlus').disabled = hours >= limit;
-        $('durHint').textContent = hours >= MAX ? 'Longest booking reached (' + fmtHrs(MAX) + ').'
+        $('hrMinus').disabled = hours <= MIN && !isStay(); $('hrPlus').disabled = hours >= limit && !isStay();
+        $('durHint').textContent = isStay() ? 'Not used while a longer stay is chosen. Press + or − to go back to hours.'
+            : hours >= MAX ? 'Longest hourly booking reached (' + fmtHrs(MAX) + '). For longer, choose days, weeks or months below.'
             : (hours >= limit && stayLimitText() ? stayLimitText() : (c ? peso(c.price) + (head ? ' per person, per hour.' : ' per hour.') + ' Each + adds one hour.' : 'Courts are rented per hour. Each + adds one hour.'));
 
-        const ready = !!c && picked !== null && /^\d{4}-\d{2}-\d{2}$/.test(dv);
+        let ready = !!c && picked !== null && /^\d{4}-\d{2}-\d{2}$/.test(dv);
+        let stayMsg = '';
+        if (ready && isStay()) {
+            if (!span) { ready = false; stayMsg = 'Checking that the whole stay is free…'; }
+            else if (span.error) { ready = false; stayMsg = 'Could not check the stay. Refresh the page and try again.'; }
+            else if (!span.free) { ready = false; stayMsg = span.clash ? 'Not free for the whole stay: another booking starts on ' + span.clash + '. Choose fewer days or another arrival.' : 'There is no room for ' + people + (people === 1 ? ' person' : ' people') + ' during the whole stay.'; }
+        }
         $('submitBtn').disabled = !ready;
-        $('submitHint').textContent = note;
-        $('submitHint').hidden = !note;
+        $('submitHint').textContent = note || stayMsg;
+        $('submitHint').hidden = !(note || stayMsg);
 
         $('schedBtn').disabled = !c || !/^\d{4}-\d{2}-\d{2}$/.test(dv);
     }
 
     acts.forEach(a => a.addEventListener('click', () => { setSport(a.dataset.type); picked = null; timeIn.value = ''; note = ''; load(); }));
-    radios.forEach(r => r.addEventListener('change', () => { people = Math.min(people, (court() || {max: people}).max || people); picked = null; timeIn.value = ''; note = ''; load(); }));
+    radios.forEach(r => r.addEventListener('change', () => { people = Math.min(people, (court() || {max: people}).max || people); picked = null; timeIn.value = ''; note = ''; span = null; load(); }));
     slotsEl.addEventListener('click', e => {
         const h = e.target.closest('.bf-grp-head');
         if (h && !h.disabled) { openKey = openKey === h.dataset.key ? null : h.dataset.key; renderSlots(); return; }
         const b = e.target.closest('.bf-slot'); if (!b || b.disabled) return;
         picked = +b.dataset.min; timeIn.value = pad(Math.floor(picked / 60)) + ':' + pad(picked % 60); note = '';
-        openKey = null; renderSlots(); summary();
+        openKey = null; renderSlots(); checkSpan(); summary();
     });
     extras.forEach(e => e.addEventListener('change', summary)); cool.forEach(r => r.addEventListener('change', summary));
     // Gym: changing the head count changes which times still have room, so reload them.
     function setPeople(n) { people = n; note = ''; load(); }
     $('pMinus').addEventListener('click', () => { if (people > 1) setPeople(people - 1); });
     $('pPlus').addEventListener('click', () => { const c = court(); if (c && c.head && people < c.max) setPeople(people + 1); });
-    $('hrMinus').addEventListener('click', () => { if (hours > MIN) { hours--; note = ''; summary(); } });
-    $('hrPlus').addEventListener('click', () => { if (hours < maxStay()) { hours++; note = ''; summary(); } });
+    // Pressing + or − always means "hours": it drops any days / weeks / months choice.
+    $('hrMinus').addEventListener('click', () => { if (isStay()) { setStay('', 0); return; } if (hours > MIN) { hours--; note = ''; summary(); } });
+    $('hrPlus').addEventListener('click', () => { if (isStay()) { setStay('', 0); return; } if (hours < maxStay()) { hours++; note = ''; summary(); } });
+    $('stayAcc').addEventListener('click', e => {
+        const b = e.target.closest('.bf-slot');
+        if (b) { const u = b.dataset.unit, n = +b.dataset.count; stayOpen = null; if (stay.unit === u && stay.count === n) setStay('', 0); else setStay(u, n); return; }
+        const h = e.target.closest('.bf-grp-head');
+        if (h) { stayOpen = stayOpen === h.dataset.unit ? null : h.dataset.unit; renderStay(); }
+    });
     // Popup: what is already booked on this court on the chosen day.
     const schedModal = new bootstrap.Modal($('schedModal'));
     function openSched() {
@@ -454,6 +538,7 @@ window.addEventListener('error', function (e) {
 
     if (picked !== null) openKey = (GROUPS.find(g => picked >= g[2] && picked < g[3]) || [null])[0];
     setSport(sport);
+    renderStay();
     load();
 })();
 </script>

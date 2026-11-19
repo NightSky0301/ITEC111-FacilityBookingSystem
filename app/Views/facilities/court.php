@@ -79,9 +79,6 @@
 
     <!-- Court info + sessions -->
     <div class="col-lg-5">
-        <?php if (! $isPast): ?>
-            <a class="btn btn-primary w-100 mb-4" href="<?= esc($bookUrl) ?>"><i class="bi bi-calendar-plus me-1"></i> Book <?= esc($date->format('D, M j')) ?></a>
-        <?php endif; ?>
         <div class="panel mb-4 overflow-hidden">
             <img class="court-hero" src="<?= facility_image($facility) ?>" alt="<?= esc($facility['name']) ?>">
             <?php if ($facility['description']): ?><div class="panel-body"><?= esc($facility['description']) ?></div><?php endif; ?>
@@ -93,6 +90,10 @@
                 </div>
             </div>
         </div>
+
+        <?php if (! $isPast): ?>
+            <a class="btn btn-primary w-100 mb-4" href="<?= esc($bookUrl) ?>"><i class="bi bi-calendar-plus me-1"></i> Proceed</a>
+        <?php endif; ?>
 
         <div class="panel">
             <div class="panel-head"><h2>Sessions on <?= esc($date->format('M j')) ?></h2></div>

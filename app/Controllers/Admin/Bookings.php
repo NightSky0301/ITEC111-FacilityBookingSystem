@@ -42,6 +42,11 @@ class Bookings extends BaseController
             return redirect()->back()->with('error', 'Cannot approve: it overlaps with an already approved booking.');
         }
 
+        if (str_contains((string) $booking['addons'], '"key":"' . \App\Libraries\Addons::REFEREE_KEY . '"')
+            && $bookings->refereePeak($booking['start_at'], $booking['end_at'], $id) >= \App\Libraries\Addons::REFEREE_POOL) {
+            return redirect()->back()->with('error', 'Cannot approve: all ' . \App\Libraries\Addons::REFEREE_POOL . ' referees are booked during this time.');
+        }
+
         $remarks = trim((string) $this->request->getPost('admin_remarks'));
         $bookings->update($id, ['status' => 'approved', 'admin_remarks' => $remarks, 'approved_by' => (int) session()->get('user_id')]);
 

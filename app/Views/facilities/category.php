@@ -2,12 +2,6 @@
 <?= $this->section('content') ?>
 <?= $this->setVar('step', 2)->include('facilities/_stepper') ?>
 
-<header class="activity-hero tint-<?= esc($type, 'attr') ?>">
-    <span class="activity-badge"><?= facility_icon_html($type) ?></span>
-    <h1><?= esc($activity) ?></h1>
-    <p>Choose a court to see its schedule.</p>
-</header>
-
 <div class="row g-4 justify-content-center">
     <?php foreach ($courts as $c): $live = $c['live']; ?>
         <div class="col-md-6">
