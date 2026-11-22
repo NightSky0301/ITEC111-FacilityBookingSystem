@@ -2,6 +2,7 @@
 /** Staff / admin dashboard: today's approved sessions as cards, each opens a check-in popup. */
 $nowTs = time();
 ?>
+<div id="live-sessions" data-live>
 <section class="sess-panel" aria-label="Sessions today">
     <div class="sess-head">
         <div>
@@ -18,7 +19,7 @@ $nowTs = time();
             Approved bookings for today will show up here.
         </div>
     <?php else: ?>
-    <div class="sess-grid">
+    <div class="sess-grid" data-pager="4">
         <?php foreach ($latest as $b):
             $s = strtotime($b['start_at']);
             $e = strtotime($b['end_at']);
@@ -54,6 +55,7 @@ $nowTs = time();
     </div>
     <?php endif; ?>
 </section>
+</div>
 
 <div class="modal fade sess-modal" id="sessModal" tabindex="-1" aria-labelledby="sessTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

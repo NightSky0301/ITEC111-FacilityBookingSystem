@@ -19,6 +19,11 @@ class AuthFilter implements FilterInterface
     {
         $id = (int) session()->get('user_id');
         if (! $id) {
+            // Remember the page so the person lands back on it after logging in.
+            $req = service('request');
+            if (strtolower($req->getMethod()) === 'get' && ! $req->isAJAX()) {
+                session()->set('after_login', $req->getUri()->getRoutePath() . ($req->getUri()->getQuery() !== '' ? '?' . $req->getUri()->getQuery() : ''));
+            }
             return redirect()->to('/login')->with('error', 'Please log in first.');
         }
 

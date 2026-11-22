@@ -6,7 +6,7 @@
     foreach ($facilities as $f) {
         if ((int) $f['id'] === $selectedId) { $selectedType = $f['type']; }
     }
-    $hours     = max((int) $minHours, min((int) $maxHours, (int) (old('hours') ?: $minHours)));
+    $hours     = max(0, min((int) $maxHours, (int) (old('hours') ?? $minHours)));
     $dateValue = old('start_date') ?: $startDate ?: date('Y-m-d');
     $timeValue = old('start_time') ?: $startTime;
 
@@ -84,23 +84,31 @@
                             <strong>How long?</strong>
                             <span id="durHint">Courts are rented per hour. Each + adds one hour.</span>
                         </div>
-                        <div class="ext-stepper" role="group" aria-label="Number of hours">
-                            <button type="button" class="ext-btn" id="hrMinus" aria-label="Remove 1 hour"><i class="bi bi-dash-lg"></i></button>
-                            <output class="ext-value" id="hrValue" for="hrMinus hrPlus">1 hr</output>
-                            <button type="button" class="ext-btn" id="hrPlus" aria-label="Add 1 hour"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                    <div class="len-grid">
+                        <div class="len-cell">
+                            <label for="lenMonths">Months</label>
+                            <select id="lenMonths" name="stay_months" class="form-select" data-dd aria-label="Months"><option value="0"<?= (int) old('stay_months') === 0 ? ' selected' : '' ?>>0 months</option><option value="1"<?= (int) old('stay_months') === 1 ? ' selected' : '' ?>>1 month</option><option value="2"<?= (int) old('stay_months') === 2 ? ' selected' : '' ?>>2 months</option><option value="3"<?= (int) old('stay_months') === 3 ? ' selected' : '' ?>>3 months</option></select>
+                        </div>
+                        <div class="len-cell">
+                            <label for="lenWeeks">Weeks</label>
+                            <select id="lenWeeks" name="stay_weeks" class="form-select" data-dd aria-label="Weeks"><option value="0"<?= (int) old('stay_weeks') === 0 ? ' selected' : '' ?>>0 weeks</option><option value="1"<?= (int) old('stay_weeks') === 1 ? ' selected' : '' ?>>1 week</option><option value="2"<?= (int) old('stay_weeks') === 2 ? ' selected' : '' ?>>2 weeks</option><option value="3"<?= (int) old('stay_weeks') === 3 ? ' selected' : '' ?>>3 weeks</option></select>
+                        </div>
+                        <div class="len-cell">
+                            <label for="lenDays">Days</label>
+                            <select id="lenDays" name="stay_days" class="form-select" data-dd aria-label="Days"><option value="0"<?= (int) old('stay_days') === 0 ? ' selected' : '' ?>>0 days</option><option value="1"<?= (int) old('stay_days') === 1 ? ' selected' : '' ?>>1 day</option><option value="2"<?= (int) old('stay_days') === 2 ? ' selected' : '' ?>>2 days</option><option value="3"<?= (int) old('stay_days') === 3 ? ' selected' : '' ?>>3 days</option><option value="4"<?= (int) old('stay_days') === 4 ? ' selected' : '' ?>>4 days</option><option value="5"<?= (int) old('stay_days') === 5 ? ' selected' : '' ?>>5 days</option><option value="6"<?= (int) old('stay_days') === 6 ? ' selected' : '' ?>>6 days</option></select>
+                        </div>
+                        <div class="len-cell">
+                            <label id="hrLabel">Hours per day</label>
+                            <div class="ext-stepper" role="group" aria-labelledby="hrLabel">
+                                <button type="button" class="ext-btn" id="hrMinus" aria-label="Remove 1 hour"><i class="bi bi-dash-lg"></i></button>
+                                <output class="ext-value" id="hrValue" for="hrMinus hrPlus">1 hr</output>
+                                <button type="button" class="ext-btn" id="hrPlus" aria-label="Add 1 hour"><i class="bi bi-plus-lg"></i></button>
+                            </div>
                         </div>
                     </div>
+                    <div class="len-sum" id="lenSum" hidden></div>
                 </div>
-            </section>
-
-            <section class="bf-sec" id="staySec">
-                <div class="bf-h-row">
-                    <h2 class="bf-h">Need it longer?</h2>
-                    <span class="bf-open" id="stayHint">Book by the day, week or month instead of hours</span>
-                </div>
-                <div id="stayAcc" class="bf-acc"></div>
-                <input type="hidden" name="stay_unit" id="stayUnit" value="" disabled>
-                <input type="hidden" name="stay_count" id="stayCount" value="" disabled>
             </section>
 
             <section class="bf-sec">
@@ -116,7 +124,7 @@
                     <?php foreach ($addons as $key => $a): if ($a['group'] !== 'extra') continue; ?>
                         <label class="bf-extra" data-addon="<?= esc($key) ?>" data-types="<?= esc(json_encode($a['types']), 'attr') ?>" data-evening="<?= $a['evening'] ? '1' : '0' ?>">
                             <input type="checkbox" name="addons[]" value="<?= esc($key) ?>" <?= in_array($key, (array) old('addons'), true) ? 'checked' : '' ?>>
-                            <span class="bf-extra-body"><b><?= esc($a['label']) ?></b><small data-note="<?= esc($a['note'], 'attr') ?>"><?= esc($a['note']) ?></small></span>
+                            <span class="bf-extra-body"><b><?= esc($a['label']) ?><?php if ($key === 'referee'): ?> <span class="bf-ref-badge" id="refBadge" hidden></span><?php endif; ?></b><small data-note="<?= esc($a['note'], 'attr') ?>"><?= esc($a['note']) ?></small></span>
                             <span class="bf-extra-price">+₱<?= number_format($a['price']) ?><small><?= $a['per'] === 'hour' ? ' / hr' : ($a['per'] === 'person' ? ' / person' : '') ?></small></span>
                         </label>
                     <?php endforeach; ?>
@@ -156,26 +164,11 @@
             <div class="total"><span class="text-muted">Total payment</span><strong id="sTotal">–</strong></div>
             <button class="btn btn-primary w-100 mt-4" id="submitBtn" disabled>Send request</button>
             <p class="small text-danger text-center mt-2 mb-0" id="submitHint" hidden></p>
-            <button type="button" id="schedBtn" class="btn btn-outline-secondary w-100 mt-2" disabled><i class="bi bi-calendar3 me-1"></i> Check this court's schedule</button>
         </div></div>
     </div>
 </div>
 </form>
 
-<div class="modal fade" id="schedModal" tabindex="-1" aria-labelledby="schTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered ev-dialog"><div class="modal-content ev-modal">
-        <div class="ev-head">
-            <span class="ev-ic"><i class="bi bi-calendar3"></i></span>
-            <div class="ev-head-text">
-                <div class="ev-kicker" id="schKicker"></div>
-                <h5 class="ev-title" id="schTitle"></h5>
-            </div>
-            <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="ev-body" id="schBody"></div>
-        <div class="ev-foot"><button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">Close</button></div>
-    </div></div>
-</div>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -193,8 +186,7 @@ window.addEventListener('error', function (e) {
 (function () {
     const ADDONS = <?= (json_encode($addons, JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}') ?>, EVENING = <?= (int) $eveningFrom ?>;
     const MIN = <?= (int) $minHours ?>, MAX = <?= (int) $maxHours ?>;
-    const STAY = <?= json_encode($stayUnits) ?>, DAYH = <?= (int) $dayHours ?>, OPENMIN = <?= (int) $open * 60 ?>, CLOSEMIN = <?= (int) $close * 60 ?>, POOL = <?= (int) $refPool ?>;
-    const STAY_NAME = { day: ['Days', 'day', 'days'], week: ['Weeks', 'week', 'weeks'], month: ['Months', 'month', 'months'] };
+    const DAYH = <?= (int) $dayHours ?>, OPENMIN = <?= (int) $open * 60 ?>, CLOSEMIN = <?= (int) $close * 60 ?>, POOL = <?= (int) $refPool ?>;
     const COURTS = <?= (json_encode($courts, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]') ?>;
     const $ = id => document.getElementById(id);
     const dateIn = $('startDate'), timeIn = $('startTime'), hoursIn = $('hours'), slotsEl = $('slots');
@@ -210,20 +202,31 @@ window.addEventListener('error', function (e) {
     const toMin = s => { const p = (s || '').split(':'); return p.length >= 2 ? (+p[0]) * 60 + (+p[1]) : null; };
     const pad = n => String(n).padStart(2, '0');
 
-    let hours = Math.max(MIN, Math.min(MAX, parseInt(hoursIn.value, 10) || MIN));
+    let hours = Math.max(0, Math.min(MAX, isNaN(parseInt(hoursIn.value, 10)) ? MIN : parseInt(hoursIn.value, 10)));   // summary() raises it to the minimum when it is a plain hourly booking
     let sport = '<?= esc($selectedType, 'js') ?>';
     let info = null;            // answer of bookings/busy for the current court + date
     let infoAt = 0;             // performance.now() when it arrived, to keep the server clock ticking
     let picked = toMin(timeIn.value);
     let note = '';
-    let stay = { unit: '<?= esc((string) old('stay_unit'), 'js') ?>', count: <?= (int) old('stay_count') ?> };
-    if (!STAY[stay.unit] || stay.count < 1) stay = { unit: '', count: 0 };
-    let stayOpen = null, span = null, spanSeq = 0;
-    const isStay = () => !!stay.unit;
-    const stayDays = () => isStay() ? stay.count * STAY[stay.unit][2] : 0;
-    const stayHours = (from) => ((CLOSEMIN - from) / 60) + (stayDays() - 1) * DAYH;
-    const billed = () => isStay() ? stayHours(picked !== null ? picked : OPENMIN) : hours;
-    const stayLabel = () => isStay() ? stay.count + ' ' + STAY_NAME[stay.unit][stay.count === 1 ? 1 : 2] + (stay.unit !== 'day' ? ' (' + stayDays() + ' days)' : '') : '';
+    // Length = months + weeks + days (they end at your arrival time) + extra hours on top.
+    const selM = $('lenMonths'), selW = $('lenWeeks'), selD = $('lenDays');
+    let span = null, spanSeq = 0;
+    const totalDays = () => (+selM.value || 0) * 30 + (+selW.value || 0) * 7 + (+selD.value || 0);
+    const isStay = () => totalDays() >= 2;           // 2+ days: the same arrival time and hours repeat every day
+    const nDays = () => Math.max(1, totalDays());
+    const minH = () => MIN;
+    const maxH = () => isStay() ? Math.max(MIN, Math.min(MAX, Math.floor((CLOSEMIN - (picked !== null ? picked : OPENMIN)) / 60))) : maxStay();
+    const billed = () => hours * nDays();             // hours charged across all days
+    const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+    const lenLabel = () => {
+        if (!isStay()) return fmtHrs(hours);
+        const parts = [];
+        if (+selM.value) parts.push(plural(+selM.value, 'month'));
+        if (+selW.value) parts.push(plural(+selW.value, 'week'));
+        if (+selD.value) parts.push(plural(+selD.value, 'day'));
+        return (parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0]) + ' · ' + fmtHrs(hours) + ' a day';
+    };
+    const endDate = () => { const d = new Date(dateIn.value + 'T00:00'); d.setDate(d.getDate() + nDays() - 1); return d; };
     let people = Math.max(1, parseInt($('people').value, 10) || 1);
 
     const court = () => { const r = radios.find(x => x.checked); return r ? COURTS.find(c => c.id === +r.value) : null; };
@@ -320,40 +323,12 @@ window.addEventListener('error', function (e) {
         }
     }
 
-    // ---- Longer stays: Days / Weeks / Months, same look as the arrival time groups.
-    function renderStay() {
-        const acc = $('stayAcc'); acc.innerHTML = '';
-        Object.keys(STAY).forEach(u => {
-            const [min, max, per] = STAY[u], nm = STAY_NAME[u], on = stay.unit === u, isOpen = stayOpen === u;
-            const wrap = document.createElement('div'); wrap.className = 'bf-grp' + (isOpen ? ' is-open' : '') + (on ? ' has-pick' : '');
-            const head = document.createElement('button'); head.type = 'button'; head.className = 'bf-grp-head'; head.dataset.unit = u;
-            head.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-            head.innerHTML = '<span class="bf-grp-name"><b>' + nm[0] + '</b><small>' + min + ' to ' + max + (per > 1 ? ' · ' + per + ' days each' : '') + '</small></span>' +
-                '<span class="bf-grp-meta">' + (on ? '<em class="bf-grp-pick">' + stay.count + ' ' + nm[stay.count === 1 ? 1 : 2] + '</em>' : '<small>Choose</small>') + '</span>' +
-                '<i class="bi bi-chevron-down bf-grp-chev"></i>';
-            wrap.appendChild(head);
-            if (isOpen) {
-                const grid = document.createElement('div'); grid.className = 'bf-slot-grid';
-                for (let n = min; n <= max; n++) {
-                    const b = document.createElement('button'); b.type = 'button'; b.className = 'bf-slot is-free'; b.dataset.unit = u; b.dataset.count = n;
-                    b.textContent = n + ' ' + nm[n === 1 ? 1 : 2];
-                    if (on && stay.count === n) { b.classList.add('is-picked'); b.setAttribute('aria-pressed', 'true'); }
-                    grid.appendChild(b);
-                }
-                wrap.appendChild(grid);
-            }
-            acc.appendChild(wrap);
-        });
-        $('stayUnit').disabled = $('stayCount').disabled = !isStay();
-        $('stayUnit').value = stay.unit; $('stayCount').value = stay.count || '';
-        $('hoursBox').classList.toggle('is-muted', isStay());
-    }
-    function setStay(unit, count) { stay = unit ? { unit, count } : { unit: '', count: 0 }; note = ''; checkSpan(); renderStay(); summary(); }
-    // Ask the server if the whole stay is free (other bookings may fall on the later days).
+    // Ask the server if the court (and referee) are free on every day of the stay.
+    const wantsRef = () => extras.some(e => e.dataset.addon === 'referee' && e.querySelector('input').checked);
     function checkSpan() {
         const c = court(), seq = ++spanSeq; span = null;
         if (!isStay() || !c || picked === null) return;
-        const q = '?facility_id=' + c.id + '&date=' + dateIn.value + '&time=' + timeIn.value + '&unit=' + stay.unit + '&count=' + stay.count + (c.head ? '&people=' + people : '');
+        const q = '?facility_id=' + c.id + '&date=' + dateIn.value + '&time=' + timeIn.value + '&months=' + selM.value + '&weeks=' + selW.value + '&days=' + selD.value + '&hours=' + hours + (wantsRef() ? '&ref=1' : '') + (c.head ? '&people=' + people : '');
         fetch(spanUrl + q, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(j => { if (seq !== spanSeq) return; span = j; summary(); })
@@ -385,14 +360,24 @@ window.addEventListener('error', function (e) {
         for (let i = Math.max(0, i0); i < Math.min(info.ref.length, i0 + n); i++) peak = Math.max(peak, info.ref[i]);
         return (info.refPool || POOL) - peak;
     }
+    // Small badge on the Referee button: how many of the shared referees are free.
+    function refBadge() {
+        const el = $('refBadge'); if (!el) return;
+        let txt = '', tone = 'ok';
+        if (info && info.ref && info.ref.length) {
+            const pool = info.refPool || POOL;
+            if (picked !== null) { const f = refFree(); txt = f <= 0 ? 'None free' : f + ' of ' + pool + ' free'; tone = f <= 0 ? 'none' : f <= 2 ? 'low' : 'ok'; }
+            else { const best = pool - Math.min.apply(null, info.ref); txt = best <= 0 ? 'None free today' : 'Up to ' + best + ' free'; tone = best <= 0 ? 'none' : best <= 2 ? 'low' : 'ok'; }
+        }
+        el.hidden = !txt; el.textContent = txt; el.className = 'bf-ref-badge tone-' + tone;
+    }
     function syncAddons(c) {
-        // Air-conditioning is for indoor courts only; outdoor courts have no air-conditioning.
+        // Air-conditioning is for indoor courts only: on outdoor courts it is not offered at all.
         cool.forEach(r => {
             if (r.dataset.indoor !== '1') return;
-            const off = !!c && c.outdoor, small = r.closest('label').querySelector('small');
-            r.disabled = off; r.closest('label').classList.toggle('is-off', off);
+            const off = !!c && c.outdoor;
+            r.disabled = off; r.closest('label').hidden = off;
             if (off && r.checked) cool.find(x => x.value === '').checked = true;
-            small.textContent = off ? 'Indoor courts only (not on outdoor courts)' : small.dataset.note;
         });
         const head = !!c && c.head;
         $('coolBox').hidden = head;
@@ -403,16 +388,14 @@ window.addEventListener('error', function (e) {
             const dark = e.dataset.evening === '1' && (picked === null || picked < EVENING);
             let blocked = false, msg = null;
             if (e.dataset.addon === 'referee' && !wrongType) {
-                if (isStay()) { blocked = true; msg = 'Hourly bookings only'; }
-                else {
-                    const f = refFree();
-                    if (f === null) msg = 'Choose an arrival time to see the free referees';
-                    else if (f <= 0) { blocked = true; msg = 'All ' + POOL + ' referees are booked at this time'; }
-                    else msg = f + ' of ' + POOL + ' referees free at this time';
-                }
+                const f = refFree();
+                if (f === null) msg = 'Choose an arrival time to see the free referees';
+                else if (f <= 0) { blocked = true; msg = 'All ' + POOL + ' referees are booked at this time'; }
+                else msg = isStay() ? 'Needed every day of your stay (' + f + ' free on the first day)' : null;
             }
             const off = dark || blocked, input = e.querySelector('input');
-            if (blocked && input.checked && !isStay()) note = 'The referee is not free for the whole time, so he was removed from your booking.';
+            if (e.dataset.addon === 'referee') refBadge();
+            if (blocked && input.checked) note = 'The referee is not free for the whole time, so he was removed from your booking.';
             e.hidden = !!wrongType;
             e.classList.toggle('is-off', off);
             input.disabled = off || !!wrongType;
@@ -428,54 +411,60 @@ window.addEventListener('error', function (e) {
         $('sDate').textContent = dObj && !isNaN(dObj) ? dObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '–';
         $('sStart').textContent = picked !== null ? clock(picked) : '–';
         if (isStay()) {
-            const last = dObj ? new Date(dObj) : null; if (last) last.setDate(last.getDate() + stayDays() - 1);
-            $('sEnd').textContent = picked !== null && last ? last.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + clock(CLOSEMIN) : '–';
-            $('sDuration').textContent = stayLabel();
+            $('sEnd').textContent = picked !== null && dObj ? clock(picked + hours * 60) + ' each day, until ' + endDate().toLocaleDateString([], { month: 'short', day: 'numeric' }) : '–';
         } else {
             $('sEnd').textContent = picked !== null ? clock(picked + hours * 60) : '–';
-            $('sDuration').textContent = fmtHrs(hours);
         }
-        const bh = billed();
+        $('sDuration').textContent = lenLabel();
+        const bh = hours, dn = nDays();
         const head = !!c && c.head, m = head ? people : 1;
         $('headSec').hidden = !head; $('suggestSec').hidden = head; $('people').disabled = !head; $('people').value = people;
         $('sPeopleRow').hidden = !head; $('sPeople').textContent = people + (people === 1 ? ' person' : ' people');
         $('sCourtLbl').textContent = head ? 'Gym access' : 'Court';
         $('pValue').textContent = people; $('pMinus').disabled = people <= 1; $('pPlus').disabled = !head || people >= c.max;
         $('headHint').textContent = head ? 'Up to ' + c.max + ' people at a time. ' + peso(c.price) + ' per person, per hour.' : '';
-        $('sRate').textContent = c ? '(' + (head ? people + (people === 1 ? ' person × ' : ' people × ') : '') + fmtHrs(bh) + ' × ' + peso(c.price).replace('.00', '') + ')' : '';
-        $('sCourt').textContent = c ? peso(c.price * bh * m) : '–';
+        $('sRate').textContent = c ? '(' + (head ? people + (people === 1 ? ' person × ' : ' people × ') : '') + (dn > 1 ? dn + ' days × ' : '') + fmtHrs(bh) + ' × ' + peso(c.price).replace('.00', '') + ')' : '';
+        $('sCourt').textContent = c ? peso(c.price * bh * m * dn) : '–';
         syncAddons(c);
         let add = 0, rows = '';
         chosen().forEach(k => {
-            const a = ADDONS[k], amt = a.per === 'hour' ? a.price * bh : a.per === 'person' ? a.price * m : a.per === 'person_hour' ? a.price * m * bh : a.price; add += amt;
-            const sub = a.per === 'hour' ? '(' + fmtHrs(bh) + ' × ₱' + a.price + ')' : a.per === 'person' ? '(' + m + (m === 1 ? ' person' : ' people') + ' × ₱' + a.price + ')' : '(flat)';
+            const a = ADDONS[k], amt = (a.per === 'hour' ? a.price * bh : a.per === 'person' ? a.price * m : a.per === 'person_hour' ? a.price * m * bh : a.price) * dn; add += amt;
+            const sub = a.per === 'hour' ? '(' + (dn > 1 ? dn + ' days × ' : '') + fmtHrs(bh) + ' × ₱' + a.price + ')' : a.per === 'person' ? '(' + m + (m === 1 ? ' person' : ' people') + ' × ₱' + a.price + ')' : '(flat)';
             rows += '<div class="row-line"><dt>' + a.label + ' <span class="sub">' + sub + '</span></dt><dd>' + peso(amt) + '</dd></div>';
         });
         $('sAddons').innerHTML = rows;
-        $('sTotal').textContent = c ? peso(c.price * bh * m + add) : '–';
+        $('sTotal').textContent = c ? peso(c.price * bh * m * dn + add) : '–';
         $('peopleText').textContent = c ? c.people + ' fit comfortably on ' + c.name + '. For your information only.' : 'Choose a court to see how many people it fits.';
         $('peopleBox').classList.toggle('is-on', !!c);
 
-        const limit = maxStay();
-        if (!isStay() && hours > limit) hours = limit;
+        const hMax = maxH(), hMin = minH();
+        if (hours > hMax) hours = hMax;
+        if (hours < hMin) hours = hMin;
         hoursIn.value = hours; $('hrValue').textContent = fmtHrs(hours);
-        $('hrMinus').disabled = hours <= MIN && !isStay(); $('hrPlus').disabled = hours >= limit && !isStay();
-        $('durHint').textContent = isStay() ? 'Not used while a longer stay is chosen. Press + or − to go back to hours.'
-            : hours >= MAX ? 'Longest hourly booking reached (' + fmtHrs(MAX) + '). For longer, choose days, weeks or months below.'
-            : (hours >= limit && stayLimitText() ? stayLimitText() : (c ? peso(c.price) + (head ? ' per person, per hour.' : ' per hour.') + ' Each + adds one hour.' : 'Courts are rented per hour. Each + adds one hour.'));
+        $('hrMinus').disabled = hours <= hMin; $('hrPlus').disabled = hours >= hMax;
+        const lim = stayLimitText();
+        $('durHint').textContent = isStay()
+            ? 'Same arrival time and hours every day, for ' + nDays() + ' days.' + (hours >= hMax ? ' Latest finish is ' + clock(CLOSEMIN) + '.' : '')
+            : hours >= MAX ? 'Longest booking reached (' + fmtHrs(MAX) + ' a day).'
+            : (hours >= hMax && lim ? lim : (c ? peso(c.price) + (head ? ' per person, per hour.' : ' per hour.') + ' Each + adds one hour. Choose days, weeks or months to repeat it daily.' : 'Courts are rented per hour. Each + adds one hour.'));
+        const sum = $('lenSum');
+        sum.hidden = !isStay();
+        if (isStay()) sum.innerHTML = picked !== null && dObj
+            ? '<i class="bi bi-calendar2-week"></i> <b>' + clock(picked) + ' – ' + clock(picked + hours * 60) + '</b> every day, from ' + dObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' to ' + endDate().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' (' + nDays() + ' days).'
+            : '<i class="bi bi-calendar2-week"></i> Choose an arrival time. It repeats every day of your stay.';
 
         let ready = !!c && picked !== null && /^\d{4}-\d{2}-\d{2}$/.test(dv);
         let stayMsg = '';
         if (ready && isStay()) {
             if (!span) { ready = false; stayMsg = 'Checking that the whole stay is free…'; }
             else if (span.error) { ready = false; stayMsg = 'Could not check the stay. Refresh the page and try again.'; }
-            else if (!span.free) { ready = false; stayMsg = span.clash ? 'Not free for the whole stay: another booking starts on ' + span.clash + '. Choose fewer days or another arrival.' : 'There is no room for ' + people + (people === 1 ? ' person' : ' people') + ' during the whole stay.'; }
+            else if (!span.free) { ready = false; stayMsg = span.clashes && span.clashes.length ? 'Not free on ' + span.clashes.slice(0, 3).join(', ') + (span.clashes.length > 3 ? ' and ' + (span.clashes.length - 3) + ' more' : '') + '. Choose other days or another time.' : 'Some days are not free. Choose other days or another time.'; }
+            else if (span.refShort && span.refShort.length) { ready = false; stayMsg = 'No referee is free on ' + span.refShort.slice(0, 3).join(', ') + (span.refShort.length > 3 ? ' and more' : '') + '. Remove the referee or pick other days.'; }
         }
         $('submitBtn').disabled = !ready;
         $('submitHint').textContent = note || stayMsg;
         $('submitHint').hidden = !(note || stayMsg);
 
-        $('schedBtn').disabled = !c || !/^\d{4}-\d{2}-\d{2}$/.test(dv);
     }
 
     acts.forEach(a => a.addEventListener('click', () => { setSport(a.dataset.type); picked = null; timeIn.value = ''; note = ''; load(); }));
@@ -487,58 +476,20 @@ window.addEventListener('error', function (e) {
         picked = +b.dataset.min; timeIn.value = pad(Math.floor(picked / 60)) + ':' + pad(picked % 60); note = '';
         openKey = null; renderSlots(); checkSpan(); summary();
     });
-    extras.forEach(e => e.addEventListener('change', summary)); cool.forEach(r => r.addEventListener('change', summary));
+    extras.forEach(e => e.addEventListener('change', () => { checkSpan(); summary(); })); cool.forEach(r => r.addEventListener('change', summary));
     // Gym: changing the head count changes which times still have room, so reload them.
     function setPeople(n) { people = n; note = ''; load(); }
     $('pMinus').addEventListener('click', () => { if (people > 1) setPeople(people - 1); });
     $('pPlus').addEventListener('click', () => { const c = court(); if (c && c.head && people < c.max) setPeople(people + 1); });
-    // Pressing + or − always means "hours": it drops any days / weeks / months choice.
-    $('hrMinus').addEventListener('click', () => { if (isStay()) { setStay('', 0); return; } if (hours > MIN) { hours--; note = ''; summary(); } });
-    $('hrPlus').addEventListener('click', () => { if (isStay()) { setStay('', 0); return; } if (hours < maxStay()) { hours++; note = ''; summary(); } });
-    $('stayAcc').addEventListener('click', e => {
-        const b = e.target.closest('.bf-slot');
-        if (b) { const u = b.dataset.unit, n = +b.dataset.count; stayOpen = null; if (stay.unit === u && stay.count === n) setStay('', 0); else setStay(u, n); return; }
-        const h = e.target.closest('.bf-grp-head');
-        if (h) { stayOpen = stayOpen === h.dataset.unit ? null : h.dataset.unit; renderStay(); }
-    });
-    // Popup: what is already booked on this court on the chosen day.
-    const schedModal = new bootstrap.Modal($('schedModal'));
-    function openSched() {
-        const c = court(), dv = dateIn.value; if (!c) return;
-        const dObj = new Date(dv + 'T00:00');
-        $('schKicker').textContent = dObj.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-        $('schTitle').textContent = c.name;
-        $('schBody').innerHTML = '<p class="bf-empty m-3">Loading schedule…</p>';
-        schedModal.show();
-        fetch(busyUrl + '?facility_id=' + c.id + '&date=' + dv + (c.head ? '&people=' + people : ''), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-            .then(r => r.ok ? r.json() : Promise.reject())
-            .then(j => {
-                const span = j.close - j.open, pct = m => Math.max(0, Math.min(100, (m - j.open) / span * 100));
-                const busy = j.busy.slice().sort((a, b) => a[0] - b[0]);
-                let free = [], from = j.open;
-                if (j.date === j.today) from = Math.max(from, Math.ceil((j.now + 1) / 30) * 30);
-                busy.forEach(b => { if (b[0] > from) free.push([from, b[0]]); from = Math.max(from, b[1]); });
-                if (from < j.close) free.push([from, j.close]);
-                free = free.filter(f => f[1] - f[0] >= 60);
-                let h = '<div class="sch-bar" aria-hidden="true">' + busy.map(b => '<i class="sch-seg" style="left:' + pct(b[0]) + '%;width:' + (pct(b[1]) - pct(b[0])) + '%"></i>').join('') + '</div>' +
-                    '<div class="sch-scale"><span>' + clock(j.open) + '</span><span>' + clock(j.close) + '</span></div>';
-                h += busy.length
-                    ? '<div class="sch-list"><small>Already booked</small>' + busy.map(b => '<div class="sch-row"><span>' + clock(b[0]) + ' – ' + clock(b[1]) + '</span><span class="pill pill-rejected">Booked</span></div>').join('') + '</div>'
-                    : '<div class="sch-none"><i class="bi bi-check-circle"></i> Nothing is booked on this day yet.</div>';
-                h += '<div class="sch-list"><small>Open for booking</small>' + (free.length
-                    ? free.map(f => '<div class="sch-row"><span>' + clock(f[0]) + ' – ' + clock(f[1]) + '</span><span class="pill pill-approved">Open</span></div>').join('')
-                    : '<div class="sch-row"><span>No open times left on this day.</span></div>') + '</div>';
-                $('schBody').innerHTML = h;
-            })
-            .catch(() => { $('schBody').innerHTML = '<p class="bf-empty m-3">Could not load the schedule. Try again.</p>'; });
-    }
-    $('schedBtn').addEventListener('click', openSched);
+    $('hrMinus').addEventListener('click', () => { if (hours > minH()) { hours--; note = ''; checkSpan(); summary(); } });
+    $('hrPlus').addEventListener('click', () => { if (hours < maxH()) { hours++; note = ''; checkSpan(); summary(); } });
+    // Days / weeks / months repeat the same arrival time and hours every day.
+    [selM, selW, selD].forEach(sel => sel.addEventListener('change', () => { note = ''; checkSpan(); summary(); }));
     // Keep "passed" slots current while the page stays open.
     setInterval(() => { if (info) { renderSlots(); summary(); } }, 30000);
 
     if (picked !== null) openKey = (GROUPS.find(g => picked >= g[2] && picked < g[3]) || [null])[0];
     setSport(sport);
-    renderStay();
     load();
 })();
 </script>

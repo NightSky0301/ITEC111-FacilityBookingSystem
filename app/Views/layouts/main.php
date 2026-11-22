@@ -12,14 +12,42 @@
     <link href="<?= base_url('assets/css/app.css') ?>" rel="stylesheet">
     <?= $this->renderSection('head') ?>
 </head>
-<body>
+<body<?php if (session()->get('user_id')): ?> data-live-url="<?= site_url('notifications/pulse') ?>" data-live-stamp="<?= esc(live_stamp(), 'attr') ?>"<?php endif; ?>>
 <?php
-    $seg1    = service('uri')->getSegment(1);
-    $seg2    = service('uri')->getSegment(2);
+    $segs    = service('uri')->getTotalSegments();
+    $seg1    = $segs >= 1 ? service('uri')->getSegment(1) : 'dashboard';   // "/" is the dashboard
+    $seg2    = $segs >= 2 ? service('uri')->getSegment(2) : null;
     $active  = static fn (string $a, ?string $b = null): string => ($seg1 === $a && ($b === null || $seg2 === $b)) ? 'active' : '';
+    $guest   = ! session()->get('user_id');
+
+    // Which of Activities / Hotels / Fitness the current page belongs to (customers and guests).
+    $section = $navSection ?? null;
+    if ($section === null) {
+        if ($seg1 === 'fitness' || ($seg1 === 'facilities' && $seg2 === 'gym')) {
+            $section = 'fitness';
+        } elseif ($seg1 === 'hotels') {
+            $section = 'hotels';
+        } elseif ($seg1 === 'facilities') {
+            $section = 'activities';
+        } elseif ($seg1 === 'bookings' && $seg2 === 'new') {
+            $fid     = (int) service('request')->getGet('facility_id');
+            $f       = $fid > 0 ? (new \App\Models\FacilityModel())->find($fid) : null;
+            $section = $f ? (\App\Models\FacilityModel::isRoom($f) ? 'hotels' : ($f['type'] === 'gym' ? 'fitness' : 'activities')) : 'activities';
+        }
+    }
+    $onSec = static fn (string $s): string => $section === $s ? 'active' : '';
     $unread  = unread_notifications();
     $name    = (string) session()->get('name');
     $initial = strtoupper(mb_substr($name, 0, 1)) ?: '?';
+
+    // Customers keep only Dashboard in the bar; their other pages live in the account menu.
+    $menu = [];
+    if (! $guest && ! is_manager()) {
+        $menu = [
+            ['Calendar',    'calendar',    'bi-calendar3',        $active('calendar')],
+            ['My bookings', 'my-bookings', 'bi-calendar2-check',  $active('my-bookings')],
+        ];
+    }
 ?>
 <header class="site-header">
     <nav class="navbar navbar-expand-lg">
@@ -34,10 +62,14 @@
             </button>
 
             <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav site-nav">
-                    <li class="nav-item"><a class="nav-link <?= $active('dashboard') ?>" href="<?= site_url('dashboard') ?>">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link <?= $active('calendar') ?>" href="<?= site_url('calendar') ?>">Calendar</a></li>
-                    <?php if (is_manager()): ?>
+                <ul class="navbar-nav site-nav<?= is_manager() ? '' : ' site-nav-pills' ?>">
+                    <?php if (! $guest && is_manager()): ?><li class="nav-item"><a class="nav-link <?= $active('dashboard') ?>" href="<?= site_url('dashboard') ?>">Dashboard</a></li><?php endif; ?>
+                    <?php if (! $guest && is_manager()): ?><li class="nav-item"><a class="nav-link <?= $active('calendar') ?>" href="<?= site_url('calendar') ?>">Calendar</a></li><?php endif; ?>
+                    <?php if ($guest || ! is_manager()): ?>
+                        <li class="nav-item"><a class="nav-link <?= $onSec('activities') ?>" href="<?= site_url('facilities') ?>">Activities</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $onSec('hotels') ?>" href="<?= site_url('hotels') ?>">Hotels</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $onSec('fitness') ?>" href="<?= site_url('fitness') ?>">Fitness</a></li>
+                    <?php elseif (is_manager()): ?>
                         <li class="nav-item"><a class="nav-link <?= $active('manage', 'bookings') ?>" href="<?= site_url('manage/bookings') ?>">Bookings</a></li>
                         <?php if (is_admin()): ?>
                             <li class="nav-item"><a class="nav-link <?= $active('admin', 'facilities') ?>" href="<?= site_url('admin/facilities') ?>">Facilities</a></li>
@@ -46,13 +78,13 @@
                         <?php else: ?>
                             <li class="nav-item"><a class="nav-link <?= $active('facilities') ?: ($seg1 === 'bookings' && $seg2 === 'new' ? 'active' : '') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
                         <?php endif; ?>
-                    <?php else: ?>
-                        <li class="nav-item"><a class="nav-link <?= $active('facilities') ?: ($seg1 === 'bookings' && $seg2 === 'new' ? 'active' : '') ?>" href="<?= site_url('facilities') ?>">Facilities</a></li>
-                        <li class="nav-item"><a class="nav-link <?= $active('my-bookings') ?>" href="<?= site_url('my-bookings') ?>">My bookings</a></li>
                     <?php endif; ?>
                 </ul>
 
                 <div class="header-tools mt-2 mt-lg-0">
+<?php if ($guest): ?>
+                    <a class="login-pill" href="<?= site_url('login') ?>"><i class="bi bi-person-circle" aria-hidden="true"></i> Log in</a>
+<?php else: ?>
 
                     <a class="icon-btn" href="<?= site_url('notifications') ?>" data-notif-open aria-label="Notifications<?= $unread ? ', ' . $unread . ' unread' : '' ?>">
                         <i class="bi bi-bell"></i>
@@ -62,7 +94,7 @@
                     <span class="tools-divider d-none d-lg-block" aria-hidden="true"></span>
 
                     <div class="dropdown">
-                        <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+                        <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Account menu">
                             <span class="avatar"><?= esc($initial) ?></span>
                             <span class="user-meta">
                                 <span class="user-name"><?= esc($name) ?></span>
@@ -70,12 +102,32 @@
                             </span>
                             <i class="bi bi-chevron-down user-chev" aria-hidden="true"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text"><strong><?= esc($name) ?></strong><br><small class="text-muted"><?= esc(session()->get('email')) ?></small></span></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="<?= site_url('logout') ?>"><i class="bi bi-box-arrow-right me-2"></i>Log out</a></li>
-                        </ul>
+                        <div class="dropdown-menu dropdown-menu-end um-menu">
+                            <div class="um-head">
+                                <span class="um-avatar" aria-hidden="true"><?= esc($initial) ?></span>
+                                <span class="um-who">
+                                    <strong><?= esc($name) ?></strong>
+                                    <small><?= esc(session()->get('email')) ?></small>
+                                    <em><?= esc(session()->get('role')) ?></em>
+                                </span>
+                            </div>
+                            <nav class="um-list" aria-label="Account">
+                                <?php foreach ($menu as [$label, $path, $icon, $on]): ?>
+                                    <a class="um-item <?= $on ?>" href="<?= site_url($path) ?>"<?= $on ? ' aria-current="page"' : '' ?>>
+                                        <span class="um-ico"><i class="bi <?= $icon ?>" aria-hidden="true"></i></span>
+                                        <span class="um-label"><?= esc($label) ?></span>
+                                        <i class="bi bi-chevron-right um-go" aria-hidden="true"></i>
+                                    </a>
+                                <?php endforeach; ?>
+                                <?php if ($menu): ?><hr class="um-rule"><?php endif; ?>
+                                <a class="um-item um-out" href="<?= site_url('logout') ?>">
+                                    <span class="um-ico"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></span>
+                                    <span class="um-label">Log out</span>
+                                </a>
+                            </nav>
+                        </div>
                     </div>
+<?php endif; ?>
                 </div>
             </div>
         </div>
@@ -87,6 +139,7 @@
     <?= $this->renderSection('content') ?>
 </main>
 
+<?php if (! $guest): ?>
 <!-- Notifications pop-up -->
 <div class="modal fade" id="notifModal" tabindex="-1" aria-labelledby="notifModalTitle" aria-hidden="true" data-feed="<?= site_url('notifications/feed') ?>">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable notif-dialog">
@@ -105,6 +158,8 @@
         </div>
     </div>
 </div>
+
+<?php endif; ?>
 
 <?= $this->include('layouts/_confirm') ?>
 

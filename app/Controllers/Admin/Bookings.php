@@ -25,6 +25,21 @@ class Bookings extends BaseController
         ]);
     }
 
+    /** The days an action covers: the whole stay (only days in $statuses, not yet ended), or just this one day (single=1). */
+    private function days(BookingModel $bookings, array $booking, array $statuses, bool $futureOnly): array
+    {
+        if ($this->request->getPost('single') === '1') {
+            return in_array($booking['status'], $statuses, true) ? [$booking] : [];
+        }
+
+        return $bookings->groupRows($booking, $statuses, $futureOnly);
+    }
+
+    private function dayText(array $days): string
+    {
+        return count($days) > 1 ? count($days) . ' days from ' . fmt_dt($days[0]['start_at']) : fmt_dt($days[0]['start_at']);
+    }
+
     public function approve(int $id)
     {
         $bookings = new BookingModel();
@@ -33,31 +48,41 @@ class Bookings extends BaseController
         if (! $booking || $booking['status'] !== 'pending') {
             return redirect()->back()->with('error', 'Only pending bookings can be approved.');
         }
-        if (FacilityModel::isPerHead((string) $booking['facility_type'])) {
-            $room = $bookings->hasRoom(['id' => $booking['facility_id'], 'capacity' => $booking['facility_capacity']], $booking['start_at'], $booking['end_at'], max(1, (int) $booking['guests']), $id);
-            if (! $room) {
-                return redirect()->back()->with('error', 'Cannot approve: the gym would go over its ' . (int) $booking['facility_capacity'] . '-person limit during this time.');
-            }
-        } elseif ($bookings->hasConflict((int) $booking['facility_id'], $booking['start_at'], $booking['end_at'], $id)) {
-            return redirect()->back()->with('error', 'Cannot approve: it overlaps with an already approved booking.');
+        $days = $this->days($bookings, $booking, ['pending'], true);
+        if (! $days) {
+            return redirect()->back()->with('error', 'Only pending bookings can be approved.');
         }
 
-        if (str_contains((string) $booking['addons'], '"key":"' . \App\Libraries\Addons::REFEREE_KEY . '"')
-            && $bookings->refereePeak($booking['start_at'], $booking['end_at'], $id) >= \App\Libraries\Addons::REFEREE_POOL) {
-            return redirect()->back()->with('error', 'Cannot approve: all ' . \App\Libraries\Addons::REFEREE_POOL . ' referees are booked during this time.');
+        // Every day is checked first; nothing is approved unless all of them are free.
+        $perHead = FacilityModel::isPerHead((string) $booking['facility_type']);
+        $hasRef  = str_contains((string) $booking['addons'], '"key":"' . \App\Libraries\Addons::REFEREE_KEY . '"');
+        foreach ($days as $d) {
+            $label = count($days) > 1 ? ' on ' . date('D, M j', strtotime($d['start_at'])) : ' during this time';
+            if ($perHead) {
+                if (! $bookings->hasRoom(['id' => $booking['facility_id'], 'capacity' => $booking['facility_capacity']], $d['start_at'], $d['end_at'], max(1, (int) $d['guests']), (int) $d['id'])) {
+                    return redirect()->back()->with('error', 'Cannot approve: the gym would go over its ' . (int) $booking['facility_capacity'] . '-person limit' . $label . '.');
+                }
+            } elseif ($bookings->hasConflict((int) $booking['facility_id'], $d['start_at'], $d['end_at'], (int) $d['id'])) {
+                return redirect()->back()->with('error', 'Cannot approve: it overlaps with an already approved booking' . $label . '.');
+            }
+            if ($hasRef && $bookings->refereePeak($d['start_at'], $d['end_at'], (int) $d['id']) >= \App\Libraries\Addons::REFEREE_POOL) {
+                return redirect()->back()->with('error', 'Cannot approve: all ' . \App\Libraries\Addons::REFEREE_POOL . ' referees are booked' . $label . '.');
+            }
         }
 
         $remarks = trim((string) $this->request->getPost('admin_remarks'));
-        $bookings->update($id, ['status' => 'approved', 'admin_remarks' => $remarks, 'approved_by' => (int) session()->get('user_id')]);
+        foreach ($days as $d) {
+            $bookings->update((int) $d['id'], ['status' => 'approved', 'admin_remarks' => $remarks, 'approved_by' => (int) session()->get('user_id')]);
+        }
 
         (new NotificationService())->notifyUser(
             (int) $booking['user_id'],
             'Booking approved',
-            'Your booking for ' . $booking['facility_name'] . ' (' . fmt_dt($booking['start_at']) . ' - ' . fmt_dt($booking['end_at']) . ') was approved.' . ($remarks ? ' Note: ' . $remarks : ''),
+            'Your booking for ' . $booking['facility_name'] . ' (' . $this->dayText($days) . ') was approved.' . ($remarks ? ' Note: ' . $remarks : ''),
             $id
         );
 
-        return redirect()->back()->with('success', 'Booking approved.');
+        return redirect()->back()->with('success', count($days) > 1 ? 'Booking approved (' . count($days) . ' days).' : 'Booking approved.');
     }
 
     /** Desk confirms the customer has arrived. Only possible inside the customer's arrival window. */
@@ -97,17 +122,20 @@ class Bookings extends BaseController
             return redirect()->back()->with('error', 'Only pending bookings can be rejected.');
         }
 
+        $days    = $this->days($bookings, $booking, ['pending'], false);
         $remarks = trim((string) $this->request->getPost('admin_remarks'));
-        $bookings->update($id, ['status' => 'rejected', 'admin_remarks' => $remarks]);
+        foreach ($days as $d) {
+            $bookings->update((int) $d['id'], ['status' => 'rejected', 'admin_remarks' => $remarks]);
+        }
 
         (new NotificationService())->notifyUser(
             (int) $booking['user_id'],
             'Booking rejected',
-            'Your booking for ' . $booking['facility_name'] . ' (' . fmt_dt($booking['start_at']) . ') was rejected.' . ($remarks ? ' Reason: ' . $remarks : ''),
+            'Your booking for ' . $booking['facility_name'] . ' (' . $this->dayText($days) . ') was rejected.' . ($remarks ? ' Reason: ' . $remarks : ''),
             $id
         );
 
-        return redirect()->back()->with('success', 'Booking rejected.');
+        return redirect()->back()->with('success', count($days) > 1 ? 'Booking rejected (' . count($days) . ' days).' : 'Booking rejected.');
     }
 
     public function cancel(int $id)
@@ -119,17 +147,24 @@ class Bookings extends BaseController
             return redirect()->back()->with('error', 'Only approved bookings can be cancelled by admin.');
         }
 
+        // Days that already happened stay as they are; every day still to come is cancelled.
+        $days    = $this->days($bookings, $booking, ['approved'], true);
         $remarks = trim((string) $this->request->getPost('admin_remarks'));
-        $bookings->update($id, ['status' => 'cancelled', 'admin_remarks' => $remarks]);
+        foreach ($days as $d) {
+            $bookings->update((int) $d['id'], ['status' => 'cancelled', 'admin_remarks' => $remarks]);
+        }
+        if (! $days) {
+            return redirect()->back()->with('error', 'Nothing left to cancel: every day has already passed.');
+        }
 
         (new NotificationService())->notifyUser(
             (int) $booking['user_id'],
             'Booking cancelled',
-            'Your approved booking for ' . $booking['facility_name'] . ' (' . fmt_dt($booking['start_at']) . ') was cancelled by the admin.' . ($remarks ? ' Reason: ' . $remarks : ''),
+            'Your approved booking for ' . $booking['facility_name'] . ' (' . $this->dayText($days) . ') was cancelled by the admin.' . ($remarks ? ' Reason: ' . $remarks : ''),
             $id
         );
 
-        return redirect()->back()->with('success', 'Booking cancelled.');
+        return redirect()->back()->with('success', count($days) > 1 ? 'Booking cancelled (' . count($days) . ' days).' : 'Booking cancelled.');
     }
 
     /** Admin only: moves a booking to the Archive. Its time slot is freed. */
@@ -140,8 +175,11 @@ class Bookings extends BaseController
             return redirect()->back()->with('error', 'Booking not found.');
         }
 
-        $bookings->delete($id);
+        // Deleting a stay moves every day of it to the Archive (single=1 moves just this day).
+        $booking = $bookings->find($id);
+        $ids     = $this->request->getPost('single') === '1' ? [$id] : array_column($bookings->groupRows($booking), 'id');
+        $bookings->delete($ids);
 
-        return redirect()->back()->with('success', 'Booking moved to the Archive.');
+        return redirect()->back()->with('success', count($ids) > 1 ? 'Booking moved to the Archive (' . count($ids) . ' days).' : 'Booking moved to the Archive.');
     }
 }

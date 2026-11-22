@@ -42,7 +42,10 @@ class Auth extends BaseController
             'role'    => $user['role'],
         ]);
 
-        return redirect()->to('/dashboard')->with('success', 'Welcome back, ' . $user['name'] . '!');
+        $back = (string) session()->get('after_login');
+        session()->remove('after_login');
+
+        return redirect()->to($back !== '' ? $back : '/dashboard')->with('success', 'Welcome back, ' . $user['name'] . '!');
     }
 
     public function register()
@@ -90,6 +93,6 @@ class Auth extends BaseController
     public function logout()
     {
         session()->destroy();
-        return redirect()->to('/login')->with('success', 'You have been logged out.');
+        return redirect()->to('/')->with('success', 'You have been logged out.');
     }
 }

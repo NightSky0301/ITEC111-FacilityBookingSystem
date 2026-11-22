@@ -13,9 +13,9 @@ class BookingModel extends Model
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
     protected $allowedFields = [
-        'facility_id', 'user_id', 'start_at', 'end_at', 'guests',
+        'group_id', 'facility_id', 'user_id', 'start_at', 'end_at', 'guests',
         'purpose', 'status', 'admin_remarks', 'addons', 'addons_total',
-        'approved_by', 'arrived_at', 'arrived_by',
+        'approved_by', 'arrived_at', 'arrived_by', 'total_price',
     ];
     protected $useTimestamps = true;
     protected $useSoftDeletes = true;   // deleted rows go to the Archive and can be restored
@@ -81,6 +81,26 @@ class BookingModel extends Model
     public function hasRoom(array $facility, string $startAt, string $endAt, int $people, ?int $ignoreId = null): bool
     {
         return $this->peakPeople((int) $facility['id'], $startAt, $endAt, $ignoreId) + $people <= FacilityModel::maxPeople($facility);
+    }
+
+    // ------------------------------------------------------------------ Stays (one booking per day)
+
+    /**
+     * Every day of the stay this booking belongs to (the booking itself when it is a single booking),
+     * soonest first. Pass $statuses to keep only those statuses, $futureOnly to drop days that already ended.
+     */
+    public function groupRows(array $booking, ?array $statuses = null, bool $futureOnly = false): array
+    {
+        if (empty($booking['group_id'])) {
+            $rows = [$booking];
+        } else {
+            $rows = $this->where('group_id', (int) $booking['group_id'])->orderBy('start_at')->findAll();
+        }
+
+        return array_values(array_filter($rows, static function (array $r) use ($statuses, $futureOnly): bool {
+            return ($statuses === null || in_array($r['status'], $statuses, true))
+                && (! $futureOnly || strtotime($r['end_at']) > time());
+        }));
     }
 
     // ------------------------------------------------------------------ Referee pool
@@ -201,6 +221,37 @@ class BookingModel extends Model
             ->where('start_at >', $now)->orderBy('start_at')->first();
 
         return ['in_use' => false, 'until' => null, 'next' => $next['start_at'] ?? null];
+    }
+
+    /**
+     * Facilities with the most bookings made this month (a multi-day stay counts once).
+     * Pending and approved count; rejected and cancelled do not. Returns [facility_id => count], highest first.
+     */
+    public function topThisMonth(int $limit = 8): array
+    {
+        $rows = $this->select('facility_id, COUNT(*) AS n')
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('created_at >=', date('Y-m-01 00:00:00'))
+            ->groupStart()->where('group_id', null)->orWhere('group_id = id', null, false)->groupEnd()
+            ->groupBy('facility_id')->orderBy('n', 'DESC')->orderBy('facility_id', 'ASC')
+            ->findAll();
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int) $r['facility_id']] = (int) $r['n'];
+        }
+
+        return $out;
+    }
+
+    /** Is this facility free right now? A gym needs room for one more person; everything else needs no approved session running. */
+    public function isFreeNow(array $facility): bool
+    {
+        if (FacilityModel::isPerHead($facility)) {
+            return $this->hasRoom($facility, date('Y-m-d H:i:s'), date('Y-m-d H:i:s', time() + 60), 1);
+        }
+
+        return ! $this->liveStatus((int) $facility['id'])['in_use'];
     }
 
     /** Bookings joined with facility + customer info, newest first. */

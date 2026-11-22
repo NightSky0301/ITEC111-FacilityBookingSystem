@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const p = ev.extendedProps, s = ev.start, e = ev.end;
         const day = s.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
         const t = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-        const hrs = p.hours + (p.hours === 1 ? ' hr' : ' hrs');
+        const hrs = p.nights ? p.nights + (p.nights === 1 ? ' night' : ' nights') : p.hours + (p.hours === 1 ? ' hr' : ' hrs');
         const row = (icon, label, value) => '<div class="ev-row"><span class="ev-row-ic"><i class="bi ' + icon + '"></i></span><div><small>' + label + '</small><div>' + value + '</div></div></div>';
         document.getElementById('evKicker').textContent = p.customer ? 'Requested by ' + p.customer : (KICKER[p.kind] || '');
         document.getElementById('evTitle').textContent = p.facility;
@@ -81,23 +81,30 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.show();
     }
 
-    // Clicking a day: show only the signed-in customer's own bookings on that day.
+    // Clicking a day: the person's own bookings first, then the time slots other people already hold
+    // (court and time only, never who booked them) so everyone can see roughly when it is free.
     const ymdOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     function showDay(dateStr, timeStr) {
         const day = dateStr.substring(0, 10);
-        const list = calendar.getEvents().filter(e => e.extendedProps.kind !== 'booked' && ymdOf(e.start) === day).sort((a, b) => a.start - b.start);
-        if (list.length === 1) { showEvent(list[0]); return; }
+        const onDay = calendar.getEvents().filter(e => ymdOf(e.start) === day).sort((a, b) => a.start - b.start);
+        const list = onDay.filter(e => e.extendedProps.kind !== 'booked');
+        const others = onDay.filter(e => e.extendedProps.kind === 'booked');
+        if (list.length === 1 && !others.length) { showEvent(list[0]); return; }
         const when = new Date(day + 'T00:00');
         const t = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         document.getElementById('evTitle').textContent = when.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
-        document.getElementById('evKicker').textContent = list.length ? 'Your bookings (' + list.length + ')' : 'Your bookings';
-        let html;
+        document.getElementById('evKicker').textContent = list.length ? 'Your bookings (' + list.length + ')' : (others.length ? 'Day schedule' : 'Your bookings');
+        let html = '';
         if (list.length) {
-            html = list.map(e => '<button type="button" class="ev-item" data-id="' + esc(e.id) + '"><span><b>' + esc(e.extendedProps.facility) + '</b><small>' + esc(t(e.start) + ' – ' + t(e.end)) + '</small></span>' +
+            html += list.map(e => '<button type="button" class="ev-item" data-id="' + esc(e.id) + '"><span><b>' + esc(e.extendedProps.facility) + '</b><small>' + esc(t(e.start) + ' – ' + t(e.end)) + '</small></span>' +
                 '<span class="ev-item-end"><span class="pill pill-' + esc(e.extendedProps.status) + '">' + esc(e.extendedProps.status.charAt(0).toUpperCase() + e.extendedProps.status.slice(1)) + '</span>' +
                 (e.extendedProps.total != null ? '<strong>' + peso(e.extendedProps.total) + '</strong>' : '') + '</span></button>').join('');
         } else {
-            html = '<div class="ev-empty"><span class="ev-row-ic"><i class="bi bi-calendar-x"></i></span><div><b>No bookings on this day</b>You have nothing booked or waiting for approval.</div></div>';
+            html += '<div class="ev-empty"><span class="ev-row-ic"><i class="bi bi-calendar-x"></i></span><div><b>No bookings of yours on this day</b>' + (others.length ? 'Here is what is already taken, so you can pick a free time.' : 'You have nothing booked or waiting for approval.') + '</div></div>';
+        }
+        if (others.length) {
+            html += '<div class="ev-taken-h">Already booked</div><ul class="ev-taken">' + others.map(e =>
+                '<li><span class="ev-taken-court"><i class="bi bi-geo-alt"></i>' + esc(e.extendedProps.facility) + '</span><span class="ev-taken-time">' + esc(t(e.start) + ' – ' + t(e.end)) + '</span></li>').join('') + '</ul>';
         }
         document.getElementById('evBody').innerHTML = html;
         const book = document.getElementById('evBook'), today = ymdOf(new Date());

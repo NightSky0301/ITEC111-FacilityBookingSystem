@@ -11,22 +11,110 @@ use DateTime;
  */
 class Facilities extends BaseController
 {
-    /** Step 1: choose an activity. */
-    public function index()
+    /** Live count of facilities that are free right now, per activity: [type => ['free' => n, 'total' => n]]. */
+    private function availability(array $byType): array
     {
-        $cards = [];
-        foreach ((new FacilityModel())->activeByType() as $type => $courts) {
-            $cards[] = [
-                'type'      => $type,
-                'name'      => FacilityModel::activityName($type),
-                'tagline'   => FacilityModel::ACTIVITIES[$type][1] ?? '',
-                'count'     => count($courts),
-                'min_price' => min(array_column($courts, 'price_per_hour')),
-                'first'     => $courts[0],
-            ];
+        $bookings = new BookingModel();
+        $now      = date('Y-m-d H:i:s');
+        $soon     = date('Y-m-d H:i:s', time() + 60);
+        $out      = [];
+        foreach ($byType as $type => $courts) {
+            $free = 0;
+            foreach ($courts as $c) {
+                $busy = FacilityModel::isPerHead($c)
+                    ? ! $bookings->hasRoom($c, $now, $soon, 1)
+                    : $bookings->liveStatus((int) $c['id'])['in_use'];
+                $free += $busy ? 0 : 1;
+            }
+            $out[$type] = ['free' => $free, 'total' => count($courts)];
         }
 
-        return view('facilities/index', ['cards' => $cards]);
+        return $out;
+    }
+
+    /** JSON for the live indicator on the activity cards (refreshed every 30 seconds). */
+    public function availabilityJson()
+    {
+        $byType   = (new FacilityModel())->activeByType();
+        $bookings = new BookingModel();
+        $data     = ['types' => [], 'courts' => []];
+        foreach ($this->availability($byType) as $type => $a) {
+            $data['types'][$type] = $a + ['label' => $this->availLabel($type, $a['free'], $a['total'])];
+        }
+        foreach ($byType as $courts) {
+            foreach ($courts as $c) {
+                $data['courts'][(int) $c['id']] = $bookings->isFreeNow($c);
+            }
+        }
+
+        return $this->response->setJSON($data);
+    }
+
+    private function availLabel(string $type, int $free, int $total): string
+    {
+        $unit = FacilityModel::unitName($type, $total);
+        if ($total === 1) {
+            return $free ? 'Available now' : 'In use now';
+        }
+
+        return $free ? $free . ' of ' . $total . ' ' . $unit . ' free' : 'All ' . $unit . ' in use';
+    }
+
+    /** Activities: every court in one place, with filters. Clicking a card opens its schedule. */
+    public function index()
+    {
+        return $this->browse('activities');
+    }
+
+    /** Fitness: the gym. */
+    public function fitness()
+    {
+        return $this->browse('fitness');
+    }
+
+    private function browse(string $section)
+    {
+        helper('booking');
+        $bookings = new BookingModel();
+        $byType   = (new FacilityModel())->activeByType();
+        // The gym lives under Fitness; every other court is an activity.
+        $byType = $section === 'fitness'
+            ? array_intersect_key($byType, ['gym' => 1])
+            : array_diff_key($byType, ['gym' => 1]);
+        $items    = [];
+        $chips    = [];
+        foreach ($byType as $type => $courts) {
+            $chips[$type] = ['name' => FacilityModel::activityName($type), 'count' => count($courts)];
+            foreach ($courts as $c) {
+                $items[] = [
+                    'id'       => (int) $c['id'],
+                    'name'     => $c['name'],
+                    'type'     => $type,
+                    'activity' => FacilityModel::activityName($type),
+                    'price'    => (float) $c['price_per_hour'],
+                    'per_head' => FacilityModel::isPerHead($c),
+                    'people'   => FacilityModel::peopleLabel($c),
+                    'outdoor'  => facility_is_outdoor($c),
+                    'free'     => $bookings->isFreeNow($c),
+                    'img'      => facility_image($c),
+                ];
+            }
+        }
+
+        $type = (string) $this->request->getGet('type');
+        $date = (string) $this->request->getGet('date');
+        $d    = DateTime::createFromFormat('!Y-m-d', $date);
+
+        return view('facilities/index', [
+            'section' => $section,
+            'heading' => $section === 'fitness' ? 'Fitness' : 'Activities',
+            'lead'    => $section === 'fitness' ? 'Book your workout time at the gym.' : 'Courts and tables for every sport. Pick one to see its schedule and book a time.',
+            'action'  => site_url($section === 'fitness' ? 'fitness' : 'facilities'),
+            'items'   => $items,
+            'chips'   => $chips,
+            'selType' => isset($chips[$type]) ? $type : '',
+            'date'    => ($d && $d->format('Y-m-d') === $date && $date >= date('Y-m-d')) ? $date : '',
+        ]);
     }
 
     /** Step 2: choose a court of that activity. */
@@ -56,7 +144,10 @@ class Facilities extends BaseController
      */
     public function court(int $id)
     {
-        $facility = (new FacilityModel())->find($id);
+        $facility = $id > 0 ? (new FacilityModel())->find($id) : null;
+        if ($facility && FacilityModel::isRoom($facility)) {
+            return redirect()->to('/hotels/room/' . (int) $facility['id']);   // hotel rooms have their own page
+        }
         if (! $facility || ($facility['status'] !== 'active' && ! is_manager())) {
             return redirect()->to('/facilities')->with('error', 'That court is not available.');
         }
@@ -144,6 +235,7 @@ class Facilities extends BaseController
         $prevMonth = (clone $month)->modify('-1 month')->format('Y-m');
 
         return view('facilities/court', [
+            'navSection' => $facility['type'] === 'gym' ? 'fitness' : 'activities',
             'facility'   => $facility,
             'activity'   => FacilityModel::activityName($facility['type']),
             'date'       => $date,

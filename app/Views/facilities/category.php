@@ -5,8 +5,8 @@
 <div class="row g-4 justify-content-center">
     <?php foreach ($courts as $c): $live = $c['live']; ?>
         <div class="col-md-6">
-            <article class="plaque">
-                <a href="<?= site_url('facilities/court/' . (int) $c['id']) ?>" tabindex="-1" aria-hidden="true"><img class="plaque-img" src="<?= facility_image($c) ?>" alt="" loading="lazy"></a>
+            <a class="plaque plaque-link" href="<?= site_url('facilities/court/' . (int) $c['id']) ?>">
+                <img class="plaque-img" src="<?= facility_image($c) ?>" alt="" loading="lazy">
                 <div class="plaque-body">
                     <div class="d-flex justify-content-between align-items-start gap-2">
                         <h3 class="mb-0"><?= esc($c['name']) ?></h3>
@@ -24,9 +24,8 @@
                         <span><i class="bi bi-people"></i> <?= esc(\App\Models\FacilityModel::peopleLabel($c)) ?></span>
                         <span class="plaque-price">₱<?= number_format((float) $c['price_per_hour'], 0) ?> <small><?= \App\Models\FacilityModel::isPerHead($c) ? '/ person / hour' : '/ hour' ?></small></span>
                     </div>
-                    <a class="btn btn-primary btn-sm w-100" href="<?= site_url('facilities/court/' . (int) $c['id']) ?>">See availability</a>
                 </div>
-            </article>
+            </a>
         </div>
     <?php endforeach; ?>
 </div>

@@ -179,3 +179,226 @@ document.addEventListener('click', function (e) {
 
     document.addEventListener('click', closeAll);
 })();
+
+/* ---------- Card pager: [data-pager="N"] shows N cards per page and slides between pages ---------- */
+function initPagers() {
+    document.querySelectorAll('[data-pager]').forEach(function (grid) {
+        const per = Math.max(1, parseInt(grid.dataset.pager, 10) || 4);
+        const cards = Array.from(grid.children);
+        if (cards.length <= per) return;                       // one page: nothing to flip
+
+        const pages = [];
+        for (let i = 0; i < cards.length; i += per) {
+            const page = document.createElement('div');
+            page.className = 'sess-grid pager-page' + (grid.dataset.cols ? ' cols-' + grid.dataset.cols : '');
+            cards.slice(i, i + per).forEach(c => page.appendChild(c));
+            pages.push(page);
+        }
+        const start = parseInt(grid.dataset.pagerStart, 10) || 0;
+        const root = document.createElement('div'); root.className = 'pager';
+        const view = document.createElement('div'); view.className = 'pager-viewport';
+        const track = document.createElement('div'); track.className = 'pager-track';
+        pages.forEach(p => track.appendChild(p)); view.appendChild(track);
+
+        const bar = document.createElement('div'); bar.className = 'pager-bar';
+        const prev = document.createElement('button'); prev.type = 'button'; prev.className = 'pager-btn'; prev.setAttribute('aria-label', 'Previous page'); prev.innerHTML = '<i class="bi bi-chevron-left"></i>';
+        const next = document.createElement('button'); next.type = 'button'; next.className = 'pager-btn'; next.setAttribute('aria-label', 'Next page'); next.innerHTML = '<i class="bi bi-chevron-right"></i>';
+        const label = document.createElement('span'); label.className = 'pager-label'; label.setAttribute('aria-live', 'polite');
+        const dots = document.createElement('span'); dots.className = 'pager-dots';
+        pages.forEach((_, i) => {
+            const d = document.createElement('button'); d.type = 'button'; d.className = 'pager-dot'; d.setAttribute('aria-label', 'Page ' + (i + 1));
+            d.addEventListener('click', () => go(i)); dots.appendChild(d);
+        });
+        bar.append(prev, dots, label, next);
+        root.append(view, bar);
+        grid.replaceWith(root);
+
+        let cur = 0;
+        function go(n) {
+            cur = Math.max(0, Math.min(pages.length - 1, n));
+            root.dataset.cur = cur;
+            track.style.transform = 'translateX(' + (-100 * cur) + '%)';
+            pages.forEach((p, i) => { p.toggleAttribute('inert', i !== cur); p.setAttribute('aria-hidden', i !== cur ? 'true' : 'false'); });
+            Array.from(dots.children).forEach((d, i) => d.classList.toggle('is-on', i === cur));
+            label.textContent = 'Page ' + (cur + 1) + ' of ' + pages.length;
+            prev.disabled = cur === 0; next.disabled = cur === pages.length - 1;
+            view.style.height = pages[cur].offsetHeight + 'px';
+        }
+        prev.addEventListener('click', () => go(cur - 1));
+        next.addEventListener('click', () => go(cur + 1));
+        window.addEventListener('resize', () => go(cur));
+        // Swipe on touch screens.
+        let x0 = null;
+        view.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+        view.addEventListener('touchend', e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) go(cur + (dx < 0 ? 1 : -1)); x0 = null; });
+        go(start);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => go(cur));
+        window.addEventListener('load', () => go(cur));
+    });
+}
+initPagers();
+document.addEventListener('live:swap', initPagers);
+
+/* ---------- Live updates: new bookings, approvals and notifications show up without a refresh ---------- */
+(function () {
+    const url = document.body.dataset.liveUrl;
+    if (!url) return;                                  // guests have nothing to poll
+    let stamp = document.body.dataset.liveStamp || '';
+    let seenNote = null;                               // newest notification already shown (set on first poll)
+    let timer = null;
+
+    // Do not rebuild the page under someone's fingers.
+    function busy() {
+        if (document.querySelector('.modal.show, .dd.open')) return true;
+        const a = document.activeElement;
+        return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.closest('[data-live]'));
+    }
+
+    function toast(title, text) {
+        let box = document.getElementById('liveToasts');
+        if (!box) { box = document.createElement('div'); box.id = 'liveToasts'; box.className = 'live-toasts'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
+        const t = document.createElement('div'); t.className = 'live-toast';
+        t.innerHTML = '<i class="bi bi-bell-fill"></i><div><strong></strong><span></span></div>';
+        t.querySelector('strong').textContent = title; t.querySelector('span').textContent = text || '';
+        t.addEventListener('click', () => t.remove());
+        box.appendChild(t);
+        setTimeout(() => { t.classList.add('is-out'); setTimeout(() => t.remove(), 300); }, 7000);
+    }
+
+    function badge(n) {
+        const bell = document.querySelector('[data-notif-open]'); if (!bell) return;
+        let dot = bell.querySelector('.dot-count');
+        if (n > 0) { if (!dot) { dot = document.createElement('span'); dot.className = 'dot-count'; bell.appendChild(dot); } dot.textContent = n > 99 ? '99+' : n; }
+        else if (dot) dot.remove();
+    }
+
+    async function refreshPage() {
+        if (document.querySelector('[data-live-reload]')) { location.reload(); return true; }
+        const regions = document.querySelectorAll('[data-live]');
+        if (!regions.length) return true;
+        const res = await fetch(location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
+        if (!res.ok || /\/login/.test(res.url)) return false;
+        const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        regions.forEach(function (r) {
+            const fresh = r.id && doc.getElementById(r.id);
+            if (!fresh) return;
+            const pager = r.querySelector('.pager');             // keep the page the person was on
+            const cur = pager ? pager.dataset.cur : null;
+            r.innerHTML = fresh.innerHTML;
+            const grid = r.querySelector('[data-pager]');
+            if (grid && cur !== null) grid.dataset.pagerStart = cur;
+        });
+        document.dispatchEvent(new CustomEvent('live:swap'));
+        return true;
+    }
+
+    async function poll() {
+        clearTimeout(timer);
+        if (!document.hidden) {
+            try {
+                const res = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                if (res.ok && (res.headers.get('content-type') || '').indexOf('json') !== -1) {
+                    const d = await res.json();
+                    badge(d.unread);
+                    if (d.latest) {
+                        if (seenNote !== null && d.latest.id > seenNote) toast(d.latest.title, d.latest.message);
+                        seenNote = Math.max(seenNote || 0, d.latest.id);
+                    } else if (seenNote === null) { seenNote = 0; }
+                    if (d.stamp && d.stamp !== stamp && !busy()) {
+                        if (await refreshPage()) stamp = d.stamp;
+                    }
+                }
+            } catch (e) { /* offline for a moment: try again */ }
+        }
+        timer = setTimeout(poll, 4000);
+    }
+
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) poll(); });
+    poll();
+})();
+
+/* ---------- Date picker: <input type="date" data-datepicker min="YYYY-MM-DD"> becomes a green/brass calendar pop-up ---------- */
+(function () {
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    const pad = n => String(n).padStart(2, '0');
+    const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const parse = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+    const nice = d => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    let openDp = null;
+
+    document.querySelectorAll('input[data-datepicker]').forEach(function (input) {
+        const min = parse(input.min), max = parse(input.max);
+        let value = parse(input.value) || new Date();
+        let view = new Date(value.getFullYear(), value.getMonth(), 1);
+
+        const root = document.createElement('div'); root.className = 'dp';
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'dp-btn'; btn.setAttribute('aria-haspopup', 'dialog'); btn.setAttribute('aria-expanded', 'false');
+        if (input.id) { btn.id = input.id; input.removeAttribute('id'); }
+        btn.innerHTML = '<i class="bi bi-calendar-event" aria-hidden="true"></i><span class="dp-text"></span><i class="bi bi-chevron-down dp-chev" aria-hidden="true"></i>';
+        const pop = document.createElement('div'); pop.className = 'dp-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Choose a date'); pop.hidden = true;
+
+        input.type = 'hidden';
+        input.parentNode.insertBefore(root, input);
+        root.append(input, btn, pop);
+
+        function text() { btn.querySelector('.dp-text').textContent = nice(value); input.value = iso(value); }
+        function inRange(d) { return (!min || d >= min) && (!max || d <= max); }
+
+        function draw(focusIso) {
+            const y = view.getFullYear(), m = view.getMonth(), first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            let h = '<div class="dp-head"><button type="button" class="dp-nav" data-step="-1" aria-label="Previous month"><i class="bi bi-chevron-left"></i></button>'
+                + '<div class="dp-title" aria-live="polite">' + MONTHS[m] + ' ' + y + '</div>'
+                + '<button type="button" class="dp-nav" data-step="1" aria-label="Next month"><i class="bi bi-chevron-right"></i></button></div><div class="dp-grid">';
+            DOW.forEach(d => { h += '<span class="dp-dow">' + d + '</span>'; });
+            for (let k = 0; k < first; k++) h += '<span></span>';
+            for (let d = 1; d <= days; d++) {
+                const dt = new Date(y, m, d), ok = inRange(dt), cls = ['dp-day'];
+                if (+dt === +today) cls.push('is-today');
+                if (+dt === +value) cls.push('is-sel');
+                h += '<button type="button" class="' + cls.join(' ') + '" data-d="' + iso(dt) + '"' + (ok ? '' : ' disabled') + (+dt === +value ? ' aria-pressed="true"' : '') + '>' + d + '</button>';
+            }
+            h += '</div><div class="dp-foot"><button type="button" class="dp-today">Today</button></div>';
+            pop.innerHTML = h;
+            const prev = pop.querySelector('[data-step="-1"]');
+            if (min && new Date(y, m, 1) <= new Date(min.getFullYear(), min.getMonth(), 1)) prev.disabled = true;
+            const tb = pop.querySelector('.dp-today'); if (!inRange(today)) tb.disabled = true;
+            if (focusIso) { const f = pop.querySelector('[data-d="' + focusIso + '"]:not(:disabled)') || pop.querySelector('.dp-day:not(:disabled)'); if (f) f.focus(); }
+        }
+
+        function close(refocus) {
+            if (pop.hidden) return;
+            pop.hidden = true; root.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false');
+            if (openDp === close) openDp = null;
+            if (refocus) btn.focus();
+        }
+        function open() {
+            if (openDp) openDp(false);
+            view = new Date(value.getFullYear(), value.getMonth(), 1);
+            draw(); pop.hidden = false; root.classList.add('is-open'); btn.setAttribute('aria-expanded', 'true'); openDp = close;
+        }
+        function pick(d) { value = d; text(); input.dispatchEvent(new Event('change', { bubbles: true })); close(true); }
+
+        btn.addEventListener('click', () => (pop.hidden ? open() : close(false)));
+        pop.addEventListener('click', function (e) {
+            const nav = e.target.closest('.dp-nav'), day = e.target.closest('.dp-day'), td = e.target.closest('.dp-today');
+            if (nav && !nav.disabled) { view = new Date(view.getFullYear(), view.getMonth() + +nav.dataset.step, 1); draw(); const n = pop.querySelector('[data-step="' + nav.dataset.step + '"]'); if (n && !n.disabled) n.focus(); }
+            else if (day && !day.disabled) pick(parse(day.dataset.d));
+            else if (td && !td.disabled) pick(new Date());
+        });
+        pop.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { e.stopPropagation(); close(true); return; }
+            const day = e.target.closest && e.target.closest('.dp-day'); if (!day) return;
+            const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key]; if (!step) return;
+            e.preventDefault();
+            const d = parse(day.dataset.d); d.setDate(d.getDate() + step);
+            if (!inRange(d)) return;
+            if (d.getMonth() !== view.getMonth() || d.getFullYear() !== view.getFullYear()) { view = new Date(d.getFullYear(), d.getMonth(), 1); draw(iso(d)); }
+            else { const t = pop.querySelector('[data-d="' + iso(d) + '"]'); if (t) t.focus(); }
+        });
+        text();
+    });
+
+    document.addEventListener('click', function (e) { if (openDp && !e.target.closest('.dp')) openDp(false); });
+})();

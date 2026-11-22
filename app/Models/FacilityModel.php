@@ -9,7 +9,7 @@ class FacilityModel extends Model
     protected $table         = 'facilities';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['name', 'type', 'description', 'image', 'capacity', 'price_per_hour', 'status'];
+    protected $allowedFields = ['name', 'type', 'description', 'image', 'capacity', 'price_per_hour', 'status', 'hotel_id'];
     protected $useTimestamps = true;
     protected $useSoftDeletes = true;   // deleted rows go to the Archive and can be restored
     protected $deletedField   = 'deleted_at';
@@ -27,38 +27,31 @@ class FacilityModel extends Model
     public const MAX_HOURS = self::CLOSE_HOUR - self::OPEN_HOUR;
 
     /**
-     * Longer stays: unit => [fewest, most, days in one unit]. A month is 30 days.
-     * A stay starts at the chosen arrival time on the first day and ends at closing time on the last day.
+     * Longer stays: the same arrival time and hours repeat every day. Months, weeks and days add up to the
+     * number of days (a month is 30 days). Each day is its own booking, linked by bookings.group_id.
      */
-    public const STAY_UNITS = [
-        'day'   => [1, 6, 1],
-        'week'  => [1, 3, 7],
-        'month' => [1, 6, 30],
-    ];
+    public const STAY_MAX = ['months' => 3, 'weeks' => 3, 'days' => 6];
 
-    /**
-     * Works out a days / weeks / months stay that begins at $startTs.
-     *
-     * @return array{days:int,endTs:int,hours:float}|null  null when the unit or the count is not allowed
-     */
-    public static function stay(string $unit, int $count, int $startTs): ?array
+    /** Number of days for a months / weeks / days choice, or 0 when it is outside the allowed limits. */
+    public static function stayDays(int $months, int $weeks, int $days): int
     {
-        if (! isset(self::STAY_UNITS[$unit])) {
-            return null;
-        }
-        [$min, $max, $per] = self::STAY_UNITS[$unit];
-        if ($count < $min || $count > $max) {
-            return null;
+        if ($months < 0 || $weeks < 0 || $days < 0
+            || $months > self::STAY_MAX['months'] || $weeks > self::STAY_MAX['weeks'] || $days > self::STAY_MAX['days']) {
+            return 0;
         }
 
-        $days      = $count * $per;
-        $first     = date('Y-m-d', $startTs);
-        $lastDay   = date('Y-m-d', strtotime($first . ' +' . ($days - 1) . ' days'));
-        $endTs     = strtotime($lastDay . sprintf(' %02d:00', self::CLOSE_HOUR));
-        $startMin  = (int) date('G', $startTs) * 60 + (int) date('i', $startTs);
-        $hours     = (self::CLOSE_HOUR * 60 - $startMin) / 60 + ($days - 1) * (self::CLOSE_HOUR - self::OPEN_HOUR);
+        return $months * 30 + $weeks * 7 + $days;
+    }
 
-        return ['days' => $days, 'endTs' => $endTs, 'hours' => round($hours, 2)];
+    /** The dates (Y-m-d) of a stay of $n days that begins on $startDate. */
+    public static function stayDates(string $startDate, int $n): array
+    {
+        $out = [];
+        for ($i = 0; $i < $n; $i++) {
+            $out[] = date('Y-m-d', strtotime($startDate . ' +' . $i . ' days'));
+        }
+
+        return $out;
     }
 
     /** Booking length in minutes for a number of whole hours. */
@@ -92,12 +85,40 @@ class FacilityModel extends Model
         'tennis'        => 'Tennis Court',
         'futsal'        => 'Futsal Court',
         'football'      => 'Football Court',
+        'tabletennis'   => 'Table Tennis',
+        'bowling'       => 'Bowling Alley',
+        'billiards'     => 'Billiards Table',
+        'boxing'        => 'Boxing Ring',
         'multipurpose'  => 'Multipurpose Court',
         'gym'           => 'Gym',
+        'room'          => 'Hotel Room',
         'other'         => 'Other',
     ];
 
+    /** Hotel rooms are booked by the night and live under Hotels, never in the court lists. */
+    public const ROOM = 'room';
+
+    public static function isRoom(array|string $facilityOrType): bool
+    {
+        $type = is_array($facilityOrType) ? (string) ($facilityOrType['type'] ?? '') : $facilityOrType;
+
+        return $type === self::ROOM;
+    }
+
     /** Short name + one-line description for each activity card. */
+    /** What one facility of a type is called: [singular, plural]. Used by the live availability line. */
+    public const UNITS = [
+        'gym' => ['gym', 'gyms'], 'bowling' => ['lane', 'lanes'], 'billiards' => ['table', 'tables'],
+        'tabletennis' => ['table', 'tables'], 'boxing' => ['ring', 'rings'],
+    ];
+
+    public static function unitName(string $type, int $n = 2): string
+    {
+        $u = self::UNITS[$type] ?? ['court', 'courts'];
+
+        return $n === 1 ? $u[0] : $u[1];
+    }
+
     public const ACTIVITIES = [
         'basketball'   => ['Basketball',   'Full-court games and practice'],
         'badminton'    => ['Badminton',    'Doubles and singles on marked courts'],
@@ -106,8 +127,13 @@ class FacilityModel extends Model
         'tennis'       => ['Tennis',       'Hard courts for singles and doubles'],
         'futsal'       => ['Futsal', 'Small-sided indoor games'],
         'football'     => ['Football', 'Full-size outdoor pitch'],
+        'tabletennis'  => ['Table Tennis', 'Singles and doubles on full-size tables'],
+        'bowling'      => ['Bowling', 'Lanes with automatic scoring'],
+        'billiards'    => ['Billiards', 'Pool tables with cues and racks'],
+        'boxing'       => ['Boxing', 'Rings for sparring and training'],
         'multipurpose' => ['Multipurpose', 'Events, tournaments and practice'],
         'gym'          => ['Gym',          'Workout floor, booked per person'],
+        'room'         => ['Hotel Room',   'Rooms booked by the night'],
         'other'        => ['Other',        'Other facilities'],
     ];
 
@@ -123,6 +149,10 @@ class FacilityModel extends Model
         'tennis'       => [2, 4],
         'futsal'       => [10, 14],
         'football'     => [14, 22],
+        'tabletennis'  => [2, 4],
+        'bowling'      => [2, 6],
+        'billiards'    => [2, 4],
+        'boxing'       => [2, 10],
         'multipurpose' => [10, 30],
         'gym'          => [1, 15],
     ];
@@ -155,14 +185,14 @@ class FacilityModel extends Model
 
     public function active(): array
     {
-        return $this->where('status', 'active')->orderBy('type')->orderBy('name')->findAll();
+        return $this->where('status', 'active')->where('type !=', self::ROOM)->orderBy('type')->orderBy('name')->findAll();
     }
 
     /** Active facilities grouped by type, in the order of TYPES. */
     public function activeByType(): array
     {
         $groups = [];
-        foreach ($this->where('status', 'active')->orderBy('name')->findAll() as $f) {
+        foreach ($this->where('status', 'active')->where('type !=', self::ROOM)->orderBy('name')->findAll() as $f) {
             $groups[$f['type']][] = $f;
         }
 

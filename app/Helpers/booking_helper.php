@@ -58,6 +58,10 @@ if (! function_exists('facility_icon')) {
             'tennis'        => 'bi-lightning-charge',
             'futsal'        => 'bi-trophy',
             'football'      => 'bi-flag',
+            'tabletennis'   => 'bi-bullseye',
+            'bowling'       => 'bi-circle-fill',
+            'billiards'     => 'bi-record-circle',
+            'boxing'        => 'bi-lightning-charge',
             'multipurpose'  => 'bi-grid-3x3-gap',
             'gym'           => 'bi-heart-pulse',
             'other'         => 'bi-geo-alt',
@@ -68,14 +72,14 @@ if (! function_exists('facility_icon')) {
 
 if (! function_exists('facility_is_outdoor')) {
     /**
-     * Indoor or outdoor. Gym, futsal and multipurpose are always indoor, football is always outdoor.
+     * Indoor or outdoor. Gym, futsal, multipurpose, table tennis, bowling, billiards and boxing are always indoor, football is always outdoor.
      * Every other court says it in its name: "Basketball Court (Outdoor)". Older "Court B" / "2" names still count as outdoor.
      */
     function facility_is_outdoor(array $facility): bool
     {
         $type = (string) ($facility['type'] ?? '');
         $name = trim((string) ($facility['name'] ?? ''));
-        if (in_array($type, ['gym', 'futsal', 'multipurpose'], true)) {
+        if (in_array($type, ['gym', 'futsal', 'multipurpose', 'tabletennis', 'bowling', 'billiards', 'boxing'], true)) {
             return false;
         }
         if ($type === 'football') {
@@ -160,6 +164,10 @@ if (! function_exists('facility_icon_html')) {
             'football'     => 'fa-futbol',
             'multipurpose' => 'fa-border-all',
             'gym'          => 'fa-dumbbell',
+            'tabletennis'  => 'fa-table-tennis-paddle-ball',
+            'bowling'      => 'fa-bowling-ball',
+            'billiards'    => 'fa-circle-dot',
+            'boxing'       => 'fa-hand-fist',
         ];
         if (isset($fa[$type])) {
             return '<i class="fa-solid ' . $fa[$type] . '" aria-hidden="true"></i>';
@@ -226,3 +234,69 @@ if (! function_exists('arrival_state')) {
     }
 }
 
+if (! function_exists('group_bookings')) {
+    /**
+     * Collapses the days of a multi-day stay into one entry for the lists.
+     * The entry is the next day that has not ended (or the last day), with extra keys:
+     *   _days  every day of the stay (soonest first)   _n  number of days
+     * Single bookings pass through with _days = [itself] and _n = 1. The order of the list is kept.
+     *
+     * @param  array[] $bookings
+     * @return array[]
+     */
+    function group_bookings(array $bookings): array
+    {
+        $groups = [];
+        $order  = [];
+        foreach ($bookings as $b) {
+            $key = ! empty($b['group_id']) ? 'g' . $b['group_id'] : 'b' . $b['id'];
+            if (! isset($groups[$key])) {
+                $groups[$key] = [];
+                $order[]      = $key;
+            }
+            $groups[$key][] = $b;
+        }
+
+        $out = [];
+        foreach ($order as $key) {
+            $days = $groups[$key];
+            usort($days, static fn (array $x, array $y): int => strcmp($x['start_at'], $y['start_at']));
+            $rep = $days[count($days) - 1];
+            foreach ($days as $d) {
+                if (strtotime($d['end_at']) > time() && in_array($d['status'], ['pending', 'approved'], true)) {
+                    $rep = $d;
+                    break;
+                }
+            }
+            $rep['_days'] = $days;
+            $rep['_n']    = count($days);
+            $out[]        = $rep;
+        }
+
+        return $out;
+    }
+}
+
+if (! function_exists('live_stamp')) {
+    /**
+     * A short fingerprint of the bookings this person can see (all of them for staff/admin, their own for a customer).
+     * It changes when a booking is added, changed, approved, rejected, cancelled, checked in, deleted or restored.
+     */
+    function live_stamp(): string
+    {
+        $uid = (int) session()->get('user_id');
+        if (! $uid) {
+            return '';
+        }
+        $q = db_connect()->table('bookings')->select(
+            "COUNT(*) AS c, MAX(id) AS i, MAX(updated_at) AS u, MAX(deleted_at) AS d, "
+            . "SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS p, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS a, "
+            . "SUM(CASE WHEN arrived_at IS NOT NULL THEN 1 ELSE 0 END) AS r"
+        );
+        if (! is_manager()) {
+            $q->where('user_id', $uid);
+        }
+
+        return md5(json_encode($q->get()->getRowArray()));
+    }
+}

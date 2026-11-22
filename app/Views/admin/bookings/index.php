@@ -22,6 +22,8 @@
     </select>
 </form>
 
+<?php $bookings = group_bookings($bookings); ?>
+<div id="live-bookings" data-live>
 <section class="tbl-panel">
 <div class="sess-head"><div><h2>All bookings</h2><div class="sess-sub"><?= count($bookings) ?> <?= count($bookings) === 1 ? 'booking' : 'bookings' ?><?= $status ? ' · ' . ucfirst($status) : '' ?></div></div></div>
 <?php if (empty($bookings)): ?>
@@ -40,9 +42,18 @@
                 $len = intdiv($mins, 60) . ' hr' . (intdiv($mins, 60) === 1 ? '' : 's') . ($mins % 60 ? ' ' . ($mins % 60) . ' min' : '');
             } else {
                 $nDays = (int) round((strtotime(date('Y-m-d', $te)) - strtotime(date('Y-m-d', $ts))) / 86400) + 1;
-                $len   = $nDays . ' days';
+                $len   = \App\Models\FacilityModel::isRoom((string) ($b['facility_type'] ?? '')) ? ($nDays - 1) . ' ' . ($nDays - 1 === 1 ? 'night' : 'nights') : $nDays . ' days';
             }
             $addons = ! empty($b['addons']) ? (json_decode($b['addons'], true) ?: []) : [];
+
+            // A stay of several days is one row: its days are listed under "When", actions cover every day.
+            $stayDays = $b['_days']; $stayN = $b['_n'];
+            $hasPending  = (bool) array_filter($stayDays, static fn ($d) => $d['status'] === 'pending');
+            $hasApproved = (bool) array_filter($stayDays, static fn ($d) => $d['status'] === 'approved' && strtotime($d['end_at']) > time());
+            if ($stayN > 1) {
+                $first = strtotime($stayDays[0]['start_at']); $last = strtotime($stayDays[$stayN - 1]['start_at']);
+                $len   = $stayN . ' days · ' . intdiv($mins, 60) . ' hr' . (intdiv($mins, 60) === 1 ? '' : 's') . '/day';
+            }
         ?>
         <tr>
             <td class="bk-cust">
@@ -94,17 +105,35 @@
                         <span class="bk-dt-day"><?= esc(date('j', $ts)) ?></span>
                     </div>
                     <div class="bk-when-info">
-                        <div class="bk-when-day"><?= esc(date('l', $ts)) ?><?= $sameDay ? '' : ' → ' . esc(date('D, M j', $te)) ?></div>
+                        <div class="bk-when-day"><?= $stayN > 1 ? esc(date('D, M j', $first) . ' → ' . date('D, M j', $last)) : esc(date('l', $ts)) . ($sameDay ? '' : ' → ' . esc(date('D, M j', $te))) ?></div>
                         <div class="bk-when-time"><i class="bi bi-clock"></i><?= esc(date('g:i A', $ts)) ?> – <?= esc(date('g:i A', $te)) ?></div>
                         <div class="bk-when-tags">
                             <span class="bk-tag"><i class="bi bi-hourglass-split"></i><?= esc($len) ?></span>
                             <span class="bk-tag <?= $rel[1] ?>"><i class="bi <?= $rel[2] ?>"></i><?= esc($rel[0]) ?></span>
                         </div>
+                        <?php if ($stayN > 1): ?>
+                        <details class="bk-days">
+                            <summary>Show all <?= (int) $stayN ?> days</summary>
+                            <ul>
+                                <?php foreach ($stayDays as $d): ?>
+                                    <li class="is-<?= esc($d['status'], 'attr') ?>"><span><?= esc(date('D, M j', strtotime($d['start_at']))) ?></span><em><?= esc(ucfirst($d['status'])) ?></em></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </details>
+                        <?php endif; ?>
                     </div>
                 </div>
             </td>
             <td class="bk-status">
-                <?php if ($b['status'] === 'approved'): ?>
+                <?php if ($stayN > 1): ?>
+                    <?php
+                        $cnt = array_count_values(array_column($stayDays, 'status'));
+                        $parts = [];
+                        foreach (['approved' => 'approved', 'pending' => 'pending', 'rejected' => 'rejected', 'cancelled' => 'cancelled'] as $k => $lbl) { if (! empty($cnt[$k])) { $parts[] = $cnt[$k] . ' ' . $lbl; } }
+                    ?>
+                    <?= status_badge(count($cnt) === 1 ? (string) array_key_first($cnt) : ($hasPending ? 'pending' : $b['status'])) ?>
+                    <?php if (count($cnt) > 1): ?><div class="cell-sub mt-1"><?= esc(implode(' · ', $parts)) ?></div><?php endif; ?>
+                <?php elseif ($b['status'] === 'approved'): ?>
                     <span class="pill pill-approved"><?= esc(approval_label($b)) ?></span>
                     <?php if (! empty($b['arrived_at'])): ?><span class="pill pill-arrived">Arrived <?= esc(date('g:i A', strtotime($b['arrived_at']))) ?></span>
                     <?php elseif (arrival_state($b)[0] === 'missed'): ?><span class="pill pill-missed">Did not arrive</span><?php endif; ?>
@@ -113,7 +142,7 @@
             </td>
             <td>
               <div class="bk-actions">
-                <?php if ($b['status'] === 'pending'): ?>
+                <?php if ($hasPending): ?>
                     <div class="btn-row">
                         <form method="post" action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/approve') ?>">
                             <?= csrf_field() ?>
@@ -122,19 +151,19 @@
                         <button type="button" class="btn btn-sm btn-act btn-act-red bk-reason-btn"
                                 data-action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/reject') ?>"
                                 data-title="Reject this booking?" data-ok="Reject booking" data-icon="bi-x-circle" data-tone="danger"
-                                data-text="<?= esc('Reject ' . $b['customer_name'] . '\'s request for ' . $b['facility_name'] . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-x-lg"></i> Reject</button>
+                                data-text="<?= esc('Reject ' . $b['customer_name'] . '\'s request for ' . $b['facility_name'] . ($stayN > 1 ? ' (all ' . $stayN . ' days)' : '') . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-x-lg"></i> Reject</button>
                     </div>
-                <?php elseif ($b['status'] === 'approved'): ?>
+                <?php elseif ($hasApproved): ?>
                     <div class="btn-row">
                         <button type="button" class="btn btn-sm btn-act btn-act-brass bk-reason-btn"
                                 data-action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/cancel') ?>"
                                 data-title="Cancel this booking?" data-ok="Cancel booking" data-icon="bi-calendar-x" data-tone="brass"
-                                data-text="<?= esc('Cancel the approved booking of ' . $b['customer_name'] . ' for ' . $b['facility_name'] . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-calendar-x"></i> Cancel booking</button>
+                                data-text="<?= esc('Cancel the approved booking of ' . $b['customer_name'] . ' for ' . $b['facility_name'] . ($stayN > 1 ? ' (every day still to come)' : '') . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-calendar-x"></i> Cancel booking</button>
                     </div>
                 <?php endif; ?>
                 <?php if (is_admin()): ?>
                     <form method="post" action="<?= site_url('admin/bookings/' . (int) $b['id'] . '/delete') ?>"
-                          data-confirm="This booking will be moved to the Archive and its time slot freed. You can restore it from the Archive." data-confirm-title="Delete this booking?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
+                          data-confirm="<?= $stayN > 1 ? 'All ' . (int) $stayN . ' days of this stay' : 'This booking' ?> will be moved to the Archive and the time slot freed. You can restore it from the Archive." data-confirm-title="Delete this booking?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
                         <?= csrf_field() ?>
                         <button class="btn btn-sm btn-act btn-act-ghost-red btn-del"><i class="bi bi-trash"></i> Delete</button>
                     </form>
@@ -148,6 +177,7 @@
 </div>
 <?php endif; ?>
 </section>
+</div>
 <?= $this->endSection() ?>
 <?= $this->section('scripts') ?>
 <!-- Reason pop-up (Reject / Cancel booking) -->

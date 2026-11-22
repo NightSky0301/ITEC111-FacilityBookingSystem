@@ -102,12 +102,21 @@
             <?php else: ?>
             <div class="table-responsive">
             <table class="table data-table">
-                <thead><tr><th>Time in</th><th>Time out</th><th>Customer</th></tr></thead>
+                <thead><tr><th>Check in</th><th>Check out</th><th>Duration</th><th>Customer</th></tr></thead>
                 <tbody>
                 <?php foreach ($sessions as $sess): ?>
                     <tr>
-                        <td class="cell-title"><?= esc(fmt_time($sess['start'])) ?></td>
-                        <td class="cell-title"><?= esc(fmt_time($sess['end'])) ?></td>
+                        <td><div class="cell-title"><?= esc(fmt_time($sess['start'])) ?></div><div class="cell-sub"><?= esc(date('M j', strtotime($sess['start']))) ?></div></td>
+                        <td><div class="cell-title"><?= esc(fmt_time($sess['end'])) ?></div><div class="cell-sub"><?= esc(date('M j', strtotime($sess['end']))) ?></div></td>
+                        <?php
+                            $mins = max(0, (int) round((strtotime($sess['end']) - strtotime($sess['start'])) / 60));
+                            $d = intdiv($mins, 1440); $h = intdiv($mins % 1440, 60); $m = $mins % 60;
+                            $dur = [];
+                            if ($d) { $dur[] = $d . ($d === 1 ? ' day' : ' days'); }
+                            if ($h) { $dur[] = $h . ($h === 1 ? ' hr' : ' hrs'); }
+                            if ($m) { $dur[] = $m . ' min'; }
+                        ?>
+                        <td class="cell-title text-nowrap"><?= esc(implode(' ', $dur) ?: '–') ?></td>
                         <td>
                             <?= esc($sess['who']) ?>
                             <?php if ($sess['status'] === 'pending'): ?> <span class="pill pill-pending">Pending</span><?php endif; ?>

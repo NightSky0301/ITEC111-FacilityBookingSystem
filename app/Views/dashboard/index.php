@@ -1,11 +1,15 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <?php
+    $guest     = ! empty($guest);
     $first     = explode(' ', trim((string) session()->get('name')))[0];
     $manager   = is_manager();
     $statsUrl  = $manager ? site_url('manage/bookings') : site_url('my-bookings');
     $facUrl    = is_admin() ? site_url('admin/facilities') : site_url('facilities');
 ?>
+<?php if (! $manager): ?>
+<?= $this->include('dashboard/_hero') ?>
+<?php else: ?>
 <header class="dash-head">
     <div>
         <div class="dash-date"><?= esc(date('l, F j')) ?></div>
@@ -21,8 +25,10 @@
         <?php endif; ?>
     </div>
 </header>
+<?php endif; ?>
 
-<div class="stat-grid <?= $manager ? 'is-three' : '' ?>">
+<?php if ($manager): ?>
+<div class="stat-grid is-three" id="live-stats" data-live>
     <a class="stat-card is-wait <?= (int) $pending > 0 ? 'has-items' : '' ?>" href="<?= $manager ? site_url('manage/bookings?status=pending') : site_url('my-bookings?filter=pending') ?>">
         <span class="stat-icon"><i class="bi bi-hourglass-split"></i></span>
         <div class="stat-body">
@@ -52,8 +58,10 @@
     </a>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
-<?php if (! $manager && ! empty($next)):
+<div id="live-next" data-live>
+<?php if (! $guest && ! $manager && ! empty($next)):
     $ns = strtotime($next['start_at']);
     $ne = strtotime($next['end_at']);
     $now = time();
@@ -74,10 +82,63 @@
     <a class="btn btn-sm btn-light-on-dark" href="<?= site_url('calendar') ?>?<?= esc(http_build_query(['date' => date('Y-m-d', $ns), 'booking' => (int) $next['id']]), 'attr') ?>">Court schedule <i class="bi bi-arrow-right ms-1"></i></a>
 </section>
 <?php endif; ?>
+</div>
+
+<?php if (! $manager): ?>
+<?= $this->include('dashboard/_freenow') ?>
+<?php endif; ?>
 
 <?php if ($manager): ?>
 <?= $this->include('dashboard/_sessions') ?>
-<?php else: ?>
+<?php elseif (! $guest): ?>
 <?= $this->include('dashboard/_recent') ?>
 <?php endif; ?>
 <?= $this->endSection() ?>
+
+<?php if (! $manager): ?>
+<?= $this->section('scripts') ?>
+<script>
+// Banner: a new court photo every 3 seconds. Dots jump to a photo; hovering or focusing pauses it.
+(function () {
+    const hx = document.querySelector('.hx');
+    if (!hx) return;
+    const slides = Array.from(hx.querySelectorAll('.hx-photo')), dots = Array.from(hx.querySelectorAll('.hx-dot'));
+    if (slides.length < 2) return;
+    let i = 0, timer = null, hold = false;
+    const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function show(n) {
+        i = (n + slides.length) % slides.length;
+        slides.forEach((s, k) => s.classList.toggle('is-on', k === i));
+        dots.forEach((d, k) => { d.classList.toggle('is-on', k === i); d.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    }
+    function start() { clearInterval(timer); if (!still) timer = setInterval(() => { if (!hold && !document.hidden) show(i + 1); }, 3000); }
+
+    dots.forEach((d, k) => d.addEventListener('click', () => { show(k); start(); }));
+    ['mouseenter', 'focusin'].forEach(e => hx.addEventListener(e, () => { hold = true; }));
+    ['mouseleave', 'focusout'].forEach(e => hx.addEventListener(e, () => { hold = false; }));
+    window.addEventListener('load', () => slides.forEach(s => { const im = new Image(); im.src = s.dataset.src; }));  // no flash on the first lap
+    start();
+})();
+
+// Keep the two shelves current without reloading the page.
+(function () {
+    const shelves = { free: document.querySelector('[data-shelf="free"]'), top: document.querySelector('[data-shelf="top"]') };
+    if (!shelves.free || !shelves.top) return;
+    async function tick() {
+        if (document.hidden) return;
+        try {
+            const res = await fetch('<?= site_url('dashboard/live') ?>', { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+            if (!res.ok) return;
+            const d = await res.json();
+            Object.keys(shelves).forEach(function (k) {
+                if (typeof d[k] === 'string' && d[k].trim() !== shelves[k].innerHTML.trim()) shelves[k].innerHTML = d[k];
+            });
+        } catch (e) { /* try again next time */ }
+    }
+    setInterval(tick, 10000);
+    document.addEventListener('visibilitychange', tick);
+})();
+</script>
+<?= $this->endSection() ?>
+<?php endif; ?>

@@ -5,7 +5,9 @@
 
     // ---- Prepare every booking once: timing, price, and which filter tabs it belongs to ----
     $rows = [];
-    foreach ($bookings as $b) {
+    foreach (group_bookings($bookings) as $b) {
+        $days     = $b['_days'];
+        $stayN    = $b['_n'];
         $s        = strtotime($b['start_at']);
         $e        = strtotime($b['end_at']);
         $status   = (string) $b['status'];
@@ -13,10 +15,24 @@
         $hours    = max(0, ($e - $s) / 3600);
         $price    = (float) ($b['facility_price'] ?? 0);
 
+        $perHeadRow = \App\Models\FacilityModel::isPerHead((string) ($b['facility_type'] ?? ''));
+        $isRoomRow  = \App\Models\FacilityModel::isRoom((string) ($b['facility_type'] ?? ''));
+        $dayTotal   = static function (array $d) use ($price, $perHeadRow, $isRoomRow): float {
+            if ($isRoomRow && isset($d['total_price'])) {
+                return (float) $d['total_price'];   // a hotel stay is priced per night and saved with the booking
+            }
+            $h = max(0, (strtotime($d['end_at']) - strtotime($d['start_at'])) / 3600);
+            return $h * $price * ($perHeadRow ? max(1, (int) $d['guests']) : 1) + (float) ($d['addons_total'] ?? 0);
+        };
+        $live  = array_filter($days, static fn ($d) => in_array($d['status'], ['pending', 'approved'], true));
+        $total = array_sum(array_map($dayTotal, $live ?: $days));
+        $anyPending  = (bool) array_filter($days, static fn ($d) => $d['status'] === 'pending' && strtotime($d['end_at']) > $now);
+        $anyApproved = (bool) array_filter($days, static fn ($d) => $d['status'] === 'approved' && strtotime($d['end_at']) > $now);
+
         $tags = [];
         if ($upcoming) { $tags[] = 'upcoming'; }
-        if ($status === 'pending') { $tags[] = 'pending'; }
-        if ($status === 'approved' && $upcoming) { $tags[] = 'approved'; }
+        if ($status === 'pending' || $anyPending) { $tags[] = 'pending'; }
+        if (($status === 'approved' && $upcoming) || $anyApproved) { $tags[] = 'approved'; }
         if (! $upcoming) { $tags[] = 'past'; }
 
         $rows[] = [
@@ -27,7 +43,12 @@
             'upcoming' => $upcoming,
             'done'     => $status === 'approved' && $e <= $now,
             'hours'    => $hours,
-            'total'    => $hours * $price * (\App\Models\FacilityModel::isPerHead((string) ($b['facility_type'] ?? '')) ? max(1, (int) $b['guests']) : 1) + (float) ($b['addons_total'] ?? 0),
+            'room'     => $isRoomRow,
+            'nights'   => max(1, (int) round((strtotime(date('Y-m-d', $e)) - strtotime(date('Y-m-d', $s))) / 86400)),
+            'total'    => $total,
+            'stayN'    => $stayN,
+            'days'     => $days,
+            'canCancel' => $anyPending || $anyApproved,
             'tags'     => $tags,
         ];
     }
@@ -93,6 +114,7 @@
 <?php else: ?>
 
 
+<span data-live-reload hidden></span>
 <section class="panel panel-table bk-panel">
     <div class="bk-tabs" role="group" aria-label="Filter bookings">
         <?php foreach ($tabs as $key => [$label, $n]): ?>
@@ -124,8 +146,11 @@
                 [$relText, $relClass] = $r['upcoming'] ? $rel($s, $e) : ['', ''];
                 $rowClass = $r['done'] ? 'is-done' : 'is-' . $status;
                 $closed   = ! $r['upcoming'];
-                $canCancel = $status === 'pending' || ($status === 'approved' && $r['upcoming']);
-                $confirmText = 'Cancel your booking for ' . $b['facility_name'] . ' on ' . date('M j', $s) . '?';
+                $stayN  = $r['stayN'];
+                $canCancel = $r['canCancel'];
+                $confirmText = $stayN > 1
+                    ? 'Cancel every remaining day of your ' . $b['facility_name'] . ' stay (' . $stayN . ' days)?'
+                    : 'Cancel your booking for ' . $b['facility_name'] . ' on ' . date('M j', $s) . '?';
             ?>
                 <tr class="<?= esc($rowClass, 'attr') ?> <?= $closed ? 'is-closed' : '' ?>" data-tags="<?= esc(implode(' ', $r['tags']), 'attr') ?>">
                     <td class="c-court">
@@ -145,12 +170,15 @@
                         <div class="d-flex align-items-center gap-3">
                             <div class="date-chip"><span class="d"><?= date('j', $s) ?></span><span class="m"><?= date('M', $s) ?></span></div>
                             <div>
-                                <?php if ($sameDay): ?>
+                                <?php if ($stayN > 1): ?>
+                                    <div class="cell-title bk-num"><?= date('g:i A', $s) ?> – <?= date('g:i A', $e) ?> daily</div>
+                                    <div class="cell-sub"><?= esc(date('M j', strtotime($r['days'][0]['start_at']))) ?> – <?= esc(date('M j', strtotime($r['days'][$stayN - 1]['start_at']))) ?> · <?= (int) $stayN ?> days · <?= esc($fmtHours($r['hours'])) ?>/day</div>
+                                <?php elseif ($sameDay): ?>
                                     <div class="cell-title bk-num"><?= date('g:i A', $s) ?> – <?= date('g:i A', $e) ?></div>
                                     <div class="cell-sub"><?= date('l', $s) ?> · <?= esc($fmtHours($r['hours'])) ?></div>
                                 <?php else: ?>
                                     <div class="cell-title"><?= esc(fmt_range($b['start_at'], $b['end_at'])) ?></div>
-                                    <div class="cell-sub"><?= esc($fmtHours($r['hours'])) ?></div>
+                                    <div class="cell-sub"><?= $r['room'] ? esc($r['nights'] . ($r['nights'] === 1 ? ' night' : ' nights')) : esc($fmtHours($r['hours'])) ?></div>
                                 <?php endif; ?>
                                 <?php if (! empty($b['addons'])): ?><div class="cell-sub">+ <?= esc(implode(', ', array_column(json_decode($b['addons'], true) ?: [], 'label'))) ?></div><?php endif; ?>
                                 <?php if ($relText): ?><span class="bk-rel <?= esc($relClass, 'attr') ?>"><?= esc($relText) ?></span><?php endif; ?>

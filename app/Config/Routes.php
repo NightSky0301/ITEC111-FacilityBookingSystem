@@ -5,7 +5,21 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 $routes->setAutoRoute(false);
 
-$routes->get('/', 'Home::index');
+$routes->get('/', 'Dashboard::index');          // the home page is open to everyone
+$routes->get('dashboard', 'Dashboard::index');
+$routes->get('dashboard/live', 'Dashboard::live'); // free-now and top-bookings shelves, refreshed in the background
+
+// Browsing courts is public; booking and everything personal needs a login.
+$routes->get('facilities', 'Facilities::index');
+$routes->get('facilities/availability', 'Facilities::availabilityJson');
+$routes->get('facilities/court/(:num)', 'Facilities::court/$1');
+$routes->get('facilities/(:segment)', 'Facilities::category/$1');
+$routes->get('fitness', 'Facilities::fitness');
+
+// Hotels: browsing is public, requesting a stay needs a login.
+$routes->get('hotels', 'Hotels::index');
+$routes->get('hotels/room/(:num)', 'Hotels::room/$1');
+$routes->get('hotels/(:num)', 'Hotels::show/$1');
 
 // ---------- Public ----------
 $routes->get('login', 'Auth::login');
@@ -20,12 +34,6 @@ $routes->post('reset-password/(:segment)', 'PasswordReset::update/$1');
 
 // ---------- Logged-in users (customer + staff + admin) ----------
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
-    $routes->get('dashboard', 'Dashboard::index');
-
-    // Facilities list
-    $routes->get('facilities', 'Facilities::index');                       // step 1: activity
-    $routes->get('facilities/court/(:num)', 'Facilities::court/$1');       // step 3: availability
-    $routes->get('facilities/(:segment)', 'Facilities::category/$1');      // step 2: court
 
     // Calendar view
     $routes->get('calendar', 'Calendar::index');
@@ -36,12 +44,14 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('bookings/busy', 'Bookings::busy');
     $routes->get('bookings/span', 'Bookings::span');
     $routes->post('bookings', 'Bookings::store');
+    $routes->post('hotels/book', 'Hotels::book');
     $routes->get('my-bookings', 'Bookings::mine');
     $routes->post('bookings/(:num)/cancel', 'Bookings::cancel/$1');
 
     // Notifications
     $routes->get('notifications', 'Notifications::index');
     $routes->get('notifications/feed', 'Notifications::feed');
+    $routes->get('notifications/pulse', 'Notifications::pulse');   // tiny poll: unread count + 'did my bookings change?'
     $routes->get('notifications/(:num)/read', 'Notifications::read/$1');
     $routes->post('notifications/read-all', 'Notifications::readAll');
 });

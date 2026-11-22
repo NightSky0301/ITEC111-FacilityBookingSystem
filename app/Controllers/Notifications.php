@@ -33,6 +33,23 @@ class Notifications extends BaseController
             ]));
     }
 
+    /**
+     * Polled every few seconds by every open page. Says how many notifications are unread, gives the newest one
+     * (so the page can pop it up) and a fingerprint of the person's bookings, so the page knows when to refresh.
+     */
+    public function pulse()
+    {
+        $userId = (int) session()->get('user_id');
+        $model  = new NotificationModel();
+        $latest = $model->where('user_id', $userId)->where('is_read', 0)->orderBy('id', 'DESC')->first();
+
+        return $this->response->setHeader('Cache-Control', 'no-store')->setJSON([
+            'unread' => $model->unreadCount($userId),
+            'stamp'  => live_stamp(),
+            'latest' => $latest ? ['id' => (int) $latest['id'], 'title' => $latest['title'], 'message' => $latest['message']] : null,
+        ]);
+    }
+
     public function read(int $id)
     {
         $model = new NotificationModel();

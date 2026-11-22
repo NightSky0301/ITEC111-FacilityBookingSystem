@@ -51,10 +51,21 @@ class Archive extends BaseController
             return redirect()->to('/admin/archive?tab=' . $what)->with('error', 'That item is not in the Archive.');
         }
 
-        if ($what === 'bookings' && in_array($row['status'], ['approved', 'pending'], true)) {
+        $restoreIds = [$id];
+        if ($what === 'bookings') {
+            // A stay comes back as a whole: every archived day of the same group.
+            if (! empty($row['group_id'])) {
+                $restoreIds = array_map('intval', array_column(
+                    $db->table($table)->select('id')->where('group_id', (int) $row['group_id'])->where('deleted_at IS NOT NULL')->get()->getResultArray(),
+                    'id'
+                ));
+            }
             // Restoring an approved booking must not double-book the court.
-            if ($row['status'] === 'approved' && (new BookingModel())->hasConflict((int) $row['facility_id'], $row['start_at'], $row['end_at'], $id)) {
-                return redirect()->to('/admin/archive?tab=bookings')->with('error', 'Cannot restore: another approved booking now uses that time slot.');
+            foreach ($restoreIds as $rid) {
+                $r = $db->table($table)->where('id', $rid)->get()->getRowArray();
+                if ($r['status'] === 'approved' && (new BookingModel())->hasConflict((int) $r['facility_id'], $r['start_at'], $r['end_at'], $rid)) {
+                    return redirect()->to('/admin/archive?tab=bookings')->with('error', 'Cannot restore: another approved booking now uses the time slot on ' . date('M j', strtotime($r['start_at'])) . '.');
+                }
             }
         }
         if ($what === 'users') {
@@ -64,9 +75,9 @@ class Archive extends BaseController
             }
         }
 
-        $db->table($table)->where('id', $id)->update(['deleted_at' => null]);
+        $db->table($table)->whereIn('id', $restoreIds)->update(['deleted_at' => null]);
 
         $label = ['facilities' => 'Facility', 'users' => 'Account', 'bookings' => 'Booking'][$what];
-        return redirect()->to('/admin/archive?tab=' . $what)->with('success', $label . ' restored.');
+        return redirect()->to('/admin/archive?tab=' . $what)->with('success', $label . (count($restoreIds) > 1 ? ' restored (' . count($restoreIds) . ' days).' : ' restored.'));
     }
 }
