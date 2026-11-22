@@ -13,7 +13,9 @@ $brand = 'Athletix';
     <link rel="preload" href="<?= base_url('assets/vendor/fonts/fraunces-600.woff2') ?>" as="font" type="font/woff2" crossorigin>
     <link href="<?= base_url('assets/vendor/bootstrap.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/vendor/icons/bootstrap-icons.min.css') ?>" rel="stylesheet">
+    <script>(function(){try{var t=localStorage.getItem('athletix-theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}var d=document.documentElement;d.setAttribute('data-theme',t);d.setAttribute('data-bs-theme',t);}catch(e){}})();</script>
     <link href="<?= base_url('assets/css/app.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('assets/css/dark.css') ?>" rel="stylesheet">
 </head>
 <body>
 <div class="auth-split auth-stage <?= $isReg ? 'is-register' : '' ?>" id="authStage" data-login-url="<?= site_url('login') ?>" data-register-url="<?= site_url('register') ?>">

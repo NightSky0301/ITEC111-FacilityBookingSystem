@@ -1,67 +1,108 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <?php
-    $total   = count($items);
-    $dateQs  = $date !== '' ? '?date=' . rawurlencode($date) : '';
-    $dateTxt = $date !== '' ? date('D, M j', strtotime($date)) : '';
+    helper('booking');
+    $total     = count($items);
+    $dateQs    = $date !== '' ? '?date=' . rawurlencode($date) : '';
+    $dateTxt   = $date !== '' ? date('D, M j', strtotime($date)) : '';
+    $freeCount = count(array_filter($items, static fn ($c) => $c['free']));
+    $fitness   = $section === 'fitness';
+    $first     = $items[0] ?? null;
+    $hasSide   = ! $fitness && count($chips) > 1;
 ?>
-<header class="fx-head">
+<header class="ax-hero">
     <div>
         <h1><?= esc($heading) ?></h1>
         <p><?= $dateTxt !== '' ? 'Pick one to see its schedule for ' . esc($dateTxt) . '.' : esc($lead) ?></p>
     </div>
+    <?php if ($total): ?>
+    <div class="ax-stats">
+        <span class="ax-stat"><span class="fn-dot" aria-hidden="true"></span> <span id="axFreeStat"><?= $freeCount ?></span>&nbsp;free now</span>
+        <span class="ax-stat"><i class="bi <?= $fitness ? 'bi-heart-pulse' : 'bi-grid' ?>" aria-hidden="true"></i> <?= $total ?> <?= $fitness ? ($total === 1 ? 'gym' : 'gyms') : ($total === 1 ? 'court' : 'courts') ?></span>
+    </div>
+    <?php endif; ?>
 </header>
 
 <?php if (empty($items)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-geo-alt"></i><strong>Nothing here yet</strong>The facility manager has not added any yet.</div></div>
 <?php else: ?>
-<div class="fx-rail" role="group" aria-label="Choose an activity"<?= count($chips) < 2 ? ' hidden' : '' ?>>
-    <button type="button" class="fx-chip fx-cat <?= $selType === '' ? 'is-on' : '' ?>" data-type="" data-label="all courts">
-        <span class="fx-cat-ico"><i class="bi bi-grid-fill" aria-hidden="true"></i></span>
-        <span class="fx-cat-name">All</span><span class="fx-cat-n"><?= $total ?></span>
-    </button>
-    <?php foreach ($chips as $k => $c): ?>
-        <button type="button" class="fx-chip fx-cat <?= $selType === $k ? 'is-on' : '' ?>" data-type="<?= esc($k, 'attr') ?>" data-label="<?= esc(strtolower($c['name']), 'attr') ?>">
-            <span class="fx-cat-ico"><i class="bi <?= esc(facility_icon($k), 'attr') ?>" aria-hidden="true"></i></span>
-            <span class="fx-cat-name"><?= esc($c['name']) ?></span><span class="fx-cat-n"><?= (int) $c['count'] ?></span>
-        </button>
-    <?php endforeach; ?>
-</div>
 
-<div class="fx-bar">
-    <p class="fx-count" id="fxCount" aria-live="polite"></p>
-    <div class="fx-tools">
-        <label class="fx-switch"><input type="checkbox" id="fxFree"><span class="fx-track" aria-hidden="true"></span> Free now</label>
-        <select id="fxSort" data-dd aria-label="Sort courts">
-            <option value="name">Sort: Name</option>
-            <option value="low">Price: low to high</option>
-            <option value="high">Price: high to low</option>
-        </select>
+<?php if ($fitness && $first): ?>
+<section class="gy-feature" aria-label="About the gym">
+    <div class="gy-photo" style="background-image:url('<?= esc($first['img'], 'attr') ?>')" role="img" aria-label="<?= esc($first['name'], 'attr') ?>"></div>
+    <div class="gy-copy">
+        <h2>Train on your schedule</h2>
+        <p>Choose a start time and how long you want, and the gym is yours for that session.</p>
+        <ul class="gy-perks">
+            <li><i class="bi bi-person-check" aria-hidden="true"></i> Booked per person</li>
+            <li><i class="bi bi-broadcast" aria-hidden="true"></i> Live space check</li>
+            <li><i class="bi bi-clock" aria-hidden="true"></i> Pick any open hour</li>
+            <li><i class="bi bi-patch-check" aria-hidden="true"></i> Confirmed by staff</li>
+        </ul>
+        <a class="btn btn-gold" href="<?= site_url('facilities/court/' . (int) $first['id']) . $dateQs ?>">Book a session <i class="bi bi-arrow-right ms-1"></i></a>
     </div>
-</div>
+</section>
+<?php endif; ?>
 
-<div class="fx-grid" id="fxGrid">
-    <?php foreach ($items as $c): ?>
-        <a class="fx-card" href="<?= site_url('facilities/court/' . $c['id']) . $dateQs ?>"
-           data-type="<?= esc($c['type'], 'attr') ?>" data-id="<?= (int) $c['id'] ?>" data-free="<?= $c['free'] ? '1' : '0' ?>" data-price="<?= (float) $c['price'] ?>" data-name="<?= esc($c['name'], 'attr') ?>">
-            <span class="fx-photo" style="background-image:url('<?= esc($c['img'], 'attr') ?>')">
-                <span class="fx-tag"><?= $c['outdoor'] ? 'Outdoor' : 'Indoor' ?></span>
-                <span class="fx-live <?= $c['free'] ? 'is-free' : 'is-busy' ?>" data-live><i></i><b><?= $c['free'] ? 'Free now' : 'In use' ?></b></span>
-            </span>
-            <span class="fx-body">
-                <span class="fx-name"><?= esc($c['name']) ?></span>
-                <span class="fx-sub"><?= esc($c['activity']) ?> &middot; <i class="bi bi-people"></i> <?= esc($c['people']) ?></span>
-                <span class="fx-price">₱<?= number_format($c['price'], 0) ?> <small><?= $c['per_head'] ? 'per person, per hour' : 'per hour' ?></small></span>
-            </span>
-        </a>
-    <?php endforeach; ?>
-</div>
+<div class="<?= $hasSide ? 'ax-layout' : '' ?>">
+<?php if ($hasSide): ?>
+    <aside class="ax-side" aria-label="Filter activities">
+        <h2>Activity</h2>
+        <div class="ax-cats" role="group" aria-label="Choose an activity">
+            <button type="button" class="ax-cat <?= $selType === '' ? 'is-on' : '' ?>" data-type="" data-label="">
+                <span class="ax-cat-ico"><i class="bi bi-grid-fill" aria-hidden="true"></i></span>All activities<span class="ax-cat-n"><?= $total ?></span>
+            </button>
+            <?php foreach ($chips as $k => $c): ?>
+            <button type="button" class="ax-cat <?= $selType === $k ? 'is-on' : '' ?>" data-type="<?= esc($k, 'attr') ?>" data-label="<?= esc(strtolower($c['name']), 'attr') ?>">
+                <span class="ax-cat-ico"><i class="bi <?= esc(facility_icon($k), 'attr') ?>" aria-hidden="true"></i></span><?= esc($c['name']) ?><span class="ax-cat-n"><?= (int) $c['count'] ?></span>
+            </button>
+            <?php endforeach; ?>
+        </div>
+        <div class="ax-filters">
+            <div class="ax-seg" role="group" aria-label="Indoor or outdoor">
+                <button type="button" class="is-on" data-place="">Any</button>
+                <button type="button" data-place="indoor">Indoor</button>
+                <button type="button" data-place="outdoor">Outdoor</button>
+            </div>
+        </div>
+    </aside>
+<?php endif; ?>
 
-<div class="fx-none is-hidden" id="fxNone">
-    <i class="bi bi-search"></i>
-    <strong>No courts match</strong>
-    <span>Try another activity, or turn off "Free now".</span>
-    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="fxReset">Show all courts</button>
+    <div class="ax-main">
+        <?php if ($hasSide): ?>
+        <div class="ax-rail" role="group" aria-label="Choose an activity">
+            <button type="button" class="ax-cat <?= $selType === '' ? 'is-on' : '' ?>" data-type="" data-label=""><span class="ax-cat-ico"><i class="bi bi-grid-fill" aria-hidden="true"></i></span>All</button>
+            <?php foreach ($chips as $k => $c): ?>
+            <button type="button" class="ax-cat <?= $selType === $k ? 'is-on' : '' ?>" data-type="<?= esc($k, 'attr') ?>" data-label="<?= esc(strtolower($c['name']), 'attr') ?>"><span class="ax-cat-ico"><i class="bi <?= esc(facility_icon($k), 'attr') ?>" aria-hidden="true"></i></span><?= esc($c['name']) ?></button>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <div class="ax-top">
+            <p class="ax-count" id="fxCount" aria-live="polite"></p>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <label class="ax-switch"><input type="checkbox" id="fxFree"><span class="ax-track" aria-hidden="true"></span> Free now</label>
+                <select id="fxSort" data-dd class="ax-sort" aria-label="Sort">
+                    <option value="name">Sort: Name</option>
+                    <option value="low">Price: low to high</option>
+                    <option value="high">Price: high to low</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="ax-grid" id="fxGrid">
+            <?php foreach ($items as $c): ?>
+                <?= view('facilities/_card', ['c' => $c, 'dateQs' => $dateQs]) ?>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="ax-none is-hidden" id="fxNone">
+            <i class="bi bi-search"></i>
+            <strong>Nothing matches</strong>
+            <span>Try another activity, or turn off "Free now".</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="fxReset">Show everything</button>
+        </div>
+    </div>
 </div>
 <?php endif; ?>
 <?= $this->endSection() ?>
@@ -72,8 +113,10 @@
     const grid = document.getElementById('fxGrid'); if (!grid) return;
     const cards = Array.from(grid.children), none = document.getElementById('fxNone');
     const free = document.getElementById('fxFree'), sort = document.getElementById('fxSort');
-    const chips = Array.from(document.querySelectorAll('.fx-chip')), count = document.getElementById('fxCount');
-    let type = (chips.find(c => c.classList.contains('is-on')) || chips[0] || { dataset: { type: '' } }).dataset.type;
+    const cats = Array.from(document.querySelectorAll('.ax-cat')), count = document.getElementById('fxCount');
+    const places = Array.from(document.querySelectorAll('.ax-seg button')), stat = document.getElementById('axFreeStat');
+    const noun = <?= $fitness ? "['gym', 'gyms']" : "['court', 'courts']" ?>;
+    let type = (cats.find(c => c.classList.contains('is-on')) || { dataset: { type: '' } }).dataset.type, place = '';
 
     function apply() {
         const order = cards.slice().sort((a, b) => {
@@ -83,18 +126,21 @@
         });
         let shown = 0;
         order.forEach(c => {
-            const ok = (!type || c.dataset.type === type) && (!free.checked || c.dataset.free === '1');
+            const ok = (!type || c.dataset.type === type) && (!place || c.dataset.place === place) && (!free.checked || c.dataset.free === '1');
             c.hidden = !ok; if (ok) shown++;
             grid.appendChild(c);
         });
-        chips.forEach(c => c.classList.toggle('is-on', c.dataset.type === type));
+        cats.forEach(c => c.classList.toggle('is-on', c.dataset.type === type));
+        places.forEach(b => b.classList.toggle('is-on', b.dataset.place === place));
         none.classList.toggle('is-hidden', shown > 0);
-        const cur = chips.find(c => c.dataset.type === type), lab = cur && type ? cur.dataset.label : '';
-        count.innerHTML = '<b>' + shown + '</b> ' + (lab ? lab + ' ' : '') + (shown === 1 ? 'court' : 'courts') + (free.checked ? ' free now' : '');
+        const cur = cats.find(c => c.dataset.type === type), lab = cur && type ? cur.dataset.label : '';
+        count.innerHTML = '<b>' + shown + '</b> ' + (lab ? lab + ' ' : '') + noun[shown === 1 ? 0 : 1] + (place ? ', ' + place : '') + (free.checked ? ', free now' : '');
+        if (stat) stat.textContent = cards.filter(c => c.dataset.free === '1').length;
     }
-    chips.forEach(c => c.addEventListener('click', () => { type = c.dataset.type; apply(); }));
+    cats.forEach(c => c.addEventListener('click', () => { type = c.dataset.type; apply(); }));
+    places.forEach(b => b.addEventListener('click', () => { place = b.dataset.place; apply(); }));
     free.addEventListener('change', apply); sort.addEventListener('change', apply);
-    document.getElementById('fxReset').addEventListener('click', () => { type = ''; free.checked = false; apply(); });
+    document.getElementById('fxReset').addEventListener('click', () => { type = ''; place = ''; free.checked = false; apply(); });
     apply();
 
     // Keep "Free now" honest without reloading.
@@ -107,9 +153,9 @@
                     const f = d.courts[c.dataset.id]; if (f === undefined) return;
                     c.dataset.free = f ? '1' : '0';
                     const live = c.querySelector('[data-live]');
-                    live.className = 'fx-live ' + (f ? 'is-free' : 'is-busy'); live.querySelector('b').textContent = f ? 'Free now' : 'In use';
+                    live.className = 'ax-live ' + (f ? 'is-free' : 'is-busy'); live.querySelector('b').textContent = f ? 'Free now' : 'In use';
                 });
-                if (free.checked) apply();
+                apply();
             }).catch(() => {});
     }
     setInterval(tick, 30000); document.addEventListener('visibilitychange', tick);

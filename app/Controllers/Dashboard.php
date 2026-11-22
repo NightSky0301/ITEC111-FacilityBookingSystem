@@ -84,7 +84,14 @@ class Dashboard extends BaseController
             }
         }
 
-        return ['activities' => $acts, 'freeNow' => array_slice($freeNow, 0, 10), 'courtTotal' => $total, 'top' => $top, 'slides' => $slides];
+        $hotels = (new \App\Models\HotelModel())->withRooms();
+        $rooms  = 0;
+        foreach ($hotels as $h) {
+            $rooms += count($h['rooms'] ?? []);
+        }
+
+        return ['activities' => $acts, 'freeNow' => array_slice($freeNow, 0, 10), 'courtTotal' => $total, 'top' => $top, 'slides' => $slides,
+            'hotelCount' => count($hotels), 'roomCount' => $rooms, 'freeCount' => count($freeNow)];
     }
 
     /**

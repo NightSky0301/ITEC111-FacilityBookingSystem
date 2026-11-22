@@ -1,0 +1,1204 @@
+/* ==========================================================================
+   Athletix dark mode ("midnight indigo + amber").  Loaded after app.css; applies when <html data-theme="dark">.
+   Section 1 (colours) and section 3 (hand-tuned parts) are written by hand.
+   Section 2 is generated from app.css: every light surface, border and dark text colour there
+   gets a dusk equivalent. If app.css gets new light-theme colours, this section needs regenerating.
+   ========================================================================== */
+
+/* 1. Midnight-indigo palette: dusk navy surfaces, soft periwinkle text, warm amber accent */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --ink: #e6eaf8;
+    --muted: #98a4c6;
+    --mist: #0d1224;          /* page: midnight dusk, not black */
+    --paper: #151c36;         /* cards and panels */
+    --line: #252f56;
+    --line-strong: #34406e;
+    --lagoon: #283579;        /* fills: table headers, banners, steps */
+    --lagoon-2: #3a4b9c;
+    --aqua: #5f70e0;
+    --brass: #e8a93a;         /* amber accent and buttons */
+    --brass-light: #f3c065;
+    --lagoon-ink: #dbe0fa;    /* headings and text that used the deep teal */
+    --aqua-ink: #a3b1ff;
+    --brass-ink: #f2bb55;
+    --ok-ink: #62d3a0;   --ok-soft: #12332c;
+    --wait-ink: #f0c05a; --wait-soft: #3a2d12;
+    --bad-ink: #ff9a92;  --bad-soft: #3b1c26;
+    --off-ink: #a8b3d4;  --off-soft: #1c2542;
+
+    --bs-body-bg: var(--mist);
+    --bs-body-color: var(--ink);
+    --bs-emphasis-color: #fff;
+    --bs-secondary-color: var(--muted);
+    --bs-secondary-bg: var(--paper);
+    --bs-tertiary-bg: #1b2442;
+    --bs-border-color: var(--line);
+    --bs-heading-color: var(--ink);
+    --bs-link-color: var(--aqua-ink);
+    --bs-link-color-rgb: 163, 177, 255;
+    --bs-link-hover-color: #c9d2ff;
+    --bs-link-hover-color-rgb: 201, 210, 255;
+    --bs-dropdown-bg: var(--paper);
+    --bs-dropdown-color: var(--ink);
+    --bs-dropdown-border-color: var(--line-strong);
+    --bs-dropdown-link-color: var(--ink);
+    --bs-dropdown-link-hover-bg: #1b2442;
+    --bs-modal-bg: var(--paper);
+    --bs-modal-color: var(--ink);
+    --bs-modal-border-color: var(--line-strong);
+    --bs-card-bg: var(--paper);
+    --bs-card-color: var(--ink);
+    --bs-list-group-bg: var(--paper);
+    --bs-list-group-color: var(--ink);
+    --bs-list-group-border-color: var(--line);
+}
+
+/* 2. Generated from app.css */
+:where(html[data-theme="dark"]) body {
+    --bs-link-color: var(--aqua-ink);
+    --bs-link-hover-color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .brand-logo {
+    background: #2d2718
+}
+:where(html[data-theme="dark"]) .site-nav .nav-link:hover {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .site-nav .nav-link.active {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .nav-count {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .btn-cta {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .btn-cta:hover {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .icon-btn {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .icon-btn:hover {
+    background: #edb85c;
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .icon-btn .dot-count {
+    background: #1b1f32;
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .avatar {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .btn-primary {
+    --bs-btn-active-bg: #0f142c;
+    --bs-btn-active-border-color: #0f142c
+}
+:where(html[data-theme="dark"]) .btn-outline-primary {
+    --bs-btn-color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .btn-outline-secondary {
+    --bs-btn-hover-bg: #181c2a;
+    --bs-btn-active-bg: #161926
+}
+:where(html[data-theme="dark"]) .btn-outline-danger {
+    --bs-btn-border-color: #5a3936
+}
+:where(html[data-theme="dark"]) .btn-light-on-dark {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .form-control, :where(html[data-theme="dark"]) .form-select {
+    background-color: #1b1f32
+}
+:where(html[data-theme="dark"]) .flash-bad i {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .pill-approved, :where(html[data-theme="dark"]) .pill-active {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .pill-pending {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .pill-rejected {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .pill-cancelled, :where(html[data-theme="dark"]) .pill-inactive {
+    color: var(--off-ink)
+}
+:where(html[data-theme="dark"]) .data-table {
+    --bs-table-hover-bg: #1a1e2e
+}
+:where(html[data-theme="dark"]) .data-table > thead th {
+    background: #1a1e2d
+}
+:where(html[data-theme="dark"]) .data-table > tbody td {
+    border-color: #272e46
+}
+:where(html[data-theme="dark"]) .btn-gold {
+    --bs-btn-color: #1b1608;
+    --bs-btn-hover-color: #1b1608;
+    --bs-btn-hover-bg: #edb85c;
+    --bs-btn-hover-border-color: #edb85c;
+    --bs-btn-active-color: #1b1608;
+    --bs-btn-active-bg: #e69e21;
+    --bs-btn-active-border-color: #e69e21
+}
+:where(html[data-theme="dark"]) .dash-date {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .stat-card {
+    --c-soft: #161a27
+}
+:where(html[data-theme="dark"]) .stat-card.is-teal {
+    --c-soft: #151826
+}
+:where(html[data-theme="dark"]) .stat-card.is-wait.has-items {
+    border-color: #685c3e;
+    background: linear-gradient(180deg, #302b1a, var(--paper))
+}
+:where(html[data-theme="dark"]) .date-chip {
+    background: #1b1f32
+}
+@media (max-width: 575.98px) {
+    :where(html[data-theme="dark"]) .table-stack tbody tr {
+        border-top: 1px solid #272e46
+    }
+}
+:where(html[data-theme="dark"]) .mini-avatar {
+    background: var(--c-soft, #161a27);
+    color: var(--lagoon-ink);
+    background: #161a27
+}
+:where(html[data-theme="dark"]) .plaque-top {
+    background: var(--tint, #171a29)
+}
+:where(html[data-theme="dark"]) .plaque-type {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .tint-basketball {
+    --tint: #251c14
+}
+:where(html[data-theme="dark"]) .tint-volleyball {
+    --tint: #231f13
+}
+:where(html[data-theme="dark"]) .tint-pickleball {
+    --tint: #1a2215
+}
+:where(html[data-theme="dark"]) .tint-badminton {
+    --tint: #141824
+}
+:where(html[data-theme="dark"]) .tint-tennis {
+    --tint: #1d2014
+}
+:where(html[data-theme="dark"]) .tint-gym {
+    --tint: #1b1725
+}
+:where(html[data-theme="dark"]) .tint-futsal {
+    --tint: #17211a
+}
+:where(html[data-theme="dark"]) .tint-multipurpose {
+    --tint: #171d26
+}
+:where(html[data-theme="dark"]) .tint-other {
+    --tint: #161a28
+}
+:where(html[data-theme="dark"]) .type-chip i {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .plaque-img {
+    background: #161a28
+}
+:where(html[data-theme="dark"]) .back-link:hover {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .btn-back {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .activity-badge {
+    background: var(--tint, #161a28);
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .stepper-item.is-current .stepper-n {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .stepper-item.is-done .stepper-chip {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) a.stepper-chip:hover {
+    color: var(--ok-ink);
+    background: #17261f
+}
+:where(html[data-theme="dark"]) .live-chip.is-free {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .live-chip.is-busy {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .cal-day {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) a.cal-day:hover {
+    background: #181c2b
+}
+:where(html[data-theme="dark"]) .cal-day.is-past {
+    background: #1a1e2d
+}
+:where(html[data-theme="dark"]) .cal-badge {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .fc {
+    --fc-today-bg-color: #171b2a;
+    --fc-neutral-bg-color: #1a1e2d;
+    --fc-page-bg-color: #1b1f32;
+    --fc-button-active-bg-color: #0f142c;
+    --fc-button-active-border-color: #0f142c;
+    --fc-list-event-hover-bg-color: #191d2c
+}
+:where(html[data-theme="dark"]) .summary .total strong {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .note:hover {
+    background: #1a1e2e
+}
+:where(html[data-theme="dark"]) .note-icon {
+    color: var(--off-ink)
+}
+:where(html[data-theme="dark"]) .note-icon.is-ok {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .note-icon.is-bad {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .note-icon.is-new {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .note-extra {
+    background: #2a2417
+}
+:where(html[data-theme="dark"]) .note-extra b {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .note.is-unread .note-title::after {
+    color: var(--brass-ink);
+    background: var(--brass-soft, #241f14)
+}
+:where(html[data-theme="dark"]) .role-admin {
+    background: #241f14;
+    color: #e0caa3
+}
+:where(html[data-theme="dark"]) .role-staff {
+    background: #141824;
+    color: #b6bfe7
+}
+:where(html[data-theme="dark"]) .role-customer {
+    color: var(--off-ink)
+}
+:where(html[data-theme="dark"]) .perm-list i {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .auth-art::before {
+    background: repeating-radial-gradient(circle, transparent 0 30px, rgba(128,145,213,0.17) 30px 31px)
+}
+@media (max-width: 899.98px) {
+    :where(html[data-theme="dark"]) .auth-brand-mobile .brand {
+        color: var(--lagoon-ink)
+    }
+}
+:where(html[data-theme="dark"]) .pill-done {
+    background: #161a27;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .btn-light-on-dark:hover {
+    background: #f1c77e;
+    border-color: #f1c77e;
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .bk-next-icon {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bk-next-kicker {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bk-tab {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bk-tab:hover {
+    background: #181c2a
+}
+:where(html[data-theme="dark"]) .bk-tab.has-wait .n {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .bk-tab.is-active .n {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .bk-table > tbody > tr.is-closed .cell-title {
+    color: #a4b0e1
+}
+:where(html[data-theme="dark"]) .bk-rel {
+    color: var(--off-ink)
+}
+:where(html[data-theme="dark"]) .bk-rel.is-soon {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .bk-rel.is-now {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .bk-note i {
+    color: var(--brass-ink)
+}
+@media (max-width: 767.98px) {
+    :where(html[data-theme="dark"]) .bk-table > tbody > tr {
+        border-top: 1px solid #272e46
+    }
+}
+:where(html[data-theme="dark"]) .duration-box {
+    background: #1b1f2f
+}
+:where(html[data-theme="dark"]) .duration-icon {
+    background: #161a27;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ext-stepper {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .rate-note {
+    background: #2c2618
+}
+:where(html[data-theme="dark"]) .rate-note > i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .notif-head-icon {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .notif-toolbar {
+    background: #1a1e2d
+}
+:where(html[data-theme="dark"]) .bf-h {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .bf-empty {
+    background: #1b1f2f
+}
+:where(html[data-theme="dark"]) .bf-act {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bf-act-ic {
+    background: #161a27;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .bf-act[aria-checked="true"] {
+    background: #2c2618
+}
+:where(html[data-theme="dark"]) .bf-act[aria-checked="true"] .bf-act-ic {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .bf-court {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bf-price {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .bf-tick {
+    color: var(--brass-ink);
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bf-date {
+    background: #1b1f32;
+    color: #14292b
+}
+:where(html[data-theme="dark"]) .bf-date.is-on {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .bf-slot {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bf-slot.is-free:hover {
+    background: #2c2618
+}
+:where(html[data-theme="dark"]) .bf-slot.is-picked {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .bf-slot.is-busy {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .bf-slot.is-past, :where(html[data-theme="dark"]) .bf-slot.is-fit, :where(html[data-theme="dark"]) .bf-slot.is-off {
+    background: #191d2c
+}
+:where(html[data-theme="dark"]) .lg {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .lg-off {
+    background: #191d2c
+}
+:where(html[data-theme="dark"]) .bf-people {
+    background: #1a1e2e
+}
+:where(html[data-theme="dark"]) .bf-cool-opt > span {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bf-cool-opt input:checked + span {
+    background: #2c2618
+}
+:where(html[data-theme="dark"]) .bf-extra {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bf-extra-price {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .bf-extra:has(input:checked) {
+    background: #2c2618
+}
+:where(html[data-theme="dark"]) .bf-extra.is-off {
+    background: #191d2c
+}
+:where(html[data-theme="dark"]) .bf-grp {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bf-grp-pick {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .cal-fc .fc {
+    --fc-button-bg-color: #1b1f32;
+    --fc-button-hover-bg-color: #2c2618
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-toolbar-title {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-button {
+    background: #1b1f32;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-button:hover:not(:disabled) {
+    background: #2c2618;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-button-primary:not(:disabled).fc-button-active, :where(html[data-theme="dark"]) .cal-fc .fc .fc-button-primary:not(:disabled):active {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-daygrid-day-frame {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-daygrid-day:hover .fc-daygrid-day-frame {
+    background: #191d2d
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-day-past:not(.fc-day-other) .fc-daygrid-day-frame {
+    background: #1a1e2d
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-day-today .fc-daygrid-day-frame {
+    background: #302a1a
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-day-today .fc-daygrid-day-number {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-daygrid-more-link {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-event.ev-mine {
+    border-color: #0d1227 !important
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-event.ev-pending {
+    background: #e8a531 !important;
+    border-color: #ca8816 !important;
+    color: #1b1608 !important
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-timegrid-col.fc-day-today {
+    background: #302a1a
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-list-day-cushion {
+    background: #2c2618
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-list-event:hover td {
+    background: #1a1e2e
+}
+:where(html[data-theme="dark"]) .ev-ic {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .ev-kicker {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ev-title {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ev-row-ic {
+    background: #161a27;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ev-total strong {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ev-foot {
+    background: #1b1f2f
+}
+:where(html[data-theme="dark"]) .bf-cool-opt.is-off > span {
+    background: #191d2c
+}
+:where(html[data-theme="dark"]) .sch-bar {
+    background: #161a27
+}
+:where(html[data-theme="dark"]) .sch-none {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .ev-item {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .ev-item:hover {
+    background: #2c2618
+}
+:where(html[data-theme="dark"]) .ev-item b {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-daygrid-day.has-ev .fc-daygrid-day-frame {
+    background: #302a1a;
+    border-color: rgba(234,171,64,0.55)
+}
+:where(html[data-theme="dark"]) .dc-mine {
+    background: #161a27;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .dc-booked {
+    color: #dea09c
+}
+:where(html[data-theme="dark"]) .dc-pending {
+    background: #292316;
+    border-color: #ebb04a;
+    color: #e2cda7
+}
+:where(html[data-theme="dark"]) .sess-panel, :where(html[data-theme="dark"]) .tbl-panel {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .sess-grid {
+    background: #2e2819
+}
+:where(html[data-theme="dark"]) .sess-card {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .sess-state {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .is-soon .sess-state {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .is-due .sess-state {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .is-pending .sess-state {
+    background: var(--wait-soft, #282216);
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .sess-time {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .sess-modal .btn-gold:disabled {
+    background: #121622;
+    border-color: #2e3552
+}
+:where(html[data-theme="dark"]) .tbl-brass tbody tr:hover > * {
+    background: #2e2719
+}
+:where(html[data-theme="dark"]) .confirm-icon {
+    background: #2d2718;
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .confirm-icon.tone-brass {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .arc-tab {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .cal-fc .fc .fc-header-toolbar .fc-button-primary:not(:disabled).fc-button-active, :where(html[data-theme="dark"]) .cal-fc .fc .fc-header-toolbar .fc-button-primary:not(:disabled):active {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .legend span:not(.legend-title) {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .legend .lg-pending {
+    background: #e8a531;
+    border-color: #ca8816
+}
+:where(html[data-theme="dark"]) .legend .lg-mine {
+    border-color: #0d1227
+}
+:where(html[data-theme="dark"]) .page-actions .form-select.select-brass, :where(html[data-theme="dark"]) .select-brass {
+    color: #1b1608;
+    border: 1.5px solid #e39919
+}
+:where(html[data-theme="dark"]) .select-brass:hover {
+    background-color: #ecb453
+}
+:where(html[data-theme="dark"]) .select-brass option {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .pw-eye:hover {
+    color: var(--lagoon-ink);
+    background: #2a2516
+}
+:where(html[data-theme="dark"]) .pw-meter {
+    background: #151827
+}
+:where(html[data-theme="dark"]) .pw-bar.lv3 {
+    background: #edba61
+}
+:where(html[data-theme="dark"]) .pw-meter-text .lv1, :where(html[data-theme="dark"]) .pw-meter-text .lv2 {
+    color: #d37f7a
+}
+:where(html[data-theme="dark"]) .pw-meter-text .lv3 {
+    color: #ddc699
+}
+:where(html[data-theme="dark"]) .pw-meter-text .lv4, :where(html[data-theme="dark"]) .pw-meter-text .lv5 {
+    color: #9ddeb6
+}
+:where(html[data-theme="dark"]) .pw-rules li.ok {
+    color: #9ddeb6
+}
+:where(html[data-theme="dark"]) .pw-match.ok {
+    color: #9ddeb6
+}
+:where(html[data-theme="dark"]) .pw-match.bad {
+    color: #d37f7a
+}
+:where(html[data-theme="dark"]) .dd-btn:hover {
+    background: #182249
+}
+:where(html[data-theme="dark"]) .dd-menu {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .dd-menu li:hover, :where(html[data-theme="dark"]) .dd-menu li:focus {
+    background: #171b2a;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .forgot-done {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .forgot-done > i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .forgot-done strong {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .btn.btn-act-brass, :where(html[data-theme="dark"]) .btn.btn-act-brass:hover, :where(html[data-theme="dark"]) .btn.btn-act-brass:focus, :where(html[data-theme="dark"]) .btn.btn-act-brass:active, :where(html[data-theme="dark"]) .btn.btn-act-brass:focus-visible {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .btn.btn-act-ghost, :where(html[data-theme="dark"]) .btn.btn-act-ghost:hover, :where(html[data-theme="dark"]) .btn.btn-act-ghost:focus, :where(html[data-theme="dark"]) .btn.btn-act-ghost:active, :where(html[data-theme="dark"]) .btn.btn-act-ghost:focus-visible {
+    background: #1b1f32;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .btn.btn-act-ghost-red, :where(html[data-theme="dark"]) .btn.btn-act-ghost-red:hover, :where(html[data-theme="dark"]) .btn.btn-act-ghost-red:focus, :where(html[data-theme="dark"]) .btn.btn-act-ghost-red:active, :where(html[data-theme="dark"]) .btn.btn-act-ghost-red:focus-visible {
+    background: #1b1f32;
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .bk-chip i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bk-datetile {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .bk-dt-day {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .bk-when-time i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bk-tag {
+    color: var(--off-ink)
+}
+:where(html[data-theme="dark"]) .bk-tag.is-today {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .bk-tag.is-soon {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .bk-tag.is-past {
+    color: var(--off-ink)
+}
+:where(html[data-theme="dark"]) .pill-missed {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .pill-arrived {
+    background: #161a27;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .bk-remark i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bk-addons li i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bk-addons-total {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .len-cell .dd-btn {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .len-cell .dd-btn:hover {
+    background: #191d2d
+}
+:where(html[data-theme="dark"]) .len-cell .dd-chev {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .len-sum i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bf-ref-badge.tone-ok {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .bf-ref-badge.tone-low {
+    color: var(--wait-ink)
+}
+:where(html[data-theme="dark"]) .bf-ref-badge.tone-none {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .bf-ref-badge.tone-off {
+    color: var(--off-ink)
+}
+:where(html[data-theme="dark"]) .bk-days summary {
+    color: var(--bs-secondary-color, #6a7ecd)
+}
+:where(html[data-theme="dark"]) .bk-days li.is-approved em {
+    color: #9ddeb9
+}
+:where(html[data-theme="dark"]) .bk-days li.is-pending em {
+    color: #dcc396
+}
+:where(html[data-theme="dark"]) .bk-days li.is-rejected em, :where(html[data-theme="dark"]) .bk-days li.is-cancelled em {
+    color: #d37f7a
+}
+:where(html[data-theme="dark"]) .rb-date {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .rb-date .w {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .rb-time {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .rb-foot i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .bk-next .btn-light-on-dark {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .bk-next .btn-light-on-dark:hover, :where(html[data-theme="dark"]) .bk-next .btn-light-on-dark:focus, :where(html[data-theme="dark"]) .bk-next .btn-light-on-dark:active {
+    background: #e79f23;
+    border-color: #e79f23;
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .ev-taken li {
+    background: #2b1c1a;
+    border: 1px solid #4d312e
+}
+:where(html[data-theme="dark"]) .ev-taken-court i {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .plaque-live.is-free {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .plaque-live.is-full {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .pager {
+    background: #2e2819
+}
+:where(html[data-theme="dark"]) .pager-btn {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .pager-btn:hover:not(:disabled) {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .pager-dot {
+    background: #363126
+}
+:where(html[data-theme="dark"]) .hx::before {
+    background: linear-gradient(100deg, rgba(19,27,58,0.96) 12%, rgba(19,27,58,0.78) 48%, rgba(19,27,58,0.18) 100%)
+}
+:where(html[data-theme="dark"]) .hx-search {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .hx-field label i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .hx-field input[type=date] {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .hx-go {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .hx-go:hover, :where(html[data-theme="dark"]) .hx-go:focus {
+    background: #e79f23;
+    border-color: #e79f23;
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .fn-all {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .fn-all:hover {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .fn-card {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .fn-name {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .fn-empty {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .fx-chip {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .fx-track {
+    background: #222738
+}
+:where(html[data-theme="dark"]) .fx-track::after {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .fx-card {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .fx-tag {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .fx-live.is-free {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .fx-live.is-busy {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .fx-name {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .fx-sub i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .fx-none i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .login-pill {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .login-pill:hover, :where(html[data-theme="dark"]) .login-pill:focus-visible {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .tp-ico {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .tp-rank {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .tp-count {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .hx-dot:focus-visible {
+    outline: 2px solid #202539
+}
+:where(html[data-theme="dark"]) .dp-btn {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .dp-btn .bi-calendar-event {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .dp-chev {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .dp-pop {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .dp-nav {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .dp-day:hover:not(:disabled) {
+    background: #1a2521
+}
+:where(html[data-theme="dark"]) .dp-today {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .fn-row::-webkit-scrollbar-track {
+    background: #151825
+}
+:where(html[data-theme="dark"]) .fn-row::-webkit-scrollbar-thumb {
+    border: 4px solid #2b324c
+}
+:where(html[data-theme="dark"]) .um-menu {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .um-avatar {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .um-who em {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .um-ico {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .um-item:hover, :where(html[data-theme="dark"]) .um-item:focus-visible {
+    background: #181c2b;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .um-item:hover .um-go, :where(html[data-theme="dark"]) .um-item:focus-visible .um-go {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .um-item.active {
+    background: #181c2b;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .um-out {
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .um-out .um-ico {
+    background: #291b19
+}
+:where(html[data-theme="dark"]) .um-out:hover, :where(html[data-theme="dark"]) .um-out:focus-visible {
+    background: #291b19;
+    color: var(--bad-ink)
+}
+:where(html[data-theme="dark"]) .ht-crumbs a {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ht-crumbs a:hover {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ht-card {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .ht-card-name {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ht-card-tag {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ht-chip i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ht-go {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .ht-hero {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .ht-hero-body h1 {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ht-hero-tag {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ht-facts i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .rm-title {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .rm-hotel {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .hb {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .hb-price b {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .hb-date.is-on {
+    background: #181c2b
+}
+:where(html[data-theme="dark"]) .hb-step button {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .hb-total dt, :where(html[data-theme="dark"]) .hb-total dd {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .hb-go {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .hb-go:hover:not(:disabled) {
+    background: #e79f23;
+    border-color: #e79f23;
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .hb-go:disabled {
+    background: #3d362a;
+    border-color: #64563c;
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .hb-note i {
+    color: var(--ok-ink)
+}
+:where(html[data-theme="dark"]) .rg-nav {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .rg-day:hover:not(:disabled) {
+    background: #1a2521
+}
+:where(html[data-theme="dark"]) .rg-day.is-taken:disabled {
+    background: repeating-linear-gradient(135deg, #2a1c1a, #2a1c1a 4px, #1b1f32 4px, #1b1f32 8px)
+}
+:where(html[data-theme="dark"]) .rg-day.is-mid {
+    background: #17231e;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .rg-k-taken {
+    background: repeating-linear-gradient(135deg, #211615, #211615 3px, #1b1f32 3px, #1b1f32 6px);
+    border: 1px solid #5a3d38
+}
+:where(html[data-theme="dark"]) .site-nav-pills .nav-link:hover, :where(html[data-theme="dark"]) .site-nav-pills .nav-link:focus-visible {
+    background: rgba(240,196,121,0.16);
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .site-nav-pills .nav-link.active {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .fx-rail::-webkit-scrollbar-track {
+    background: #151825
+}
+:where(html[data-theme="dark"]) .fx-rail::-webkit-scrollbar-thumb {
+    border: 4px solid #2b324c
+}
+:where(html[data-theme="dark"]) .fx-chip.fx-cat {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .fx-cat-ico {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .fx-chip.fx-cat.is-on .fx-cat-ico {
+    color: #1b1608
+}
+:where(html[data-theme="dark"]) .fx-count b {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .um-switch::after {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .hx-box-ico {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .hx-q input[type=search] {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .hx-clear:hover {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .hx-list {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .hx-list li[role=option].is-on {
+    background: #292316
+}
+:where(html[data-theme="dark"]) .hx-ico {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .hx-txt mark {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .hx-list em {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .hx-all {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .sr-form {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .sr-form i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .sr-h {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .sr-h i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .sr-chip {
+    background: #1b1f32;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .sr-chip:hover {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .sr-chip i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .why-green {
+    background: #17231d
+}
+:where(html[data-theme="dark"]) .why-brass {
+    background: #252014
+}
+:where(html[data-theme="dark"]) .why-white {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .why-card h3 {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ax-stat {
+    background: #1b1f32;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ax-stat i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ax-side {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .ax-cat-ico {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ax-cat.is-on .ax-cat-ico {
+    color: #0e3b3f
+}
+:where(html[data-theme="dark"]) .ax-seg button.is-on {
+    background: #1b1f32;
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ax-count b {
+    color: var(--lagoon-ink)
+}
+:where(html[data-theme="dark"]) .ax-card {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .ax-photo::after {
+    background: linear-gradient(to top, rgba(10,14,31,0.78), rgba(10,14,31,0) 58%)
+}
+:where(html[data-theme="dark"]) .ax-live {
+    color: #14292b
+}
+:where(html[data-theme="dark"]) .ax-tag {
+    background: rgba(19,27,58,0.85)
+}
+:where(html[data-theme="dark"]) .ax-meta i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ax-none {
+    background: #1b1f32
+}
+:where(html[data-theme="dark"]) .ax-none i {
+    color: var(--brass-ink)
+}
+:where(html[data-theme="dark"]) .ax-track {
+    background: #222637
+}
+:where(html[data-theme="dark"]) .ax-track::after {
+    background: #1b1f32
+}
+@media (max-width: 991.98px) {
+    :where(html[data-theme="dark"]) .ax-rail .ax-cat {
+        background: #1b1f32
+    }
+}
+/* 3. Hand-tuned parts */
+:where(html[data-theme="dark"]) body { background: var(--mist); color: var(--ink); }
+:where(html[data-theme="dark"]) .site-header { background: #0a0f1f; border-bottom-color: #1c2548; box-shadow: 0 4px 18px rgba(0, 0, 0, .35); }
+:where(html[data-theme="dark"]) ::placeholder { color: #7480a6; opacity: 1; }
+:where(html[data-theme="dark"]) .form-control, :where(html[data-theme="dark"]) .form-select { background-color: #0f1530; border-color: var(--line-strong); color: var(--ink); }
+:where(html[data-theme="dark"]) .form-control:focus, :where(html[data-theme="dark"]) .form-select:focus { border-color: var(--brass); box-shadow: 0 0 0 .2rem rgba(232, 169, 58, .28); }
+:where(html[data-theme="dark"]) .btn-close { filter: invert(1) grayscale(1) brightness(2); }
+:where(html[data-theme="dark"]) img.table-thumb, :where(html[data-theme="dark"]) .fx-photo, :where(html[data-theme="dark"]) .ht-card-img, :where(html[data-theme="dark"]) .ht-hero-img { filter: brightness(.93); }
+:where(html[data-theme="dark"]) ::-webkit-scrollbar-track { background: #0f1530; }
+:where(html[data-theme="dark"]) .modal-backdrop { --bs-backdrop-bg: #000; --bs-backdrop-opacity: .6; }
+
+/* Primary buttons become amber with dark text */
+:where(html[data-theme="dark"]) .btn-primary {
+    --bs-btn-color: #1b1608; --bs-btn-bg: #e8a93a; --bs-btn-border-color: #e8a93a;
+    --bs-btn-hover-color: #1b1608; --bs-btn-hover-bg: #f3c065; --bs-btn-hover-border-color: #f3c065;
+    --bs-btn-active-color: #1b1608; --bs-btn-active-bg: #d4952c; --bs-btn-active-border-color: #d4952c;
+    --bs-btn-disabled-color: #1b1608; --bs-btn-disabled-bg: #e8a93a; --bs-btn-disabled-border-color: #e8a93a;
+    --bs-btn-focus-shadow-rgb: 232, 169, 58;
+}
+:where(html[data-theme="dark"]) body { --bs-link-color: var(--aqua-ink); --bs-link-color-rgb: 163, 177, 255; --bs-link-hover-color: #c9d2ff; --bs-link-hover-color-rgb: 201, 210, 255; }

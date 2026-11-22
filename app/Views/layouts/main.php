@@ -9,7 +9,10 @@
     <link href="<?= base_url('assets/vendor/icons/bootstrap-icons.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/vendor/fontawesome/css/fontawesome.min.css') ?>" rel="stylesheet">
     <link href="<?= base_url('assets/vendor/fontawesome/css/solid.min.css') ?>" rel="stylesheet">
+    <script>(function(){try{var t=localStorage.getItem('athletix-theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}var d=document.documentElement;d.setAttribute('data-theme',t);d.setAttribute('data-bs-theme',t);}catch(e){}})();</script>
     <link href="<?= base_url('assets/css/app.css') ?>" rel="stylesheet">
+    <link href="<?= base_url('assets/css/dark.css') ?>" rel="stylesheet">
+    <script src="<?= base_url('assets/js/theme.js') ?>" defer></script>
     <?= $this->renderSection('head') ?>
 </head>
 <body<?php if (session()->get('user_id')): ?> data-live-url="<?= site_url('notifications/pulse') ?>" data-live-stamp="<?= esc(live_stamp(), 'attr') ?>"<?php endif; ?>>
@@ -94,7 +97,7 @@
                     <span class="tools-divider d-none d-lg-block" aria-hidden="true"></span>
 
                     <div class="dropdown">
-                        <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" aria-label="Account menu">
+                        <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown" data-bs-display="static" data-bs-auto-close="outside" aria-expanded="false" aria-label="Account menu">
                             <span class="avatar"><?= esc($initial) ?></span>
                             <span class="user-meta">
                                 <span class="user-name"><?= esc($name) ?></span>
@@ -120,6 +123,11 @@
                                     </a>
                                 <?php endforeach; ?>
                                 <?php if ($menu): ?><hr class="um-rule"><?php endif; ?>
+                                <button type="button" class="um-item um-theme" data-theme-toggle role="switch" aria-checked="false">
+                                    <span class="um-ico"><i class="bi bi-moon-stars" aria-hidden="true"></i></span>
+                                    <span class="um-label">Dark mode</span>
+                                    <span class="um-switch" aria-hidden="true"></span>
+                                </button>
                                 <a class="um-item um-out" href="<?= site_url('logout') ?>">
                                     <span class="um-ico"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></span>
                                     <span class="um-label">Log out</span>

@@ -93,6 +93,9 @@
 <?php elseif (! $guest): ?>
 <?= $this->include('dashboard/_recent') ?>
 <?php endif; ?>
+<?php if (! $manager): ?>
+<?= $this->include('dashboard/_why') ?>
+<?php endif; ?>
 <?= $this->endSection() ?>
 
 <?php if (! $manager): ?>

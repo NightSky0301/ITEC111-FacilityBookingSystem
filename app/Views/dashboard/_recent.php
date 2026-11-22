@@ -17,7 +17,7 @@
             <div class="mt-3"><a href="<?= site_url('facilities') ?>" class="btn btn-gold btn-sm">Browse courts</a></div>
         </div>
     <?php else: ?>
-    <div class="sess-grid" data-pager="9" data-cols="3">
+    <div class="fn-row rb-row" tabindex="0" aria-label="Your recent bookings">
         <?php foreach (array_slice(group_bookings($latest), 0, 27) as $b):
             $s      = strtotime($b['start_at']);
             $e      = strtotime($b['end_at']);

@@ -300,3 +300,25 @@ if (! function_exists('live_stamp')) {
         return md5(json_encode($q->get()->getRowArray()));
     }
 }
+
+if (! function_exists('facility_card_item')) {
+    /** Everything a court/gym card needs (Activities, Fitness and Search all print the same card). */
+    function facility_card_item(array $c, \App\Models\BookingModel $bookings): array
+    {
+        $type = (string) $c['type'];
+
+        return [
+            'id'          => (int) $c['id'],
+            'name'        => $c['name'],
+            'type'        => $type,
+            'activity'    => \App\Models\FacilityModel::activityName($type),
+            'price'       => (float) $c['price_per_hour'],
+            'per_head'    => \App\Models\FacilityModel::isPerHead($c),
+            'people'      => \App\Models\FacilityModel::peopleLabel($c),
+            'outdoor'     => facility_is_outdoor($c),
+            'free'        => $bookings->isFreeNow($c),
+            'img'         => facility_image($c),
+            'description' => (string) ($c['description'] ?? ''),
+        ];
+    }
+}

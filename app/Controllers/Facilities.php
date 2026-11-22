@@ -86,18 +86,7 @@ class Facilities extends BaseController
         foreach ($byType as $type => $courts) {
             $chips[$type] = ['name' => FacilityModel::activityName($type), 'count' => count($courts)];
             foreach ($courts as $c) {
-                $items[] = [
-                    'id'       => (int) $c['id'],
-                    'name'     => $c['name'],
-                    'type'     => $type,
-                    'activity' => FacilityModel::activityName($type),
-                    'price'    => (float) $c['price_per_hour'],
-                    'per_head' => FacilityModel::isPerHead($c),
-                    'people'   => FacilityModel::peopleLabel($c),
-                    'outdoor'  => facility_is_outdoor($c),
-                    'free'     => $bookings->isFreeNow($c),
-                    'img'      => facility_image($c),
-                ];
+                $items[] = facility_card_item($c, $bookings);
             }
         }
 

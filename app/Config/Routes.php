@@ -16,6 +16,10 @@ $routes->get('facilities/court/(:num)', 'Facilities::court/$1');
 $routes->get('facilities/(:segment)', 'Facilities::category/$1');
 $routes->get('fitness', 'Facilities::fitness');
 
+// Search: results page and the suggestions under the search box (open to everyone).
+$routes->get('search', 'Search::index');
+$routes->get('search/suggest', 'Search::suggest');
+
 // Hotels: browsing is public, requesting a stay needs a login.
 $routes->get('hotels', 'Hotels::index');
 $routes->get('hotels/room/(:num)', 'Hotels::room/$1');
