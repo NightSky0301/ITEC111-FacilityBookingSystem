@@ -25,7 +25,7 @@
 <?php if (empty($rooms)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-door-closed"></i><strong>No rooms to book</strong>Rooms will show up here once they are added.</div></div>
 <?php else: ?>
-<div class="fx-grid">
+<div class="fx-grid" id="live-rooms" data-live>
     <?php foreach ($rooms as $r): ?>
         <a class="fx-card" href="<?= site_url('hotels/room/' . $r['id']) ?>">
             <span class="fx-photo" style="background-image:url('<?= esc(facility_image($r), 'attr') ?>')">

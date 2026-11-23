@@ -47,5 +47,12 @@ abstract class BaseController extends Controller
 
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
+
+        // Requests that were never approved or rejected before their start time are rejected automatically.
+        // Checked at most once every 30 seconds (and on every page, so the lists are always up to date).
+        if (! is_cli() && ! cache('pending_expiry_checked')) {
+            (new \App\Models\BookingModel())->expirePending();
+            cache()->save('pending_expiry_checked', 1, 30);
+        }
     }
 }

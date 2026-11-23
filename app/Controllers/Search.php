@@ -16,6 +16,8 @@ class Search extends BaseController
     /** Extra words that also find something ("workout" finds the gym, "stay" finds hotels). */
     private const EXTRA = [
         'gym'  => 'fitness workout exercise training',
+        'swimming' => 'fitness pool swim swimming laps water',
+        'dance'    => 'fitness studio dance class zumba ballet',
         'room' => 'hotel stay night sleep suite',
     ];
 
@@ -70,7 +72,7 @@ class Search extends BaseController
                     continue;
                 }
                 $item = facility_card_item($c, $bookings);
-                if ($type === 'gym') {
+                if (FacilityModel::isFitness($type)) {
                     $gyms[] = $item;
                 } else {
                     $courts[] = $item;
@@ -80,7 +82,7 @@ class Search extends BaseController
 
         $hotels = [];
         $model  = new HotelModel();
-        foreach ($model->withRooms() as $h) {
+        foreach ($model->withTonight($model->withRooms()) as $h) {
             $roomsHit = $words ? array_values(array_filter($h['rooms'], fn ($r) => $this->matches($words, $r['name'] . ' ' . $h['name'] . ' ' . (string) ($r['description'] ?? '') . ' ' . self::EXTRA['room']))) : [];
             if ($words && ! $this->matches($words, $this->hotelText($h)) && ! $roomsHit) {
                 continue;
@@ -91,7 +93,7 @@ class Search extends BaseController
 
         $acts = [];
         foreach (FacilityModel::ACTIVITIES as $k => [$name]) {
-            if (! in_array($k, ['room', 'other', 'gym'], true)) {
+            if (! in_array($k, ['room', 'other'], true) && ! FacilityModel::isFitness($k)) {
                 $acts[$k] = $name;
             }
         }
@@ -118,11 +120,11 @@ class Search extends BaseController
         if (! $words) {
             $out[] = ['kind' => 'Activities', 'title' => 'Browse all activities', 'sub' => 'Courts and tables for every sport', 'url' => site_url('facilities') . $qs, 'icon' => 'bi-grid-fill'];
             $out[] = ['kind' => 'Hotels', 'title' => 'Browse hotels', 'sub' => count($hotels) . ' hotels with rooms by the night', 'url' => site_url('hotels'), 'icon' => 'bi-building'];
-            if (isset($byType['gym'])) {
-                $out[] = ['kind' => 'Fitness', 'title' => 'Fitness', 'sub' => 'Book your workout time at the gym', 'url' => site_url('fitness'), 'icon' => 'bi-heart-pulse'];
+            if (array_intersect(FacilityModel::FITNESS, array_keys($byType))) {
+                $out[] = ['kind' => 'Fitness', 'title' => 'Fitness', 'sub' => 'Gym, swimming pools and dance studios', 'url' => site_url('fitness'), 'icon' => 'bi-heart-pulse'];
             }
             foreach (array_slice($byType, 0, 5, true) as $type => $list) {
-                if ($type !== 'gym') {
+                if (! FacilityModel::isFitness($type)) {
                     $out[] = ['kind' => 'Activity', 'title' => FacilityModel::activityName($type), 'sub' => count($list) . ' ' . FacilityModel::unitName($type, count($list)), 'url' => site_url('facilities') . '?type=' . $type . ($qs ? '&' . substr($qs, 1) : ''), 'icon' => facility_icon($type)];
                 }
             }
@@ -132,7 +134,7 @@ class Search extends BaseController
 
         // Activities first ("bad" -> Badminton), then courts and the gym, then hotels and rooms.
         foreach ($byType as $type => $list) {
-            if ($type !== 'gym' && $this->matches($words, FacilityModel::activityName($type) . ' ' . $type)) {
+            if (! FacilityModel::isFitness($type) && $this->matches($words, FacilityModel::activityName($type) . ' ' . $type)) {
                 $out[] = ['kind' => 'Activity', 'title' => FacilityModel::activityName($type), 'sub' => count($list) . ' ' . FacilityModel::unitName($type, count($list)), 'url' => site_url('facilities') . '?type=' . $type . ($qs ? '&' . substr($qs, 1) : ''), 'icon' => facility_icon($type)];
             }
         }
@@ -140,7 +142,7 @@ class Search extends BaseController
             foreach ($list as $c) {
                 if ($this->matches($words, $this->courtText($c))) {
                     $out[] = [
-                        'kind' => $type === 'gym' ? 'Fitness' : 'Court', 'title' => $c['name'], 'sub' => FacilityModel::activityName($type) . ' · ₱' . number_format((float) $c['price_per_hour'], 0) . (FacilityModel::isPerHead($c) ? ' per person/hr' : '/hr'),
+                        'kind' => FacilityModel::isFitness($type) ? 'Fitness' : 'Court', 'title' => $c['name'], 'sub' => FacilityModel::activityName($type) . ' · ₱' . number_format((float) $c['price_per_hour'], 0) . (FacilityModel::isPerHead($c) ? ' per person/hr' : '/hr'),
                         'url' => site_url('facilities/court/' . (int) $c['id']) . $qs, 'icon' => facility_icon($type),
                     ];
                 }

@@ -66,7 +66,7 @@ class Facilities extends BaseController
         return $this->browse('activities');
     }
 
-    /** Fitness: the gym. */
+    /** Fitness: the gym, swimming pools and dance studios. */
     public function fitness()
     {
         return $this->browse('fitness');
@@ -77,10 +77,11 @@ class Facilities extends BaseController
         helper('booking');
         $bookings = new BookingModel();
         $byType   = (new FacilityModel())->activeByType();
-        // The gym lives under Fitness; every other court is an activity.
+        // The gym, pools and dance studios live under Fitness; every other court is an activity.
+        $fitnessTypes = array_flip(FacilityModel::FITNESS);
         $byType = $section === 'fitness'
-            ? array_intersect_key($byType, ['gym' => 1])
-            : array_diff_key($byType, ['gym' => 1]);
+            ? array_intersect_key($byType, $fitnessTypes)
+            : array_diff_key($byType, $fitnessTypes);
         $items    = [];
         $chips    = [];
         foreach ($byType as $type => $courts) {
@@ -97,7 +98,7 @@ class Facilities extends BaseController
         return view('facilities/index', [
             'section' => $section,
             'heading' => $section === 'fitness' ? 'Fitness' : 'Activities',
-            'lead'    => $section === 'fitness' ? 'Book your workout time at the gym.' : 'Courts and tables for every sport. Pick one to see its schedule and book a time.',
+            'lead'    => $section === 'fitness' ? 'Book the gym, a swimming pool or a dance studio.' : 'Courts and tables for every sport. Pick one to see its schedule and book a time.',
             'action'  => site_url($section === 'fitness' ? 'fitness' : 'facilities'),
             'items'   => $items,
             'chips'   => $chips,
@@ -224,7 +225,7 @@ class Facilities extends BaseController
         $prevMonth = (clone $month)->modify('-1 month')->format('Y-m');
 
         return view('facilities/court', [
-            'navSection' => $facility['type'] === 'gym' ? 'fitness' : 'activities',
+            'navSection' => FacilityModel::isFitness($facility) ? 'fitness' : 'activities',
             'facility'   => $facility,
             'activity'   => FacilityModel::activityName($facility['type']),
             'date'       => $date,

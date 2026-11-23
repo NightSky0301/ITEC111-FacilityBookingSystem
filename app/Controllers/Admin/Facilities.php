@@ -151,7 +151,7 @@ class Facilities extends BaseController
         return redirect()->to('/admin/facilities')->with('success', 'Facility updated.');
     }
 
-    public function delete(int $id)
+    public function archive(int $id)
     {
         $model    = new FacilityModel();
         $facility = $model->find($id);

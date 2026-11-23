@@ -15,7 +15,7 @@
     <?php endif; ?>
 </div>
 
-<div class="panel">
+<div class="panel" id="live-notes" data-live>
     <?= $this->include('notifications/_list') ?>
 </div>
 <?= $this->endSection() ?>

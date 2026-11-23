@@ -74,7 +74,7 @@
                         <span class="ht-card-desc"><?= esc($h['description']) ?></span>
                     <?php endif; ?>
                     <span class="ht-card-foot">
-                        <span class="ht-from"><?= $n ?> <?= $n === 1 ? 'room' : 'rooms' ?> · from <b>₱<?= number_format($h['from'], 0) ?></b> <small>per night</small></span>
+                        <span class="ht-from"><?= $n ?> <?= $n === 1 ? 'room' : 'rooms' ?> · <b class="ht-free-txt"><?= (int) $h['free_tonight'] ?> free tonight</b> · from <b>₱<?= number_format($h['from'], 0) ?></b> <small>per night</small></span>
                         <a class="ht-go" href="<?= site_url('hotels/' . (int) $h['id']) ?>">View rooms <i class="bi bi-arrow-right"></i></a>
                     </span>
                 </span>

@@ -91,9 +91,21 @@ class FacilityModel extends Model
         'boxing'        => 'Boxing Ring',
         'multipurpose'  => 'Multipurpose Court',
         'gym'           => 'Gym',
+        'swimming'      => 'Swimming Pool',
+        'dance'         => 'Dance Studio',
         'room'          => 'Hotel Room',
         'other'         => 'Other',
     ];
+
+    /** Facility types that live under the Fitness tab (everything else is an Activity). */
+    public const FITNESS = ['gym', 'swimming', 'dance'];
+
+    public static function isFitness(array|string $facilityOrType): bool
+    {
+        $type = is_array($facilityOrType) ? (string) ($facilityOrType['type'] ?? '') : $facilityOrType;
+
+        return in_array($type, self::FITNESS, true);
+    }
 
     /** Hotel rooms are booked by the night and live under Hotels, never in the court lists. */
     public const ROOM = 'room';
@@ -108,7 +120,7 @@ class FacilityModel extends Model
     /** Short name + one-line description for each activity card. */
     /** What one facility of a type is called: [singular, plural]. Used by the live availability line. */
     public const UNITS = [
-        'gym' => ['gym', 'gyms'], 'bowling' => ['lane', 'lanes'], 'billiards' => ['table', 'tables'],
+        'gym' => ['gym', 'gyms'], 'swimming' => ['pool', 'pools'], 'dance' => ['studio', 'studios'], 'bowling' => ['lane', 'lanes'], 'billiards' => ['table', 'tables'],
         'tabletennis' => ['table', 'tables'], 'boxing' => ['ring', 'rings'],
     ];
 
@@ -133,6 +145,8 @@ class FacilityModel extends Model
         'boxing'       => ['Boxing', 'Rings for sparring and training'],
         'multipurpose' => ['Multipurpose', 'Events, tournaments and practice'],
         'gym'          => ['Gym',          'Workout floor, booked per person'],
+        'swimming'     => ['Swimming',     'Lap pools with marked lanes'],
+        'dance'        => ['Dance Studio', 'Mirrored studios for classes and practice'],
         'room'         => ['Hotel Room',   'Rooms booked by the night'],
         'other'        => ['Other',        'Other facilities'],
     ];
@@ -155,6 +169,8 @@ class FacilityModel extends Model
         'boxing'       => [2, 10],
         'multipurpose' => [10, 30],
         'gym'          => [1, 15],
+        'swimming'     => [4, 20],
+        'dance'        => [8, 25],
     ];
 
     /** @return array{0:int,1:int} [min, max] people the court comfortably holds. */

@@ -24,7 +24,7 @@
     <span class="legend-title">Legend</span>
     <span role="listitem"><i class="lg-booked" aria-hidden="true"></i> Booked</span>
     <span role="listitem"><i class="lg-pending" aria-hidden="true"></i> Waiting for approval</span>
-    <span role="listitem"><i class="lg-mine" aria-hidden="true"></i> <?= is_manager() ? 'Your own booking' : 'Your booking' ?></span>
+    <?php if (! is_manager()): ?><span role="listitem"><i class="lg-mine" aria-hidden="true"></i> Your booking</span><?php endif; ?>
 </div>
 
 <div class="panel cal-fc"><div class="panel-body"><div id="calendar"></div></div></div>
@@ -190,6 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     calendar.render();
     filter.addEventListener('change', () => calendar.refetchEvents());
+    document.addEventListener('live:changed', () => calendar.refetchEvents());   // new / approved / cancelled bookings appear without a refresh
 });
 </script>
 <?= $this->endSection() ?>

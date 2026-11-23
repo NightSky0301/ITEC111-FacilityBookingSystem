@@ -19,7 +19,9 @@ class Hotels extends BaseController
     {
         helper('booking');
 
-        return view('hotels/index', ['hotels' => (new HotelModel())->withRooms()]);
+        $model = new HotelModel();
+
+        return view('hotels/index', ['hotels' => $model->withTonight($model->withRooms())]);
     }
 
     public function show(int $id)
@@ -60,6 +62,12 @@ class Hotels extends BaseController
             'hotel' => $hotel,
             'taken' => (new HotelModel())->takenRanges($id),
         ]);
+    }
+
+    /** JSON: nights already taken for a room (the room page asks again when something changes). */
+    public function taken(int $id)
+    {
+        return $this->response->setHeader('Cache-Control', 'no-store')->setJSON((new HotelModel())->takenRanges($id));
     }
 
     /** POST: request a stay. */

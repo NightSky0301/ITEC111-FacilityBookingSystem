@@ -17,11 +17,11 @@
 <div class="page-head">
     <div>
         <h1>Archive</h1>
-        <p>Deleted facilities, accounts and bookings are kept here. Restore anything you removed by mistake.</p>
+        <p>Archived facilities, accounts and bookings are kept here. Restore anything you archived by mistake.</p>
     </div>
 </div>
 
-<nav class="arc-tabs" aria-label="Archive sections">
+<nav class="arc-tabs" aria-label="Archive sections" id="live-arc-tabs" data-live>
     <?php foreach ($tabs as $key => [$label, $icon, $n]): ?>
         <a href="<?= site_url('admin/archive?tab=' . $key) ?>" class="arc-tab <?= $tab === $key ? 'active' : '' ?>" <?= $tab === $key ? 'aria-current="page"' : '' ?>>
             <i class="bi <?= $icon ?>"></i> <?= $label ?> <span class="arc-count"><?= $n ?></span>
@@ -29,19 +29,19 @@
     <?php endforeach; ?>
 </nav>
 
-<section class="tbl-panel">
+<section class="tbl-panel" id="live-archive" data-live>
     <div class="sess-head">
         <div>
-            <h2>Deleted <?= strtolower($tabs[$tab][0]) ?></h2>
+            <h2>Archived <?= strtolower($tabs[$tab][0]) ?></h2>
             <div class="sess-sub"><?= $count ?> <?= $count === 1 ? 'item' : 'items' ?> in the archive</div>
         </div>
     </div>
 
 <?php if ($count === 0): ?>
-    <div class="empty"><i class="bi bi-archive"></i><strong>Nothing here</strong>Deleted <?= strtolower($tabs[$tab][0]) ?> will show up here so you can restore them.</div>
+    <div class="empty"><i class="bi bi-archive"></i><strong>Nothing here</strong>Archived <?= strtolower($tabs[$tab][0]) ?> will show up here so you can restore them.</div>
 <?php elseif ($tab === 'facilities'): ?>
     <div class="table-responsive"><table class="table data-table table-hover tbl-brass">
-        <thead><tr><th>Facility</th><th>Type</th><th>Capacity</th><th>Rate</th><th>Deleted</th><th></th></tr></thead>
+        <thead><tr><th>Facility</th><th>Type</th><th>Capacity</th><th>Rate</th><th>Archived</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($facilities as $f):
             $img = facility_image($f); ?>
@@ -58,7 +58,7 @@
     </table></div>
 <?php elseif ($tab === 'users'): ?>
     <div class="table-responsive"><table class="table data-table table-hover tbl-brass">
-        <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Deleted</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th>Role</th><th>Phone</th><th>Archived</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($users as $u): ?>
             <tr>
@@ -73,7 +73,7 @@
     </table></div>
 <?php else: ?>
     <div class="table-responsive"><table class="table data-table table-hover tbl-brass">
-        <thead><tr><th>Customer</th><th>Facility</th><th>When</th><th>Status</th><th>Deleted</th><th></th></tr></thead>
+        <thead><tr><th>Customer</th><th>Facility</th><th>When</th><th>Status</th><th>Archived</th><th></th></tr></thead>
         <tbody>
         <?php foreach ($bookings as $b): ?>
             <tr>

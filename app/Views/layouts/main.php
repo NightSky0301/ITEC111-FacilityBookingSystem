@@ -26,7 +26,7 @@
     // Which of Activities / Hotels / Fitness the current page belongs to (customers and guests).
     $section = $navSection ?? null;
     if ($section === null) {
-        if ($seg1 === 'fitness' || ($seg1 === 'facilities' && $seg2 === 'gym')) {
+        if ($seg1 === 'fitness' || ($seg1 === 'facilities' && $seg2 !== null && \App\Models\FacilityModel::isFitness($seg2))) {
             $section = 'fitness';
         } elseif ($seg1 === 'hotels') {
             $section = 'hotels';
@@ -35,7 +35,7 @@
         } elseif ($seg1 === 'bookings' && $seg2 === 'new') {
             $fid     = (int) service('request')->getGet('facility_id');
             $f       = $fid > 0 ? (new \App\Models\FacilityModel())->find($fid) : null;
-            $section = $f ? (\App\Models\FacilityModel::isRoom($f) ? 'hotels' : ($f['type'] === 'gym' ? 'fitness' : 'activities')) : 'activities';
+            $section = $f ? (\App\Models\FacilityModel::isRoom($f) ? 'hotels' : (\App\Models\FacilityModel::isFitness($f) ? 'fitness' : 'activities')) : 'activities';
         }
     }
     $onSec = static fn (string $s): string => $section === $s ? 'active' : '';
@@ -52,7 +52,7 @@
         ];
     }
 ?>
-<header class="site-header">
+<header class="site-header<?= is_manager() ? ' hdr-center' : '' ?>">
     <nav class="navbar navbar-expand-lg">
         <div class="container-xl">
             <a class="brand" href="<?= site_url('dashboard') ?>">
@@ -69,9 +69,9 @@
                     <?php if (! $guest && is_manager()): ?><li class="nav-item"><a class="nav-link <?= $active('dashboard') ?>" href="<?= site_url('dashboard') ?>">Dashboard</a></li><?php endif; ?>
                     <?php if (! $guest && is_manager()): ?><li class="nav-item"><a class="nav-link <?= $active('calendar') ?>" href="<?= site_url('calendar') ?>">Calendar</a></li><?php endif; ?>
                     <?php if ($guest || ! is_manager()): ?>
-                        <li class="nav-item"><a class="nav-link <?= $onSec('activities') ?>" href="<?= site_url('facilities') ?>">Activities</a></li>
-                        <li class="nav-item"><a class="nav-link <?= $onSec('hotels') ?>" href="<?= site_url('hotels') ?>">Hotels</a></li>
-                        <li class="nav-item"><a class="nav-link <?= $onSec('fitness') ?>" href="<?= site_url('fitness') ?>">Fitness</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $onSec('activities') ?>" href="<?= site_url('facilities') ?>">Sport Activities</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $onSec('hotels') ?>" href="<?= site_url('hotels') ?>">Hotel &amp; Suites</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $onSec('fitness') ?>" href="<?= site_url('fitness') ?>">Fitness &amp; Wellbeing</a></li>
                     <?php elseif (is_manager()): ?>
                         <li class="nav-item"><a class="nav-link <?= $active('manage', 'bookings') ?>" href="<?= site_url('manage/bookings') ?>">Bookings</a></li>
                         <?php if (is_admin()): ?>

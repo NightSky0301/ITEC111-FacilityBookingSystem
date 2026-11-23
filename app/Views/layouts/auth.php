@@ -23,6 +23,10 @@
     </aside>
 
     <section class="auth-panel">
+        <div class="auth-bar">
+            <a class="auth-back" href="<?= site_url('/') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Back</span></a>
+            <button type="button" class="auth-theme" data-theme-toggle role="switch" aria-checked="false" aria-label="Dark mode" title="Dark / light mode"><i class="bi bi-moon-stars" aria-hidden="true"></i><i class="bi bi-sun" aria-hidden="true"></i></button>
+        </div>
         <div class="auth-box">
             <a class="auth-logo-link" href="<?= site_url('/') ?>" aria-label="<?= esc('Athletix') ?>">
                 <img class="auth-logo" src="<?= base_url('assets/img/logo-lg.png') ?>" alt="" width="120" height="120">
@@ -33,6 +37,7 @@
     </section>
 </div>
 <script src="<?= base_url('assets/vendor/bootstrap.bundle.min.js') ?>"></script>
+<script src="<?= base_url('assets/js/theme.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>
 <?= $this->renderSection('scripts') ?>
 </body>

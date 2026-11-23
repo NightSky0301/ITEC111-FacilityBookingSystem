@@ -335,9 +335,9 @@ window.addEventListener('error', function (e) {
             .catch(() => { if (seq === spanSeq) { span = { free: false, error: true }; summary(); } });
     }
 
-    function load() {
+    function load(quiet) {
         const c = court(), d = dateIn.value;
-        info = null; renderSlots(); summary();
+        if (quiet !== true) { info = null; renderSlots(); summary(); }   // live refresh keeps the current times on screen until new ones arrive
         if (!c || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
         const key = c.id + d + '|' + people;
         fetch(busyUrl + '?facility_id=' + c.id + '&date=' + d + (c.head ? '&people=' + people : ''), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
@@ -491,6 +491,7 @@ window.addEventListener('error', function (e) {
     if (picked !== null) openKey = (GROUPS.find(g => picked >= g[2] && picked < g[3]) || [null])[0];
     setSport(sport);
     load();
+    document.addEventListener('live:changed', () => load(true));   // someone else's booking changes which times are free
 })();
 </script>
 <?= $this->endSection() ?>

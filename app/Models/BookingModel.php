@@ -206,6 +206,57 @@ class BookingModel extends Model
             ->findAll();
     }
 
+    /** Bookings (a multi-day stay counts once) whose first day falls in this month, with the given status. */
+    public function countThisMonth(string $status): int
+    {
+        return $this->where('status', $status)
+            ->where('start_at >=', date('Y-m-01 00:00:00'))
+            ->where('start_at <', date('Y-m-01 00:00:00', strtotime('first day of next month')))
+            ->groupStart()->where('group_id', null)->orWhere('group_id = id', null, false)->groupEnd()
+            ->countAllResults();
+    }
+
+    /**
+     * Pending requests nobody reviewed before their start time can no longer happen, so they are rejected
+     * automatically (every past day of a stay on its own) and the customer is told. Returns how many were rejected.
+     */
+    public function expirePending(): int
+    {
+        helper('booking');
+        $now  = date('Y-m-d H:i:s');
+        $rows = array_values(array_filter(
+            $this->withDetails(['status' => 'pending']),
+            static fn ($b) => $b['start_at'] < $now
+        ));
+        if (! $rows) {
+            return 0;
+        }
+
+        $this->update(array_map(static fn ($b) => (int) $b['id'], $rows), [
+            'status'        => 'rejected',
+            'admin_remarks' => 'Automatically rejected: the booking time passed before it was reviewed.',
+        ]);
+
+        // One notification per request (a stay is one request, however many of its days expired).
+        $notify = new \App\Libraries\NotificationService();
+        $sent   = [];
+        foreach ($rows as $b) {
+            $key = (int) ($b['group_id'] ?: $b['id']);
+            if (isset($sent[$key])) {
+                continue;
+            }
+            $sent[$key] = true;
+            $notify->notifyUser(
+                (int) $b['user_id'],
+                'Booking rejected',
+                'Your request for ' . $b['facility_name'] . ' (' . fmt_dt($b['start_at']) . ') was automatically rejected because the booking time passed before it was reviewed.',
+                (int) $b['id']
+            );
+        }
+
+        return count($rows);
+    }
+
     /** Is the facility in use right now, and when is the next approved session? */
     public function liveStatus(int $facilityId): array
     {

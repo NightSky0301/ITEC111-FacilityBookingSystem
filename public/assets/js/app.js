@@ -305,7 +305,7 @@ document.addEventListener('live:swap', initPagers);
                         seenNote = Math.max(seenNote || 0, d.latest.id);
                     } else if (seenNote === null) { seenNote = 0; }
                     if (d.stamp && d.stamp !== stamp && !busy()) {
-                        if (await refreshPage()) stamp = d.stamp;
+                        if (await refreshPage()) { stamp = d.stamp; document.dispatchEvent(new CustomEvent('live:changed')); }
                     }
                 }
             } catch (e) { /* offline for a moment: try again */ }
@@ -400,5 +400,7 @@ document.addEventListener('live:swap', initPagers);
         text();
     });
 
-    document.addEventListener('click', function (e) { if (openDp && !e.target.closest('.dp')) openDp(false); });
+    // Clicking the month arrows re-draws the pop-up, so the clicked arrow is no longer in the page when this runs.
+    // Such a click came from inside the picker and must not close it.
+    document.addEventListener('click', function (e) { if (openDp && e.target.isConnected && !e.target.closest('.dp')) openDp(false); });
 })();

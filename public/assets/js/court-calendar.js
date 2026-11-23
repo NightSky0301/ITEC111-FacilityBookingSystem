@@ -51,6 +51,9 @@
         load(new URL(a.getAttribute('href'), location.href).href, true);
     });
 
+    // Someone booked, approved or cancelled something: reload this court's day quietly.
+    document.addEventListener('live:changed', function () { if (!document.hidden) load(location.href, false); });
+
     // Back / forward buttons re-load the matching day without a full reload too.
     history.replaceState({ court: true }, '', location.href);
     window.addEventListener('popstate', function (e) {

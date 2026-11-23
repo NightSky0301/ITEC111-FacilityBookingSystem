@@ -131,10 +131,10 @@ class Users extends BaseController
     }
 
     /** Moves an account to the Archive (it can no longer log in). Restore it from there. */
-    public function delete(int $id)
+    public function archive(int $id)
     {
         if ($id === (int) session()->get('user_id')) {
-            return redirect()->to('/admin/users')->with('error', 'You cannot delete your own account.');
+            return redirect()->to('/admin/users')->with('error', 'You cannot archive your own account.');
         }
 
         $model = new UserModel();

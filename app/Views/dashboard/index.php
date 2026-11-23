@@ -16,48 +16,16 @@
         <h1>Hello, <?= esc($first) ?></h1>
         <p><?= $manager ? 'Here is what needs your attention today.' : 'Pick a court and a time, and we will send your request.' ?></p>
     </div>
+    <?php if (! $manager): ?>
     <div class="page-actions">
-        <?php if ($manager): ?>
-            <a href="<?= site_url('facilities') ?>" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i> New booking</a>
-            <a href="<?= site_url('manage/bookings?status=pending') ?>" class="btn btn-gold"><i class="bi bi-inbox me-1"></i> Review requests</a>
-        <?php else: ?>
-            <a href="<?= site_url('facilities') ?>" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i> New booking</a>
-        <?php endif; ?>
+        <a href="<?= site_url('facilities') ?>" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i> New booking</a>
     </div>
+    <?php endif; ?>
 </header>
 <?php endif; ?>
 
 <?php if ($manager): ?>
-<div class="stat-grid is-three" id="live-stats" data-live>
-    <a class="stat-card is-wait <?= (int) $pending > 0 ? 'has-items' : '' ?>" href="<?= $manager ? site_url('manage/bookings?status=pending') : site_url('my-bookings?filter=pending') ?>">
-        <span class="stat-icon"><i class="bi bi-hourglass-split"></i></span>
-        <div class="stat-body">
-            <div class="stat-num"><?= (int) $pending ?></div>
-            <div class="stat-label"><?= $manager ? 'Requests waiting for review' : 'Waiting for approval' ?></div>
-        </div>
-        <i class="bi bi-arrow-right stat-go" aria-hidden="true"></i>
-    </a>
-
-    <a class="stat-card is-ok" href="<?= $manager ? site_url('manage/bookings?status=approved') : site_url('my-bookings?filter=approved') ?>">
-        <span class="stat-icon"><i class="bi bi-check2-circle"></i></span>
-        <div class="stat-body">
-            <div class="stat-num"><?= (int) $approved ?></div>
-            <div class="stat-label">Approved bookings</div>
-        </div>
-        <i class="bi bi-arrow-right stat-go" aria-hidden="true"></i>
-    </a>
-
-    <?php if ($manager): ?>
-    <a class="stat-card is-teal" href="<?= $facUrl ?>">
-        <span class="stat-icon"><i class="bi bi-grid-3x3-gap"></i></span>
-        <div class="stat-body">
-            <div class="stat-num"><?= (int) $facilities ?></div>
-            <div class="stat-label">Active courts</div>
-        </div>
-        <i class="bi bi-arrow-right stat-go" aria-hidden="true"></i>
-    </a>
-    <?php endif; ?>
-</div>
+<?= $this->include('dashboard/_manager') ?>
 <?php endif; ?>
 
 <div id="live-next" data-live>
@@ -88,9 +56,7 @@
 <?= $this->include('dashboard/_freenow') ?>
 <?php endif; ?>
 
-<?php if ($manager): ?>
-<?= $this->include('dashboard/_sessions') ?>
-<?php elseif (! $guest): ?>
+<?php if (! $manager && ! $guest): ?>
 <?= $this->include('dashboard/_recent') ?>
 <?php endif; ?>
 <?php if (! $manager): ?>

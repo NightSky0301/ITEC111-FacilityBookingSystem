@@ -33,6 +33,34 @@ class HotelModel extends Model
         return $hotels;
     }
 
+    /**
+     * Adds what a customer wants to see on a hotel card, to hotels from withRooms():
+     *   free_tonight  rooms with no approved booking for tonight's stay (check-in today, check-out tomorrow)
+     *   max_guests    the most guests the biggest room sleeps
+     *   to            the price of the dearest room
+     */
+    public function withTonight(array $hotels): array
+    {
+        $bookings = new BookingModel();
+        foreach ($hotels as &$h) {
+            $ids = array_map(static fn ($r) => (int) $r['id'], $h['rooms'] ?? []);
+            $taken = [];
+            if ($ids) {
+                $in  = date('Y-m-d') . ' ' . $h['check_in_time'] . ':00';
+                $out = date('Y-m-d', strtotime('+1 day')) . ' ' . $h['check_out_time'] . ':00';
+                $rows = $bookings->select('facility_id')->whereIn('facility_id', $ids)->where('status', 'approved')
+                    ->where('start_at <', $out)->where('end_at >', $in)->findAll();
+                $taken = array_unique(array_map(static fn ($r) => (int) $r['facility_id'], $rows));
+            }
+            $h['free_tonight'] = count($ids) - count($taken);
+            $h['max_guests']   = $ids ? max(array_map(static fn ($r) => (int) $r['capacity'], $h['rooms'])) : 0;
+            $h['to']           = $ids ? max(array_map(static fn ($r) => (float) $r['price_per_hour'], $h['rooms'])) : 0.0;
+        }
+        unset($h);
+
+        return $hotels;
+    }
+
     /** Active rooms of a hotel, cheapest first. */
     public function rooms(int $hotelId): array
     {

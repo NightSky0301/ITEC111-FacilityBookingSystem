@@ -8,10 +8,12 @@
 <?php if (empty($hotels)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-building"></i><strong>No hotels yet</strong>Hotels will show up here once they are added.</div></div>
 <?php else: ?>
-<div class="ht-list">
+<div class="ht-list" id="live-hotels" data-live>
     <?php foreach ($hotels as $h):
-        $img = ! empty($h['image']) && is_file(FCPATH . $h['image']) ? base_url($h['image']) : base_url('assets/img/courts/other-a.svg');
-        $n   = count($h['rooms']); ?>
+        $img  = ! empty($h['image']) && is_file(FCPATH . $h['image']) ? base_url($h['image']) : base_url('assets/img/courts/other-a.svg');
+        $n    = count($h['rooms']);
+        $free = (int) ($h['free_tonight'] ?? 0);
+        $max  = (int) ($h['max_guests'] ?? 0); ?>
         <a class="ht-card" href="<?= site_url('hotels/' . $h['id']) ?>">
             <span class="ht-card-img" style="background-image:url('<?= esc($img, 'attr') ?>')" role="img" aria-label="<?= esc($h['name'], 'attr') ?>"></span>
             <span class="ht-card-body">
@@ -19,12 +21,20 @@
                 <?php if (! empty($h['tagline'])): ?><span class="ht-card-tag"><?= esc($h['tagline']) ?></span><?php endif; ?>
                 <span class="ht-card-desc"><?= esc($h['description']) ?></span>
                 <span class="ht-chips">
-                    <span class="ht-chip"><i class="bi bi-door-open"></i> <?= $n ?> <?= $n === 1 ? 'room' : 'rooms' ?></span>
+                    <?php if ($n === 0): ?>
+                        <span class="ht-chip is-full"><i class="bi bi-door-closed"></i> No rooms listed yet</span>
+                    <?php elseif ($free > 0): ?>
+                        <span class="ht-chip is-free"><i class="bi bi-check-circle-fill"></i> <?= $free ?> of <?= $n ?> <?= $n === 1 ? 'room' : 'rooms' ?> free tonight</span>
+                    <?php else: ?>
+                        <span class="ht-chip is-full"><i class="bi bi-x-circle-fill"></i> Fully booked tonight</span>
+                    <?php endif; ?>
+                    <?php if ($n > 0): ?><span class="ht-chip"><i class="bi bi-door-open"></i> <?= $n ?> <?= $n === 1 ? 'room' : 'rooms' ?></span><?php endif; ?>
+                    <?php if ($max > 0): ?><span class="ht-chip"><i class="bi bi-people"></i> Sleeps up to <?= $max ?></span><?php endif; ?>
                     <span class="ht-chip"><i class="bi bi-box-arrow-in-right"></i> Check-in <?= esc(date('g:i A', strtotime($h['check_in_time']))) ?></span>
                     <span class="ht-chip"><i class="bi bi-box-arrow-right"></i> Check-out <?= esc(date('g:i A', strtotime($h['check_out_time']))) ?></span>
                 </span>
                 <span class="ht-card-foot">
-                    <span class="ht-from">From <b>₱<?= number_format($h['from'], 0) ?></b> <small>per night</small></span>
+                    <span class="ht-from">From <b>₱<?= number_format($h['from'], 0) ?></b> <small>per night<?= ($h['to'] ?? 0) > $h['from'] ? ' · up to ₱' . number_format($h['to'], 0) : '' ?></small></span>
                     <span class="ht-go">View rooms <i class="bi bi-arrow-right"></i></span>
                 </span>
             </span>

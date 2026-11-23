@@ -64,6 +64,8 @@ if (! function_exists('facility_icon')) {
             'boxing'        => 'bi-lightning-charge',
             'multipurpose'  => 'bi-grid-3x3-gap',
             'gym'           => 'bi-heart-pulse',
+            'swimming'      => 'bi-water',
+            'dance'         => 'bi-music-note-beamed',
             'other'         => 'bi-geo-alt',
         ];
         return $icons[$type] ?? 'bi-geo-alt';
@@ -79,7 +81,7 @@ if (! function_exists('facility_is_outdoor')) {
     {
         $type = (string) ($facility['type'] ?? '');
         $name = trim((string) ($facility['name'] ?? ''));
-        if (in_array($type, ['gym', 'futsal', 'multipurpose', 'tabletennis', 'bowling', 'billiards', 'boxing'], true)) {
+        if (in_array($type, ['gym', 'dance', 'futsal', 'multipurpose', 'tabletennis', 'bowling', 'billiards', 'boxing'], true)) {
             return false;
         }
         if ($type === 'football') {
@@ -103,7 +105,7 @@ if (! function_exists('facility_image')) {
     function facility_image(array $facility): string
     {
         if (! empty($facility['image']) && is_file(FCPATH . $facility['image'])) {
-            return base_url($facility['image']);
+            return base_url($facility['image']) . '?v=' . filemtime(FCPATH . $facility['image']);
         }
 
         $type    = (string) ($facility['type'] ?? 'other');
@@ -113,7 +115,7 @@ if (! function_exists('facility_image')) {
         foreach ([$type . '-' . $variant, $type . '-a', 'other-a'] as $name) {
             foreach (['jpg', 'png', 'svg'] as $ext) {
                 if (is_file(FCPATH . 'assets/img/courts/' . $name . '.' . $ext)) {
-                    return base_url('assets/img/courts/' . $name . '.' . $ext);
+                    return base_url('assets/img/courts/' . $name . '.' . $ext) . '?v=' . filemtime(FCPATH . 'assets/img/courts/' . $name . '.' . $ext);
                 }
             }
         }
@@ -164,6 +166,8 @@ if (! function_exists('facility_icon_html')) {
             'football'     => 'fa-futbol',
             'multipurpose' => 'fa-border-all',
             'gym'          => 'fa-dumbbell',
+            'swimming'     => 'fa-person-swimming',
+            'dance'        => 'fa-music',
             'tabletennis'  => 'fa-table-tennis-paddle-ball',
             'bowling'      => 'fa-bowling-ball',
             'billiards'    => 'fa-circle-dot',
@@ -279,7 +283,7 @@ if (! function_exists('group_bookings')) {
 
 if (! function_exists('live_stamp')) {
     /**
-     * A short fingerprint of the bookings this person can see (all of them for staff/admin, their own for a customer).
+     * A short fingerprint of what this person can see (bookings, facilities, hotels, accounts for staff, notifications) (all of them for staff/admin, their own for a customer).
      * It changes when a booking is added, changed, approved, rejected, cancelled, checked in, deleted or restored.
      */
     function live_stamp(): string
@@ -297,7 +301,19 @@ if (! function_exists('live_stamp')) {
             $q->where('user_id', $uid);
         }
 
-        return md5(json_encode($q->get()->getRowArray()));
+        $parts = [$q->get()->getRowArray()];
+
+        // Anything else a page can show: facilities, hotels, (for staff) accounts, and this person's notifications.
+        $db = db_connect();
+        foreach (['facilities', 'hotels'] as $t) {
+            $parts[] = $db->table($t)->select("COUNT(*) AS c, MAX(updated_at) AS u, MAX(deleted_at) AS d, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS s")->get()->getRowArray();
+        }
+        if (is_manager()) {
+            $parts[] = $db->table('users')->select("COUNT(*) AS c, MAX(updated_at) AS u, MAX(deleted_at) AS d, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS s")->get()->getRowArray();
+        }
+        $parts[] = $db->table('notifications')->select('COUNT(*) AS c, MAX(id) AS i, SUM(CASE WHEN is_read = 0 THEN 1 ELSE 0 END) AS u')->where('user_id', $uid)->get()->getRowArray();
+
+        return md5(json_encode($parts));
     }
 }
 

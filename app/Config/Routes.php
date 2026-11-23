@@ -23,6 +23,7 @@ $routes->get('search/suggest', 'Search::suggest');
 // Hotels: browsing is public, requesting a stay needs a login.
 $routes->get('hotels', 'Hotels::index');
 $routes->get('hotels/room/(:num)', 'Hotels::room/$1');
+$routes->get('hotels/room/(:num)/taken', 'Hotels::taken/$1');
 $routes->get('hotels/(:num)', 'Hotels::show/$1');
 
 // ---------- Public ----------
@@ -76,7 +77,7 @@ $routes->group('admin', ['filter' => 'admin', 'namespace' => 'App\Controllers\Ad
     $routes->post('facilities', 'Facilities::create');
     $routes->get('facilities/(:num)/edit', 'Facilities::edit/$1');
     $routes->post('facilities/(:num)', 'Facilities::update/$1');
-    $routes->post('facilities/(:num)/delete', 'Facilities::delete/$1');
+    $routes->post('facilities/(:num)/archive', 'Facilities::archive/$1');
 
     $routes->get('users', 'Users::index');
     $routes->get('users/new', 'Users::new');
@@ -84,11 +85,11 @@ $routes->group('admin', ['filter' => 'admin', 'namespace' => 'App\Controllers\Ad
     $routes->get('users/(:num)/edit', 'Users::edit/$1');
     $routes->post('users/(:num)', 'Users::update/$1');
     $routes->post('users/(:num)/toggle', 'Users::toggle/$1');
-    $routes->post('users/(:num)/delete', 'Users::delete/$1');
+    $routes->post('users/(:num)/archive', 'Users::archive/$1');
 
-    $routes->post('bookings/(:num)/delete', 'Bookings::delete/$1');
+    $routes->post('bookings/(:num)/archive', 'Bookings::archive/$1');
 
-    // Archive: deleted facilities, users and bookings, with restore
+    // Archive: archived facilities, users and bookings, with restore
     $routes->get('archive', 'Archive::index');
     $routes->post('archive/(:segment)/(:num)/restore', 'Archive::restore/$1/$2');
 });

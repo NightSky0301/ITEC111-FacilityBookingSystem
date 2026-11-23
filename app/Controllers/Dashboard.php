@@ -18,12 +18,13 @@ class Dashboard extends BaseController
         }
 
         if (is_manager()) {
-            $data = [
+            $today = $this->sessionsToday($bookings);
+            $data  = [
                 'pending'    => $bookings->where('status', 'pending')->countAllResults(),
                 'approved'   => $bookings->where('status', 'approved')->countAllResults(),
                 'facilities' => (new FacilityModel())->where('status', 'active')->countAllResults(),
-                'latest'     => $this->sessionsToday($bookings),
-            ];
+                'latest'     => $today,
+            ] + $this->managerData($bookings, $today);
         } else {
             $mine = $bookings->withDetails(['user_id' => $userId]);
             $data = [
@@ -38,6 +39,45 @@ class Dashboard extends BaseController
         return view('dashboard/index', $data);
     }
 
+
+    /** Extra numbers for the staff / admin dashboard, built from today's approved sessions. */
+    private function managerData(BookingModel $bookings, array $today): array
+    {
+        $now      = time();
+        // Oldest requests first, one line per stay (a stay's other days ride along).
+        $pending = $bookings->withDetails(['status' => 'pending']);
+        usort($pending, static fn ($a, $b) => strtotime($a['created_at']) <=> strtotime($b['created_at']));
+        $perGroup = [];
+        foreach ($pending as $p) {
+            $g = (int) ($p['group_id'] ?: $p['id']);
+            $perGroup[$g] = ($perGroup[$g] ?? 0) + 1;
+        }
+        $queue = [];
+        foreach ($pending as $p) {
+            $g = (int) ($p['group_id'] ?: $p['id']);
+            if (isset($queue[$g])) {
+                continue;
+            }
+            $p['days']  = $perGroup[$g];
+            $queue[$g]  = $p;
+        }
+
+        // Three lists: activities (courts), hotels (rooms) and fitness (gym, pools, studios).
+        $groups = ['activities' => [], 'hotels' => [], 'fitness' => []];
+        foreach ($queue as $q) {
+            $type = (string) ($q['facility_type'] ?? '');
+            $key  = $type === FacilityModel::ROOM ? 'hotels' : (FacilityModel::isFitness($type) ? 'fitness' : 'activities');
+            $groups[$key][] = $q;
+        }
+
+        return [
+            'bookedToday'     => count($today),
+            'bookedMonth'     => $bookings->countThisMonth('approved'),
+            'cancelledMonth'  => $bookings->countThisMonth('cancelled'),
+            'queues'     => $groups,
+        ];
+    }
+
     /** For the customer home: activity list for the search box and the courts that are free right now. */
     private function browseData(BookingModel $bookings): array
     {
@@ -48,8 +88,8 @@ class Dashboard extends BaseController
         $total    = 0;
         $slides   = $this->bannerSlides();
         foreach ($byType as $type => $courts) {
-            if ($type !== 'gym') {
-                $acts[$type] = FacilityModel::activityName($type);   // the gym is under Fitness, not in the activity search
+            if (! FacilityModel::isFitness($type)) {
+                $acts[$type] = FacilityModel::activityName($type);   // gym, pools and studios are under Fitness, not in the activity search
             }
             foreach ($courts as $c) {
                 $total++;

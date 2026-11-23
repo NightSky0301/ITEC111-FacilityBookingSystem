@@ -3,7 +3,7 @@
 <div class="page-head">
     <div>
         <h1>Bookings</h1>
-        <p>Approve or reject requests. Approved bookings block the time slot.</p>
+        <p>Every booking in one list. Pending requests are approved or rejected from the Dashboard.</p>
     </div>
 </div>
 
@@ -12,6 +12,12 @@
         <option value="">All statuses</option>
         <?php foreach (['pending', 'approved', 'rejected', 'cancelled'] as $s): ?>
             <option value="<?= $s ?>" <?= $status === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
+        <?php endforeach; ?>
+    </select>
+    <select name="category" class="form-select" data-dd aria-label="Filter by category" onchange="this.form.facility_id.value='';this.form.submit()">
+        <option value="">All categories</option>
+        <?php foreach ($categories as $k => $label): ?>
+            <option value="<?= $k ?>" <?= $category === $k ? 'selected' : '' ?>><?= esc($label) ?></option>
         <?php endforeach; ?>
     </select>
     <select name="facility_id" class="form-select" data-dd aria-label="Filter by facility" onchange="this.form.submit()">
@@ -25,7 +31,7 @@
 <?php $bookings = group_bookings($bookings); ?>
 <div id="live-bookings" data-live>
 <section class="tbl-panel">
-<div class="sess-head"><div><h2>All bookings</h2><div class="sess-sub"><?= count($bookings) ?> <?= count($bookings) === 1 ? 'booking' : 'bookings' ?><?= $status ? ' · ' . ucfirst($status) : '' ?></div></div></div>
+<div class="sess-head"><div><h2>All bookings</h2><div class="sess-sub"><?= count($bookings) ?> <?= count($bookings) === 1 ? 'booking' : 'bookings' ?><?= $status ? ' · ' . ucfirst($status) : '' ?><?= $category ? ' · ' . esc($categories[$category]) : '' ?></div></div></div>
 <?php if (empty($bookings)): ?>
     <div class="empty"><i class="bi bi-inbox"></i><strong>No bookings found</strong>Try a different filter.</div>
 <?php else: ?>
@@ -143,16 +149,7 @@
             <td>
               <div class="bk-actions">
                 <?php if ($hasPending): ?>
-                    <div class="btn-row">
-                        <form method="post" action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/approve') ?>">
-                            <?= csrf_field() ?>
-                            <button class="btn btn-sm btn-act btn-act-edit"><i class="bi bi-check-lg"></i> Approve</button>
-                        </form>
-                        <button type="button" class="btn btn-sm btn-act btn-act-red bk-reason-btn"
-                                data-action="<?= site_url('manage/bookings/' . (int) $b['id'] . '/reject') ?>"
-                                data-title="Reject this booking?" data-ok="Reject booking" data-icon="bi-x-circle" data-tone="danger"
-                                data-text="<?= esc('Reject ' . $b['customer_name'] . '\'s request for ' . $b['facility_name'] . ($stayN > 1 ? ' (all ' . $stayN . ' days)' : '') . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-x-lg"></i> Reject</button>
-                    </div>
+                    <a class="btn btn-sm btn-act btn-act-edit" href="<?= site_url('dashboard') ?>"><i class="bi bi-inbox"></i> Review on Dashboard</a>
                 <?php elseif ($hasApproved): ?>
                     <div class="btn-row">
                         <button type="button" class="btn btn-sm btn-act btn-act-brass bk-reason-btn"
@@ -162,10 +159,10 @@
                     </div>
                 <?php endif; ?>
                 <?php if (is_admin()): ?>
-                    <form method="post" action="<?= site_url('admin/bookings/' . (int) $b['id'] . '/delete') ?>"
-                          data-confirm="<?= $stayN > 1 ? 'All ' . (int) $stayN . ' days of this stay' : 'This booking' ?> will be moved to the Archive and the time slot freed. You can restore it from the Archive." data-confirm-title="Delete this booking?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
+                    <form method="post" action="<?= site_url('admin/bookings/' . (int) $b['id'] . '/archive') ?>"
+                          data-confirm="<?= $stayN > 1 ? 'All ' . (int) $stayN . ' days of this stay' : 'This booking' ?> will be moved to the Archive and the time slot freed. You can restore it from the Archive." data-confirm-title="Archive this booking?" data-confirm-ok="Archive" data-confirm-icon="bi-archive">
                         <?= csrf_field() ?>
-                        <button class="btn btn-sm btn-act btn-act-ghost-red btn-del"><i class="bi bi-trash"></i> Delete</button>
+                        <button class="btn btn-sm btn-act btn-act-ghost-red btn-del"><i class="bi bi-archive"></i> Archive</button>
                     </form>
                 <?php endif; ?>
               </div>

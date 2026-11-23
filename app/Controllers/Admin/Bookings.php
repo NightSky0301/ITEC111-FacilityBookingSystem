@@ -9,19 +9,40 @@ use App\Models\FacilityModel;
 
 class Bookings extends BaseController
 {
+    public const CATEGORIES = ['activities' => 'Sport Activities', 'hotels' => 'Hotel & Suites', 'fitness' => 'Fitness & Wellbeing'];
+
+    /** Which of the three groups a facility type belongs to. */
+    public static function categoryOf(string $type): string
+    {
+        return $type === FacilityModel::ROOM ? 'hotels' : (FacilityModel::isFitness($type) ? 'fitness' : 'activities');
+    }
+
     public function index()
     {
         $status     = $this->request->getGet('status');
         $facilityId = (int) $this->request->getGet('facility_id');
+        $category   = (string) $this->request->getGet('category');
+        if (! isset(self::CATEGORIES[$category])) {
+            $category = '';
+        }
+
+        $bookings   = (new BookingModel())->withDetails([
+            'status'      => $status ?: null,
+            'facility_id' => $facilityId ?: null,
+        ]);
+        $facilities = (new FacilityModel())->orderBy('name')->findAll();
+        if ($category !== '') {
+            $bookings   = array_values(array_filter($bookings, static fn ($b) => self::categoryOf((string) ($b['facility_type'] ?? '')) === $category));
+            $facilities = array_values(array_filter($facilities, static fn ($f) => self::categoryOf((string) $f['type']) === $category));
+        }
 
         return view('admin/bookings/index', [
-            'bookings'   => (new BookingModel())->withDetails([
-                'status'      => $status ?: null,
-                'facility_id' => $facilityId ?: null,
-            ]),
-            'facilities' => (new FacilityModel())->orderBy('name')->findAll(),
+            'bookings'   => $bookings,
+            'facilities' => $facilities,
             'status'     => $status,
             'facilityId' => $facilityId,
+            'category'   => $category,
+            'categories' => self::CATEGORIES,
         ]);
     }
 
@@ -167,15 +188,15 @@ class Bookings extends BaseController
         return redirect()->back()->with('success', count($days) > 1 ? 'Booking cancelled (' . count($days) . ' days).' : 'Booking cancelled.');
     }
 
-    /** Admin only: moves a booking to the Archive. Its time slot is freed. */
-    public function delete(int $id)
+    /** Admin only: moves a booking to the Archive (nothing is erased). Its time slot is freed. */
+    public function archive(int $id)
     {
         $bookings = new BookingModel();
         if (! $bookings->find($id)) {
             return redirect()->back()->with('error', 'Booking not found.');
         }
 
-        // Deleting a stay moves every day of it to the Archive (single=1 moves just this day).
+        // Archiving a stay moves every day of it to the Archive (single=1 moves just this day).
         $booking = $bookings->find($id);
         $ids     = $this->request->getPost('single') === '1' ? [$id] : array_column($bookings->groupRows($booking), 'id');
         $bookings->delete($ids);

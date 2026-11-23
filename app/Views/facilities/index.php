@@ -8,7 +8,7 @@
     $freeCount = count(array_filter($items, static fn ($c) => $c['free']));
     $fitness   = $section === 'fitness';
     $first     = $items[0] ?? null;
-    $hasSide   = ! $fitness && count($chips) > 1;
+    $hasSide   = count($chips) > 1;
 ?>
 <header class="ax-hero">
     <div>
@@ -18,7 +18,7 @@
     <?php if ($total): ?>
     <div class="ax-stats">
         <span class="ax-stat"><span class="fn-dot" aria-hidden="true"></span> <span id="axFreeStat"><?= $freeCount ?></span>&nbsp;free now</span>
-        <span class="ax-stat"><i class="bi <?= $fitness ? 'bi-heart-pulse' : 'bi-grid' ?>" aria-hidden="true"></i> <?= $total ?> <?= $fitness ? ($total === 1 ? 'gym' : 'gyms') : ($total === 1 ? 'court' : 'courts') ?></span>
+        <span class="ax-stat"><i class="bi <?= $fitness ? 'bi-heart-pulse' : 'bi-grid' ?>" aria-hidden="true"></i> <?= $total ?> <?= $fitness ? ($total === 1 ? 'space' : 'spaces') : ($total === 1 ? 'court' : 'courts') ?></span>
     </div>
     <?php endif; ?>
 </header>
@@ -28,18 +28,18 @@
 <?php else: ?>
 
 <?php if ($fitness && $first): ?>
-<section class="gy-feature" aria-label="About the gym">
+<section class="gy-feature" aria-label="About Fitness">
     <div class="gy-photo" style="background-image:url('<?= esc($first['img'], 'attr') ?>')" role="img" aria-label="<?= esc($first['name'], 'attr') ?>"></div>
     <div class="gy-copy">
-        <h2>Train on your schedule</h2>
-        <p>Choose a start time and how long you want, and the gym is yours for that session.</p>
+        <h2>Train, swim and dance on your schedule</h2>
+        <p>Work out in the gym, swim laps or reserve a mirrored dance studio. Choose a start time and how long you want.</p>
         <ul class="gy-perks">
-            <li><i class="bi bi-person-check" aria-hidden="true"></i> Booked per person</li>
-            <li><i class="bi bi-broadcast" aria-hidden="true"></i> Live space check</li>
+            <li><i class="bi bi-person-check" aria-hidden="true"></i> Gym booked per person</li>
+            <li><i class="bi bi-water" aria-hidden="true"></i> Pools and studios by the hour</li>
             <li><i class="bi bi-clock" aria-hidden="true"></i> Pick any open hour</li>
             <li><i class="bi bi-patch-check" aria-hidden="true"></i> Confirmed by staff</li>
         </ul>
-        <a class="btn btn-gold" href="<?= site_url('facilities/court/' . (int) $first['id']) . $dateQs ?>">Book a session <i class="bi bi-arrow-right ms-1"></i></a>
+        <a class="btn btn-gold" href="#fxGrid">Choose a space <i class="bi bi-arrow-down ms-1"></i></a>
     </div>
 </section>
 <?php endif; ?>
@@ -115,7 +115,7 @@
     const free = document.getElementById('fxFree'), sort = document.getElementById('fxSort');
     const cats = Array.from(document.querySelectorAll('.ax-cat')), count = document.getElementById('fxCount');
     const places = Array.from(document.querySelectorAll('.ax-seg button')), stat = document.getElementById('axFreeStat');
-    const noun = <?= $fitness ? "['gym', 'gyms']" : "['court', 'courts']" ?>;
+    const noun = <?= $fitness ? "['space', 'spaces']" : "['court', 'courts']" ?>;
     let type = (cats.find(c => c.classList.contains('is-on')) || { dataset: { type: '' } }).dataset.type, place = '';
 
     function apply() {

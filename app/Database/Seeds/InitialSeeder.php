@@ -13,7 +13,7 @@ class InitialSeeder extends Seeder
         // Default accounts (change these passwords after first login!)
         $this->db->table('users')->insertBatch([
             [
-                'name'       => 'System Admin',
+                'name'       => 'Administrator',
                 'email'      => 'admin@facility.test',
                 'phone'      => null,
                 'password'   => password_hash('admin123', PASSWORD_DEFAULT),

@@ -8,7 +8,7 @@
     <div class="page-actions"><a href="<?= site_url('admin/facilities/new') ?>" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add facility</a></div>
 </div>
 
-<div class="panel">
+<div class="panel" id="live-facilities" data-live>
 <?php if (empty($facilities)): ?>
     <div class="empty"><i class="bi bi-geo-alt"></i><strong>No facilities yet</strong>Add your first court, such as basketball, volleyball or pickleball.</div>
 <?php else: ?>
@@ -31,9 +31,9 @@
             <td class="text-end text-nowrap">
                 <a href="<?= site_url('facilities/court/' . (int) $f['id']) ?>" class="btn btn-sm btn-outline-secondary">Schedule</a>
                 <a href="<?= site_url('admin/facilities/' . (int) $f['id'] . '/edit') ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                <form method="post" action="<?= site_url('admin/facilities/' . (int) $f['id'] . '/delete') ?>" class="d-inline" data-confirm="<?= esc($f['name'] . ' will be moved to the Archive. Booking history is kept and you can restore it any time.', 'attr') ?>" data-confirm-title="Delete this facility?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
+                <form method="post" action="<?= site_url('admin/facilities/' . (int) $f['id'] . '/archive') ?>" class="d-inline" data-confirm="<?= esc($f['name'] . ' will be moved to the Archive. Booking history is kept and you can restore it any time.', 'attr') ?>" data-confirm-title="Archive this facility?" data-confirm-ok="Archive" data-confirm-icon="bi-archive">
                     <?= csrf_field() ?>
-                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                    <button class="btn btn-sm btn-outline-danger">Archive</button>
                 </form>
             </td>
         </tr>

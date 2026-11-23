@@ -101,6 +101,13 @@
     const nights = new Set();                            // every taken night (the day a stay starts, up to the day before it ends)
     TAKEN.forEach(([a, b]) => { for (let d = parse(a); d < parse(b); d = addDays(d, 1)) nights.add(iso(d)); });
     const free = d => !nights.has(iso(d));
+    // Someone else booked or cancelled this room: fetch the taken nights again and redraw the calendar.
+    document.addEventListener('live:changed', function () {
+        fetch('<?= site_url('hotels/room/' . (int) $room['id'] . '/taken') ?>', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(list => { nights.clear(); list.forEach(([a, b]) => { for (let d = parse(a); d < parse(b); d = addDays(d, 1)) nights.add(iso(d)); }); draw(); })
+            .catch(() => {});
+    });
 
     const inEl = document.getElementById('hbIn'), outEl = document.getElementById('hbOut');
     let cin = parse(inEl.value), cout = parse(outEl.value);

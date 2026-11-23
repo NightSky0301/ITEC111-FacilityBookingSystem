@@ -17,7 +17,7 @@
     </select>
 </form>
 
-<section class="tbl-panel">
+<section class="tbl-panel" id="live-users" data-live>
     <div class="sess-head">
         <div>
             <h2>All accounts</h2>
@@ -52,10 +52,10 @@
                             <button class="btn btn-sm btn-act btn-act-ghost"><i class="bi bi-person-check"></i> Reactivate</button>
                         <?php endif; ?>
                     </form>
-                    <form method="post" action="<?= site_url('admin/users/' . (int) $u['id'] . '/delete') ?>" class="d-inline"
-                          data-confirm="<?= esc($u['name'] . ' will be moved to the Archive and can no longer log in. You can restore the account from the Archive.', 'attr') ?>" data-confirm-title="Delete this account?" data-confirm-ok="Delete" data-confirm-icon="bi-trash">
+                    <form method="post" action="<?= site_url('admin/users/' . (int) $u['id'] . '/archive') ?>" class="d-inline"
+                          data-confirm="<?= esc($u['name'] . ' will be moved to the Archive and can no longer log in. You can restore the account from the Archive.', 'attr') ?>" data-confirm-title="Archive this account?" data-confirm-ok="Archive" data-confirm-icon="bi-archive">
                         <?= csrf_field() ?>
-                        <button class="btn btn-sm btn-act btn-act-red"><i class="bi bi-trash"></i> Delete</button>
+                        <button class="btn btn-sm btn-act btn-act-red"><i class="bi bi-archive"></i> Archive</button>
                     </form>
                 <?php endif; ?>
             </td>
