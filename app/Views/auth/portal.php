@@ -43,18 +43,17 @@ $brand = 'Athletix';
             <a class="auth-logo-link" href="<?= site_url('/') ?>" aria-label="<?= esc($brand) ?>">
                 <img class="auth-logo" src="<?= base_url('assets/img/logo-lg.png') ?>" alt="" width="120" height="120">
             </a>
-            <?php if (! $isReg) { echo $this->include('layouts/alerts'); } ?>
             <?= $this->include('auth/_login') ?>
         </div>
         <div class="auth-box" data-for="register" <?= $isReg ? '' : 'inert' ?>>
             <a class="auth-logo-link" href="<?= site_url('/') ?>" aria-label="<?= esc($brand) ?>">
                 <img class="auth-logo" src="<?= base_url('assets/img/logo-lg.png') ?>" alt="" width="120" height="120">
             </a>
-            <?php if ($isReg) { echo $this->include('layouts/alerts'); } ?>
             <?= $this->include('auth/_register') ?>
         </div>
     </section>
 </div>
+<?= $this->include('layouts/alerts') ?>
 <script src="<?= base_url('assets/vendor/bootstrap.bundle.min.js') ?>"></script>
 <script src="<?= base_url('assets/js/theme.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>

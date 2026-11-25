@@ -58,6 +58,7 @@ if (! function_exists('facility_icon')) {
             'tennis'        => 'bi-lightning-charge',
             'futsal'        => 'bi-trophy',
             'football'      => 'bi-flag',
+            'baseball'      => 'bi-diamond-fill',
             'tabletennis'   => 'bi-bullseye',
             'bowling'       => 'bi-circle-fill',
             'billiards'     => 'bi-record-circle',
@@ -66,6 +67,12 @@ if (! function_exists('facility_icon')) {
             'gym'           => 'bi-heart-pulse',
             'swimming'      => 'bi-water',
             'dance'         => 'bi-music-note-beamed',
+            'gymnastics'    => 'bi-activity',
+            'yoga'          => 'bi-flower1',
+            'music'         => 'bi-music-note-list',
+            'karaoke'       => 'bi-mic',
+            'massage'       => 'bi-stars',
+            'footspa'       => 'bi-droplet-half',
             'other'         => 'bi-geo-alt',
         ];
         return $icons[$type] ?? 'bi-geo-alt';
@@ -74,17 +81,17 @@ if (! function_exists('facility_icon')) {
 
 if (! function_exists('facility_is_outdoor')) {
     /**
-     * Indoor or outdoor. Gym, futsal, multipurpose, table tennis, bowling, billiards and boxing are always indoor, football is always outdoor.
+     * Indoor or outdoor. Gym, gymnastics, yoga, massage, foot spa, music, karaoke, dance, futsal, multipurpose, table tennis, bowling, billiards and boxing are always indoor, football and baseball are always outdoor.
      * Every other court says it in its name: "Basketball Court (Outdoor)". Older "Court B" / "2" names still count as outdoor.
      */
     function facility_is_outdoor(array $facility): bool
     {
         $type = (string) ($facility['type'] ?? '');
         $name = trim((string) ($facility['name'] ?? ''));
-        if (in_array($type, ['gym', 'dance', 'futsal', 'multipurpose', 'tabletennis', 'bowling', 'billiards', 'boxing'], true)) {
+        if (in_array($type, ['gym', 'dance', 'gymnastics', 'yoga', 'massage', 'footspa', 'music', 'karaoke', 'futsal', 'multipurpose', 'tabletennis', 'bowling', 'billiards', 'boxing'], true)) {
             return false;
         }
-        if ($type === 'football') {
+        if (in_array($type, ['football', 'baseball'], true)) {
             return true;
         }
         if (stripos($name, 'outdoor') !== false) {
@@ -164,10 +171,17 @@ if (! function_exists('facility_icon_html')) {
             'pickleball'   => 'fa-table-tennis-paddle-ball',
             'futsal'       => 'fa-person-running',
             'football'     => 'fa-futbol',
+            'baseball'     => 'fa-baseball',
             'multipurpose' => 'fa-border-all',
             'gym'          => 'fa-dumbbell',
             'swimming'     => 'fa-person-swimming',
             'dance'        => 'fa-music',
+            'gymnastics'   => 'fa-child-reaching',
+            'yoga'         => 'fa-spa',
+            'music'        => 'fa-guitar',
+            'karaoke'      => 'fa-microphone',
+            'massage'      => 'fa-hand-holding-heart',
+            'footspa'      => 'fa-shoe-prints',
             'tabletennis'  => 'fa-table-tennis-paddle-ball',
             'bowling'      => 'fa-bowling-ball',
             'billiards'    => 'fa-circle-dot',
@@ -336,5 +350,20 @@ if (! function_exists('facility_card_item')) {
             'img'         => facility_image($c),
             'description' => (string) ($c['description'] ?? ''),
         ];
+    }
+}
+
+
+if (! function_exists('valid_end_date')) {
+    /** The last day of a "Flexible Days" search: a real date after $start and within a year of it, else ''. */
+    function valid_end_date(string $start, string $end): string
+    {
+        $s = DateTime::createFromFormat('!Y-m-d', $start);
+        $e = DateTime::createFromFormat('!Y-m-d', $end);
+        if (! $s || ! $e || $s->format('Y-m-d') !== $start || $e->format('Y-m-d') !== $end || $end <= $start) {
+            return '';
+        }
+
+        return (int) $s->diff($e)->days < \App\Models\FacilityModel::STAY_SAFETY_DAYS ? $end : '';
     }
 }

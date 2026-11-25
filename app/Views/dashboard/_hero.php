@@ -33,8 +33,15 @@ if (empty($slides)) {
         <ul class="hx-list" id="hxList" role="listbox" aria-label="Suggestions" hidden></ul>
     </div>
     <div class="hx-field">
-        <label for="hxDate"><i class="bi bi-calendar-event"></i> Date</label>
-        <input id="hxDate" type="date" name="date" data-datepicker value="<?= esc(date('Y-m-d'), 'attr') ?>" min="<?= esc(date('Y-m-d'), 'attr') ?>">
+        <div class="hx-when">
+            <label for="hxDate" id="hxDateLabel"><i class="bi bi-calendar-event"></i> Date</label>
+            <div class="bf-tabs hx-tabs" role="tablist" aria-label="Booking type">
+                <button type="button" role="tab" class="bf-tab is-on" data-hx-mode="hour" aria-selected="true"><i class="bi bi-clock"></i> Hourly</button>
+                <button type="button" role="tab" class="bf-tab" data-hx-mode="days" aria-selected="false"><i class="bi bi-calendar2-range"></i> Flexible Days</button>
+            </div>
+        </div>
+        <input id="hxDate" type="date" name="date" data-datepicker data-range-end="#hxEnd" value="<?= esc(date('Y-m-d'), 'attr') ?>" min="<?= esc(date('Y-m-d'), 'attr') ?>">
+        <input id="hxEnd" type="hidden" name="end_date" value="">
     </div>
     <button class="btn hx-go" type="submit"><i class="bi bi-search"></i> Search</button>
 </form>

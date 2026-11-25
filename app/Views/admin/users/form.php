@@ -28,14 +28,14 @@
         </div>
         <div class="col-sm-6 mb-3">
             <label class="form-label" for="role">Role</label>
-            <select id="role" name="role" class="form-select" <?= $isMe ? 'disabled' : '' ?>>
+            <select id="role" name="role" class="form-select" <?= $editing ? 'disabled' : '' ?>>
                 <?php foreach ($roles as $key => $label): ?>
                     <option value="<?= esc($key) ?>" <?= old('role', $user['role'] ?? 'staff') === $key ? 'selected' : '' ?>><?= esc($label) ?></option>
                 <?php endforeach; ?>
             </select>
-            <?php if ($isMe): ?>
+            <?php if ($editing): ?>
                 <input type="hidden" name="role" value="<?= esc($user['role']) ?>">
-                <div class="form-text">You cannot change your own role.</div>
+                <div class="form-text"><i class="bi bi-lock"></i> The role is fixed once an account is created.</div>
             <?php endif; ?>
         </div>
     </div>

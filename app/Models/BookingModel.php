@@ -9,13 +9,19 @@ class BookingModel extends Model
     /** The customer picks a 30-minute arrival window when booking (e.g. 12:00 – 12:30). Arrival can only be confirmed inside it. */
     public const ARRIVAL_WINDOW_MIN = 30;
 
+    /** Customers can cancel an approved booking free of charge until this many hours before it starts (pending: any time). */
+    public const CANCEL_HOURS_BEFORE = 24;
+
+    /** Reminders go out this many hours before a booking starts. */
+    public const REMIND_HOURS_BEFORE = 24;
+
     protected $table         = 'bookings';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
     protected $allowedFields = [
         'group_id', 'facility_id', 'user_id', 'start_at', 'end_at', 'guests',
         'purpose', 'status', 'admin_remarks', 'addons', 'addons_total',
-        'approved_by', 'arrived_at', 'arrived_by', 'total_price',
+        'approved_by', 'arrived_at', 'arrived_by', 'total_price', 'reminded_at',
     ];
     protected $useTimestamps = true;
     protected $useSoftDeletes = true;   // deleted rows go to the Archive and can be restored
@@ -43,7 +49,7 @@ class BookingModel extends Model
      * Most people already approved at the same moment anywhere in [$startAt, $endAt).
      * Used by per-head facilities (the gym), where bookings share the floor up to its capacity.
      */
-    public function peakPeople(int $facilityId, string $startAt, string $endAt, ?int $ignoreId = null): int
+    public function peakPeople(int $facilityId, string $startAt, string $endAt, $ignoreId = null): int
     {
         $rows = $this->where('facility_id', $facilityId)->where('status', 'approved')
             ->where('start_at <', $endAt)->where('end_at >', $startAt)->findAll();
@@ -81,6 +87,64 @@ class BookingModel extends Model
     public function hasRoom(array $facility, string $startAt, string $endAt, int $people, ?int $ignoreId = null): bool
     {
         return $this->peakPeople((int) $facility['id'], $startAt, $endAt, $ignoreId) + $people <= FacilityModel::maxPeople($facility);
+    }
+
+    /**
+     * Lock the facility row for the rest of the transaction so two people saving at the same moment
+     * take turns (the second one re-checks after the first has been saved). No-op on SQLite, which locks the whole file.
+     */
+    public function lockFacility(int $facilityId): void
+    {
+        if ($this->db->DBDriver === 'MySQLi') {
+            $this->db->query('SELECT id FROM facilities WHERE id = ? FOR UPDATE', [$facilityId]);
+        }
+    }
+
+    /** How many OTHER pending requests overlap this time (they are not blocking it, but the admin can only approve one). */
+    public function pendingOverlap(int $facilityId, string $startAt, string $endAt, $ignoreId = null): int
+    {
+        $b = $this->where('facility_id', $facilityId)->where('status', 'pending')
+            ->where('start_at <', $endAt)->where('end_at >', $startAt);
+        if (is_array($ignoreId) && $ignoreId) {
+            $b->whereNotIn('id', $ignoreId);
+        } elseif ($ignoreId !== null && ! is_array($ignoreId)) {
+            $b->where('id !=', $ignoreId);
+        }
+
+        return $b->countAllResults();
+    }
+
+    /** May a customer still cancel this booking by themselves? Pending: yes. Approved: until CANCEL_HOURS_BEFORE before it starts. */
+    public static function customerCanCancel(array $booking): bool
+    {
+        if ($booking['status'] === 'pending') {
+            return strtotime($booking['end_at']) > time();
+        }
+
+        return $booking['status'] === 'approved'
+            && strtotime($booking['start_at']) - time() >= self::CANCEL_HOURS_BEFORE * 3600;
+    }
+
+    /**
+     * Approved bookings starting within REMIND_HOURS_BEFORE that have not been reminded yet get an in-app note
+     * and an email, once. A stay is reminded day by day. Returns how many reminders were sent.
+     */
+    public function remindUpcoming(): int
+    {
+        helper('booking');
+        $now  = date('Y-m-d H:i:s');
+        $till = date('Y-m-d H:i:s', time() + self::REMIND_HOURS_BEFORE * 3600);
+        $rows = $this->withDetails(['status' => 'approved']);
+        $rows = array_filter($rows, static fn ($b) => empty($b['reminded_at']) && $b['start_at'] > $now && $b['start_at'] <= $till);
+        $notify = new \App\Libraries\NotificationService();
+        $n = 0;
+        foreach ($rows as $b) {
+            $notify->notifyUser((int) $b['user_id'], 'Booking reminder', 'Reminder: ' . $b['facility_name'] . ' starts ' . fmt_dt($b['start_at']) . '. Please arrive within your 30-minute arrival window.', (int) $b['id']);
+            $this->update((int) $b['id'], ['reminded_at' => $now]);
+            $n++;
+        }
+
+        return $n;
     }
 
     // ------------------------------------------------------------------ Stays (one booking per day)
@@ -123,7 +187,7 @@ class BookingModel extends Model
     }
 
     /** Most referees out at the same moment anywhere in [$startAt, $endAt). */
-    public function refereePeak(string $startAt, string $endAt, ?int $ignoreId = null): int
+    public function refereePeak(string $startAt, string $endAt, $ignoreId = null): int
     {
         $rows = $this->refereeBookings($startAt, $endAt, $ignoreId);
         if (! $rows) {

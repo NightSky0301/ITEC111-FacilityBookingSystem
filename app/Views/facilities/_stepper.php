@@ -1,18 +1,12 @@
 <?php
 /**
- * Shows where the visitor is in: Activity -> Court -> Date -> Booking.
- * $step = 1 to 4. Finished steps are links back to that step.
+ * Shows where the visitor is in: Activity -> Booking (dates and times are chosen on the booking form).
+ * $step = 1 to 2. Finished steps are links back to that step.
  */
 $steps = [
     1 => ['label' => 'Choose an activity', 'short' => 'Activity', 'url' => site_url('facilities')],
-    2 => ['label' => 'Choose a court',     'short' => 'Court',    'url' => null],
-    3 => ['label' => 'Pick a date',        'short' => 'Date',     'url' => $courtUrl ?? null],
-    4 => ['label' => 'Booking',            'short' => 'Booking',  'url' => null],
+    2 => ['label' => 'Book your time',     'short' => 'Booking',  'url' => null],
 ];
-$typeKey = $facility['type'] ?? ($type ?? null);
-if ($typeKey && ($typeKey !== '')) {
-    $steps[2]['url'] = site_url('facilities/' . $typeKey);
-}
 ?>
 <div class="stepper-row">
 <div class="stepper-side">

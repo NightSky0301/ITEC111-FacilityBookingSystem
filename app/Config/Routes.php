@@ -15,6 +15,7 @@ $routes->get('facilities/availability', 'Facilities::availabilityJson');
 $routes->get('facilities/court/(:num)', 'Facilities::court/$1');
 $routes->get('facilities/(:segment)', 'Facilities::category/$1');
 $routes->get('fitness', 'Facilities::fitness');
+$routes->get('entertainment', 'Facilities::entertainment');
 
 // Search: results page and the suggestions under the search box (open to everyone).
 $routes->get('search', 'Search::index');
@@ -31,7 +32,7 @@ $routes->get('login', 'Auth::login');
 $routes->post('login', 'Auth::attemptLogin');
 $routes->get('register', 'Auth::register');
 $routes->post('register', 'Auth::attemptRegister');
-$routes->get('logout', 'Auth::logout');
+$routes->match(['get', 'post'], 'logout', 'Auth::logout');
 $routes->get('forgot-password', 'PasswordReset::forgot');
 $routes->post('forgot-password', 'PasswordReset::sendLink');
 $routes->get('reset-password/(:segment)', 'PasswordReset::reset/$1');
@@ -48,6 +49,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('bookings/new', 'Bookings::create');
     $routes->get('bookings/busy', 'Bookings::busy');
     $routes->get('bookings/span', 'Bookings::span');
+    $routes->get('bookings/days', 'Bookings::days');
     $routes->post('bookings', 'Bookings::store');
     $routes->post('hotels/book', 'Hotels::book');
     $routes->get('my-bookings', 'Bookings::mine');
@@ -79,6 +81,11 @@ $routes->group('admin', ['filter' => 'admin', 'namespace' => 'App\Controllers\Ad
     $routes->post('facilities/(:num)', 'Facilities::update/$1');
     $routes->post('facilities/(:num)/archive', 'Facilities::archive/$1');
 
+    $routes->get('addons', 'Addons::index');
+    $routes->post('addons', 'Addons::create');
+    $routes->post('addons/(:num)', 'Addons::update/$1');
+    $routes->post('addons/(:num)/toggle', 'Addons::toggle/$1');
+
     $routes->get('users', 'Users::index');
     $routes->get('users/new', 'Users::new');
     $routes->post('users', 'Users::create');
@@ -87,9 +94,8 @@ $routes->group('admin', ['filter' => 'admin', 'namespace' => 'App\Controllers\Ad
     $routes->post('users/(:num)/toggle', 'Users::toggle/$1');
     $routes->post('users/(:num)/archive', 'Users::archive/$1');
 
-    $routes->post('bookings/(:num)/archive', 'Bookings::archive/$1');
 
-    // Archive: archived facilities, users and bookings, with restore
+    // Archive: archived facilities and users, with restore
     $routes->get('archive', 'Archive::index');
     $routes->post('archive/(:segment)/(:num)/restore', 'Archive::restore/$1/$2');
 });

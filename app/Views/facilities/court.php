@@ -1,6 +1,5 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<?= $this->setVar('step', 3)->include('facilities/_stepper') ?>
 <?php
     $dateStr  = $date->format('Y-m-d');
     $rate     = (float) $facility['price_per_hour'];

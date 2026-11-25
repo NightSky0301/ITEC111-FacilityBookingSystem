@@ -78,7 +78,7 @@ $nowTs = time();
                 <p class="sess-hint" id="sessHint" role="status"></p>
             </div>
             <div class="modal-footer">
-                <form method="post" id="sessForm" class="w-100">
+                <form method="post" id="sessForm" class="w-100" data-confirm="Confirm that this customer has arrived? This marks the booking as arrived." data-confirm-title="Confirm arrival?" data-confirm-ok="Yes, confirm arrival" data-confirm-tone="brass" data-confirm-icon="bi-person-check">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn-gold w-100" id="sessBtn" disabled>Confirm Arrival</button>
                 </form>
@@ -111,6 +111,9 @@ $nowTs = time();
             c.className = 'sess-card ' + st[2];
             const el = c.querySelector('[data-state]'); if (el) el.textContent = st[1];
         });
+        // The "Did Not Arrive Today" card on the dashboard counts exactly these cards.
+        const missed = document.querySelectorAll('.sess-card.is-missed').length;
+        document.querySelectorAll('[data-missed-count]').forEach(function (n) { n.textContent = missed; });
     }
 
     function refresh() {

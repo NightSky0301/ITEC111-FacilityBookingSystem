@@ -1,13 +1,27 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<header class="fx-head">
-    <h1>Hotels</h1>
-    <p>Pick a hotel, choose a room and your dates. No payment is needed to request a stay.</p>
-</header>
-
 <?php if (empty($hotels)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-building"></i><strong>No hotels yet</strong>Hotels will show up here once they are added.</div></div>
-<?php else: ?>
+<?php else:
+    $roomsAll = 0;
+    $freeAll  = 0;
+    foreach ($hotels as $h) {
+        $roomsAll += count($h['rooms']);
+        $freeAll  += (int) ($h['free_tonight'] ?? 0);
+    }
+    $bannerImg = '';
+    foreach ($hotels as $h) {
+        if (! empty($h['image']) && is_file(FCPATH . $h['image'])) { $bannerImg = base_url($h['image']); break; }
+    }
+    $bn = FCPATH . 'assets/img/banners/hotels.jpg';
+    if (is_file($bn)) { $bannerImg = base_url('assets/img/banners/hotels.jpg') . '?v=' . filemtime($bn); }
+    echo view('facilities/_banner', [
+        'photo' => $bannerImg, 'alt' => 'Hotels and suites', 'title' => 'Rest up after the final whistle',
+        'text'  => 'Pick a hotel, choose a room and your dates. No payment is needed to request a stay.',
+        'perks' => [['bi-moon-stars', 'Booked by the night'], ['bi-box-arrow-in-right', 'Easy check-in and out'], ['bi-credit-card-2-front', 'No payment to request'], ['bi-patch-check', 'Confirmed by staff']],
+        'free'  => $freeAll, 'total' => $roomsAll, 'when' => 'tonight',
+    ]);
+?>
 <div class="ht-list" id="live-hotels" data-live>
     <?php foreach ($hotels as $h):
         $img  = ! empty($h['image']) && is_file(FCPATH . $h['image']) ? base_url($h['image']) : base_url('assets/img/courts/other-a.svg');
@@ -35,7 +49,6 @@
                 </span>
                 <span class="ht-card-foot">
                     <span class="ht-from">From <b>₱<?= number_format($h['from'], 0) ?></b> <small>per night<?= ($h['to'] ?? 0) > $h['from'] ? ' · up to ₱' . number_format($h['to'], 0) : '' ?></small></span>
-                    <span class="ht-go">View rooms <i class="bi bi-arrow-right"></i></span>
                 </span>
             </span>
         </a>

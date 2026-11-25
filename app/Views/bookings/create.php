@@ -12,14 +12,18 @@
 
     $dateLabel = date('Y-m-d') === $dateValue ? 'Today' : date('D', strtotime($dateValue));
     $dateLabel .= ', ' . date('M j', strtotime($dateValue));
+    $mode    = old('mode') !== null ? (old('mode') === 'days' ? 'days' : 'hour') : (($endDate ?? '') !== '' ? 'days' : 'hour');
+    $endDate = $mode === 'days' ? (string) (old('end_date') ?: ($endDate ?? '')) : '';
 ?>
-<?= $this->setVar('step', 4)->setVar('type', $selectedType)->setVar('courtUrl', $selectedId ? site_url('facilities/court/' . $selectedId) : null)->include('facilities/_stepper') ?>
+<?= $this->setVar('step', 2)->setVar('type', $selectedType)->include('facilities/_stepper') ?>
 
 <form method="post" action="<?= site_url('bookings') ?>" id="bookForm" novalidate>
 <?= csrf_field() ?>
 <input type="hidden" name="start_time" id="startTime" value="<?= esc($timeValue) ?>">
 <input type="hidden" name="hours" id="hours" value="<?= $hours ?>">
 <input type="hidden" name="start_date" id="startDate" value="<?= esc($dateValue) ?>">
+<input type="hidden" name="mode" id="mode" value="<?= $mode ?>">
+<input type="hidden" name="end_date" id="endDate" value="<?= esc($endDate) ?>">
 <input type="hidden" name="people" id="people" value="<?= max(1, (int) old('people')) ?>" disabled>
 
 <div class="row g-4">
@@ -62,10 +66,30 @@
                 </div>
             </section>
 
+            <section class="bf-sec bf-when" id="whenSec">
+                <h2 class="bf-h">When</h2>
+                <div class="bf-tabs" role="tablist" aria-label="Booking type">
+                    <button type="button" role="tab" class="bf-tab<?= $mode === 'hour' ? ' is-on' : '' ?>" data-mode="hour" aria-selected="<?= $mode === 'hour' ? 'true' : 'false' ?>"><i class="bi bi-clock"></i> Hourly</button>
+                    <button type="button" role="tab" class="bf-tab<?= $mode === 'days' ? ' is-on' : '' ?>" data-mode="days" aria-selected="<?= $mode === 'days' ? 'true' : 'false' ?>"><i class="bi bi-calendar2-range"></i> Flexible Days</button>
+                </div>
+                <div class="bf-datewrap">
+                <button type="button" class="bf-datebtn" id="dateBtn" aria-haspopup="dialog" aria-expanded="false">
+                    <i class="bi bi-calendar3"></i><span id="dateBtnText">Pick a date</span><i class="bi bi-chevron-down bf-datebtn-chev"></i>
+                </button>
+                <div class="bf-cal" id="cal" role="dialog" aria-label="Choose dates" hidden></div>
+                </div>
+                <div class="bf-chips" id="chips" hidden>
+                    <span>Quick pick:</span>
+                    <button type="button" class="bf-chip" data-len="7">1 week</button>
+                    <button type="button" class="bf-chip" data-len="14">2 weeks</button>
+                    <button type="button" class="bf-chip" data-len="month">1 month</button>
+                </div>
+            </section>
+
             <section class="bf-sec">
                 <div class="bf-h-row">
                     <h2 class="bf-h">Arrival time</h2>
-                    <span class="bf-open"><?= esc($dateLabel) ?> · Open <?= esc(date('g A', strtotime(sprintf('%02d:00', $open)))) ?> – <?= esc(date('g A', strtotime(sprintf('%02d:00', $close)))) ?></span>
+                    <span class="bf-open" id="openLbl"><?= esc($dateLabel) ?> · Open <?= esc(date('g A', strtotime(sprintf('%02d:00', $open)))) ?> – <?= esc(date('g A', strtotime(sprintf('%02d:00', $close)))) ?></span>
                 </div>
                 <div id="slots" class="bf-acc" aria-live="polite"></div>
                 <div class="bf-legend">
@@ -81,30 +105,13 @@
                     <div class="duration-row">
                         <span class="duration-icon"><i class="bi bi-clock-history"></i></span>
                         <div class="duration-text">
-                            <strong>How long?</strong>
+                            <strong id="hrTitle">How long?</strong>
                             <span id="durHint">Courts are rented per hour. Each + adds one hour.</span>
                         </div>
-                    </div>
-                    <div class="len-grid">
-                        <div class="len-cell">
-                            <label for="lenMonths">Months</label>
-                            <select id="lenMonths" name="stay_months" class="form-select" data-dd aria-label="Months"><option value="0"<?= (int) old('stay_months') === 0 ? ' selected' : '' ?>>0 months</option><option value="1"<?= (int) old('stay_months') === 1 ? ' selected' : '' ?>>1 month</option><option value="2"<?= (int) old('stay_months') === 2 ? ' selected' : '' ?>>2 months</option><option value="3"<?= (int) old('stay_months') === 3 ? ' selected' : '' ?>>3 months</option></select>
-                        </div>
-                        <div class="len-cell">
-                            <label for="lenWeeks">Weeks</label>
-                            <select id="lenWeeks" name="stay_weeks" class="form-select" data-dd aria-label="Weeks"><option value="0"<?= (int) old('stay_weeks') === 0 ? ' selected' : '' ?>>0 weeks</option><option value="1"<?= (int) old('stay_weeks') === 1 ? ' selected' : '' ?>>1 week</option><option value="2"<?= (int) old('stay_weeks') === 2 ? ' selected' : '' ?>>2 weeks</option><option value="3"<?= (int) old('stay_weeks') === 3 ? ' selected' : '' ?>>3 weeks</option></select>
-                        </div>
-                        <div class="len-cell">
-                            <label for="lenDays">Days</label>
-                            <select id="lenDays" name="stay_days" class="form-select" data-dd aria-label="Days"><option value="0"<?= (int) old('stay_days') === 0 ? ' selected' : '' ?>>0 days</option><option value="1"<?= (int) old('stay_days') === 1 ? ' selected' : '' ?>>1 day</option><option value="2"<?= (int) old('stay_days') === 2 ? ' selected' : '' ?>>2 days</option><option value="3"<?= (int) old('stay_days') === 3 ? ' selected' : '' ?>>3 days</option><option value="4"<?= (int) old('stay_days') === 4 ? ' selected' : '' ?>>4 days</option><option value="5"<?= (int) old('stay_days') === 5 ? ' selected' : '' ?>>5 days</option><option value="6"<?= (int) old('stay_days') === 6 ? ' selected' : '' ?>>6 days</option></select>
-                        </div>
-                        <div class="len-cell">
-                            <label id="hrLabel">Hours per day</label>
-                            <div class="ext-stepper" role="group" aria-labelledby="hrLabel">
-                                <button type="button" class="ext-btn" id="hrMinus" aria-label="Remove 1 hour"><i class="bi bi-dash-lg"></i></button>
-                                <output class="ext-value" id="hrValue" for="hrMinus hrPlus">1 hr</output>
-                                <button type="button" class="ext-btn" id="hrPlus" aria-label="Add 1 hour"><i class="bi bi-plus-lg"></i></button>
-                            </div>
+                        <div class="ext-stepper" role="group" aria-labelledby="hrTitle">
+                            <button type="button" class="ext-btn" id="hrMinus" aria-label="Remove 1 hour"><i class="bi bi-dash-lg"></i></button>
+                            <output class="ext-value" id="hrValue" for="hrMinus hrPlus">1 hr</output>
+                            <button type="button" class="ext-btn" id="hrPlus" aria-label="Add 1 hour"><i class="bi bi-plus-lg"></i></button>
                         </div>
                     </div>
                     <div class="len-sum" id="lenSum" hidden></div>
@@ -153,7 +160,7 @@
             <h2 class="h5 mb-3">Summary</h2>
             <dl>
                 <div class="row-line"><dt>Court</dt><dd id="sFacility">–</dd></div>
-                <div class="row-line"><dt>Date</dt><dd id="sDate">–</dd></div>
+                <div class="row-line"><dt id="sDateLbl">Date</dt><dd id="sDate">–</dd></div>
                 <div class="row-line"><dt>Arrival</dt><dd id="sStart">–</dd></div>
                 <div class="row-line"><dt>Departure</dt><dd id="sEnd">–</dd></div>
                 <div class="row-line" id="sPeopleRow" hidden><dt>People</dt><dd id="sPeople">–</dd></div>
@@ -164,6 +171,7 @@
             <div class="total"><span class="text-muted">Total payment</span><strong id="sTotal">–</strong></div>
             <button class="btn btn-primary w-100 mt-4" id="submitBtn" disabled>Send request</button>
             <p class="small text-danger text-center mt-2 mb-0" id="submitHint" hidden></p>
+            <p class="bf-wait" id="waitHint" hidden></p>
         </div></div>
     </div>
 </div>
@@ -179,6 +187,7 @@ window.addEventListener('error', function (e) {
     var box = document.createElement('div');
     box.id = 'bfError'; box.className = 'alert alert-danger';
     box.textContent = 'The booking form could not start: ' + (e.message || 'unknown error') + ' (line ' + (e.lineno || '?') + '). Press Ctrl+F5. If it stays like this, send this message to your developer.';
+    if (window.athletixPopup) { window.athletixPopup('bad', box.textContent, 8000); return; }
     var main = document.querySelector('main'); if (main) main.prepend(box);
 });
 </script>
@@ -193,7 +202,8 @@ window.addEventListener('error', function (e) {
     const radios = Array.from(document.querySelectorAll('input[name=facility_id]'));
     const acts = Array.from(document.querySelectorAll('.bf-act')), cards = Array.from(document.querySelectorAll('.bf-court'));
     const extras = Array.from(document.querySelectorAll('.bf-extra')), cool = Array.from(document.querySelectorAll('input[name=cooling]'));
-    const baseUrl = '<?= site_url('facilities/court') ?>', busyUrl = '<?= site_url('bookings/busy') ?>', spanUrl = '<?= site_url('bookings/span') ?>';
+    const busyUrl = '<?= site_url('bookings/busy') ?>', spanUrl = '<?= site_url('bookings/span') ?>', daysUrl = '<?= site_url('bookings/days') ?>';
+    const SAFETY = <?= (int) $safetyDays ?>;
     const peso = n => '₱' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtHrs = n => (Number.isInteger(n) ? n : n.toFixed(1)) + (n === 1 ? ' hr' : ' hrs');
         const clock = m => { const h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ':' + String(mm).padStart(2, '0') + ' ' + (h < 12 ? 'AM' : 'PM'); };
@@ -208,25 +218,25 @@ window.addEventListener('error', function (e) {
     let infoAt = 0;             // performance.now() when it arrived, to keep the server clock ticking
     let picked = toMin(timeIn.value);
     let note = '';
-    // Length = months + weeks + days (they end at your arrival time) + extra hours on top.
-    const selM = $('lenMonths'), selW = $('lenWeeks'), selD = $('lenDays');
+    // Two ways to book: by the hour (one day) or multiple days (a first and a last date; the same arrival
+    // time and hours repeat every day, one booking per day). There is no limit on how long a stay is.
+    const modeIn = $('mode'), endIn = $('endDate');
+    let mode = modeIn.value === 'days' ? 'days' : 'hour';
     let span = null, spanSeq = 0;
-    const totalDays = () => (+selM.value || 0) * 30 + (+selW.value || 0) * 7 + (+selD.value || 0);
-    const isStay = () => totalDays() >= 2;           // 2+ days: the same arrival time and hours repeat every day
-    const nDays = () => Math.max(1, totalDays());
+    const parse = s => new Date(s + 'T00:00');
+    const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); };
+    const daysBetween = (a, b) => Math.round((parse(b) - parse(a)) / 86400000) + 1;
+    const nDays = () => (mode === 'days' && endIn.value && endIn.value >= dateIn.value) ? daysBetween(dateIn.value, endIn.value) : 1;
+    const isStay = () => nDays() >= 2;               // 2+ days: the same arrival time and hours repeat every day
+    const capH = () => { const c = court(); return c ? Math.min(MAX, c.hours) : MAX; };   // a court can be shorter than 16 h a day
+    const closeMin = () => info ? info.close : (court() ? court().close * 60 : CLOSEMIN);
     const minH = () => MIN;
-    const maxH = () => isStay() ? Math.max(MIN, Math.min(MAX, Math.floor((CLOSEMIN - (picked !== null ? picked : OPENMIN)) / 60))) : maxStay();
+    const maxH = () => isStay() ? Math.max(MIN, Math.min(capH(), Math.floor((closeMin() - (picked !== null ? picked : OPENMIN)) / 60))) : maxStay();
     const billed = () => hours * nDays();             // hours charged across all days
     const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
-    const lenLabel = () => {
-        if (!isStay()) return fmtHrs(hours);
-        const parts = [];
-        if (+selM.value) parts.push(plural(+selM.value, 'month'));
-        if (+selW.value) parts.push(plural(+selW.value, 'week'));
-        if (+selD.value) parts.push(plural(+selD.value, 'day'));
-        return (parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0]) + ' · ' + fmtHrs(hours) + ' a day';
-    };
-    const endDate = () => { const d = new Date(dateIn.value + 'T00:00'); d.setDate(d.getDate() + nDays() - 1); return d; };
+    const lenLabel = () => isStay() ? plural(nDays(), 'day') + ' · ' + fmtHrs(hours) + ' a day' : fmtHrs(hours);
+    const lastDate = () => parse(isStay() ? endIn.value : dateIn.value);
     let people = Math.max(1, parseInt($('people').value, 10) || 1);
 
     const court = () => { const r = radios.find(x => x.checked); return r ? COURTS.find(c => c.id === +r.value) : null; };
@@ -262,15 +272,15 @@ window.addEventListener('error', function (e) {
     }
     // The longest stay from the chosen arrival: until closing or the next booking, whichever comes first.
     function maxStay() {
-        if (picked === null || !info) return MAX;
+        if (picked === null || !info) return capH();
         let end = info.close;
         info.busy.forEach(b => { if (b[0] >= picked && b[0] < end) end = b[0]; });
-        return Math.max(MIN, Math.min(MAX, Math.floor((end - picked) / 60)));
+        return Math.max(MIN, Math.min(capH(), Math.floor((end - picked) / 60)));
     }
     function stayLimitText() {
         if (picked === null || !info) return '';
         const limit = maxStay();
-        if (limit >= MAX) return '';
+        if (limit >= capH()) return '';
         const next = Math.min(...info.busy.filter(b => b[0] >= picked).map(b => b[0]), Infinity);
         const cut = next < info.close && Math.floor((next - picked) / 60) === limit;
         return cut ? 'Another booking starts after ' + fmtHrs(limit) + '.' : 'The court closes after ' + fmtHrs(limit) + ' from this arrival.';
@@ -323,17 +333,95 @@ window.addEventListener('error', function (e) {
         }
     }
 
-    // Ask the server if the court (and referee) are free on every day of the stay.
+    // Ask the server if the court (and referee) are free on every day of the stay, and whether other requests wait for the same time.
     const wantsRef = () => extras.some(e => e.dataset.addon === 'referee' && e.querySelector('input').checked);
     function checkSpan() {
         const c = court(), seq = ++spanSeq; span = null;
-        if (!isStay() || !c || picked === null) return;
-        const q = '?facility_id=' + c.id + '&date=' + dateIn.value + '&time=' + timeIn.value + '&months=' + selM.value + '&weeks=' + selW.value + '&days=' + selD.value + '&hours=' + hours + (wantsRef() ? '&ref=1' : '') + (c.head ? '&people=' + people : '');
+        if (mode === 'days') loadTaken();
+        if (!c || picked === null) { summary(); return; }
+        const q = '?facility_id=' + c.id + '&date=' + dateIn.value + '&end_date=' + (isStay() ? endIn.value : dateIn.value) + '&time=' + timeIn.value + '&hours=' + hours + (wantsRef() ? '&ref=1' : '') + (c.head ? '&people=' + people : '');
         fetch(spanUrl + q, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(j => { if (seq !== spanSeq) return; span = j; summary(); })
             .catch(() => { if (seq === spanSeq) { span = { free: false, error: true }; summary(); } });
     }
+
+    // ---- Date picker: one calendar for both tabs (a single day by the hour, a range for multiple days)
+    const calEl = $('cal'), dateBtn = $('dateBtn');
+    let view = parse(dateIn.value); view.setDate(1);
+    let taken = new Set(), takenSeq = 0, pendingEnd = mode === 'days' && !endIn.value;
+    let pickStep = 'start';   // Flexible Days: the next click sets the 'start' (first day) or the 'end' (last day)
+    const todayStr = () => info ? info.today : ymd(new Date());
+    const dShort = s => parse(s).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    function loadTaken() {
+        const c = court(), seq = ++takenSeq;
+        if (mode !== 'days' || !c || picked === null) { taken = new Set(); renderCal(); return; }
+        const first = ymd(view), last = ymd(new Date(view.getFullYear(), view.getMonth() + 1, 0)), from = first < todayStr() ? todayStr() : first;
+        if (last < from) { taken = new Set(); renderCal(); return; }
+        fetch(daysUrl + '?facility_id=' + c.id + '&from=' + from + '&to=' + last + '&time=' + timeIn.value + '&hours=' + hours + (wantsRef() ? '&ref=1' : '') + (c.head ? '&people=' + people : ''), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(j => { if (seq !== takenSeq) return; taken = new Set((j.taken || []).concat(j.refShort || [])); renderCal(); })
+            .catch(() => { if (seq === takenSeq) { taken = new Set(); renderCal(); } });
+    }
+    function renderCal() {
+        const y = view.getFullYear(), m = view.getMonth(), dim = new Date(y, m + 1, 0).getDate(), lead = new Date(y, m, 1).getDay();
+        const today = todayStr(), s = dateIn.value, e = endIn.value, days = mode === 'days';
+        let h = '<div class="rc-head"><button type="button" class="rc-nav" data-nav="-1" aria-label="Previous month"' + (y + '-' + pad(m + 1) <= today.slice(0, 7) ? ' disabled' : '') + '><i class="bi bi-chevron-left"></i></button>' +
+            '<b>' + new Date(y, m, 1).toLocaleDateString([], { month: 'long', year: 'numeric' }) + '</b>' +
+            '<button type="button" class="rc-nav" data-nav="1" aria-label="Next month"><i class="bi bi-chevron-right"></i></button></div>' +
+            '<div class="rc-dow">' + ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(x => '<span>' + x + '</span>').join('') + '</div><div class="rc-grid">';
+        for (let i = 0; i < lead; i++) h += '<span></span>';
+        for (let d = 1; d <= dim; d++) {
+            const k = y + '-' + pad(m + 1) + '-' + pad(d);
+            let cls = 'rc-day', off = false, title = '';
+            if (k < today) { cls += ' is-past'; off = true; }
+            else if (days && taken.has(k)) { cls += ' is-taken'; off = true; title = 'Already booked at your time'; }
+            else if (days && pickStep === 'end' && k > addDays(s, SAFETY - 1)) { cls += ' is-past'; off = true; }
+            if (k === s) cls += ' is-start';
+            if (days && e && k === e) cls += ' is-end';
+            if (days && e && k > s && k < e) cls += ' is-in';
+            h += '<button type="button" class="' + cls + '" data-d="' + k + '"' + (off ? ' disabled' : '') + (title ? ' title="' + title + '"' : '') + '>' + d + '</button>';
+        }
+        h += '</div>';
+        if (days) h += '<p class="rc-note">' + (pickStep === 'end' ? '<b>Now pick the last day.</b> ' : '<b>Pick the first day, then the last day.</b> ') + (picked === null ? 'Choose an arrival time first, then days that are already booked turn grey.' : '<i class="rc-key"></i> Grey days are booked at your time.') + '</p>';
+        calEl.innerHTML = h;
+    }
+    function openCal(open) {
+        calEl.hidden = !open; dateBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) { pickStep = 'start'; view = parse(dateIn.value || ymd(new Date())); view.setDate(1); renderCal(); if (mode === 'days') loadTaken(); }
+    }
+    function dateChanged() { span = null; note = ''; load(); checkSpan(); }
+    function setMode(m) {
+        if (m === mode) return;
+        mode = m; modeIn.value = m; note = '';
+        if (m === 'hour') { endIn.value = ''; pendingEnd = false; } else { pendingEnd = !endIn.value; }
+        document.querySelectorAll('.bf-tab').forEach(b => { const on = b.dataset.mode === m; b.classList.toggle('is-on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+        $('chips').hidden = m !== 'days';
+        openCal(false); checkSpan(); summary();
+    }
+    document.querySelectorAll('.bf-tab').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+    dateBtn.addEventListener('click', () => openCal(calEl.hidden));
+    document.addEventListener('click', e => { if (!e.target.isConnected) return; if (!calEl.hidden && !e.target.closest('#whenSec')) openCal(false); });   // a re-rendered day button is detached by now: not an outside click
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !calEl.hidden) { openCal(false); dateBtn.focus(); } });
+    calEl.addEventListener('click', e => {
+        e.stopPropagation();   // clicks inside the calendar never reach the 'click outside closes' handler
+        const nav = e.target.closest('.rc-nav');
+        if (nav) { if (nav.disabled) return; view.setMonth(view.getMonth() + (+nav.dataset.nav)); renderCal(); if (mode === 'days') loadTaken(); return; }
+        const b = e.target.closest('.rc-day'); if (!b || b.disabled) return;
+        const k = b.dataset.d;
+        if (mode === 'hour') { dateIn.value = k; openCal(false); dateChanged(); return; }
+        if (pickStep === 'end' && k >= dateIn.value) { endIn.value = k; pendingEnd = false; pickStep = 'start'; openCal(false); checkSpan(); summary(); return; }   // second click: last day, closes
+        dateIn.value = k; endIn.value = ''; pendingEnd = true; pickStep = 'end'; renderCal(); dateChanged();   // first click: first day, stays open
+    });
+    document.querySelectorAll('.bf-chip').forEach(b => b.addEventListener('click', () => {
+        const s = dateIn.value; if (!s) return;
+        let end;
+        if (b.dataset.len === 'month') {
+            const d = parse(s), tm = new Date(d.getFullYear(), d.getMonth() + 1, 1), last = new Date(tm.getFullYear(), tm.getMonth() + 1, 0).getDate();
+            tm.setDate(Math.min(d.getDate(), last)); tm.setDate(tm.getDate() - 1); end = ymd(tm);
+        } else end = addDays(s, (+b.dataset.len) - 1);
+        endIn.value = end; pendingEnd = false; note = ''; openCal(false); checkSpan(); summary();
+    }));
 
     function load(quiet) {
         const c = court(), d = dateIn.value;
@@ -372,19 +460,20 @@ window.addEventListener('error', function (e) {
         el.hidden = !txt; el.textContent = txt; el.className = 'bf-ref-badge tone-' + tone;
     }
     function syncAddons(c) {
-        // Air-conditioning is for indoor courts only: on outdoor courts it is not offered at all.
+        // Each court offers the add-ons the admin picked for it; air-conditioning also needs an indoor court.
+        const none = cool.find(x => x.value === '');
         cool.forEach(r => {
-            if (r.dataset.indoor !== '1') return;
-            const off = !!c && c.outdoor;
-            r.disabled = off; r.closest('label').hidden = off;
-            if (off && r.checked) cool.find(x => x.value === '').checked = true;
+            if (r.value === '') return;
+            const gone = !c || c.addons.indexOf(r.value) < 0 || (r.dataset.indoor === '1' && c.outdoor);
+            r.disabled = gone; r.closest('label').hidden = gone;
+            if (gone && r.checked) none.checked = true;
         });
         const head = !!c && c.head;
-        $('coolBox').hidden = head;
-        if (head) { const none = cool.find(x => x.value === ''); if (none) none.checked = true; }
+        $('coolBox').hidden = head || !cool.some(r => r.value && !r.disabled);
+        if (head && none) none.checked = true;
         extras.forEach(e => {
-            const types = JSON.parse(e.dataset.types), small = e.querySelector('small');
-            const wrongType = types && (!c || types.indexOf(c.type) < 0);
+            const small = e.querySelector('small');
+            const wrongType = !c || c.addons.indexOf(e.dataset.addon) < 0;
             const dark = e.dataset.evening === '1' && (picked === null || picked < EVENING);
             let blocked = false, msg = null;
             if (e.dataset.addon === 'referee' && !wrongType) {
@@ -409,9 +498,17 @@ window.addEventListener('error', function (e) {
         $('sFacility').textContent = c ? c.name : '–';
         const dv = dateIn.value, dObj = dv ? new Date(dv + 'T00:00') : null;
         $('sDate').textContent = dObj && !isNaN(dObj) ? dObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '–';
+        const dl = dObj && !isNaN(dObj) ? ((info && dv === info.today) ? 'Today' : dObj.toLocaleDateString([], { weekday: 'short' })) + ', ' + dObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) : '';
+        $('openLbl').textContent = dl + (info ? ' · Open ' + clock(info.open).replace(':00', '') + ' – ' + clock(info.close).replace(':00', '') : '');
+        $('sDateLbl').textContent = isStay() ? 'First day' : 'Date';
+        $('dateBtnText').textContent = mode === 'days'
+            ? (dObj && !isNaN(dObj) ? dShort(dv) : 'Pick a date') + ' → ' + (isStay() ? dShort(endIn.value) + ' · ' + plural(nDays(), 'day') : endIn.value ? dShort(endIn.value) + ' · 1 day' : 'pick the last day')
+            : (dObj && !isNaN(dObj) ? dObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : 'Pick a date');
+        $('chips').hidden = mode !== 'days';
+        $('hrTitle').textContent = mode === 'days' ? 'Hours per day' : 'How long?';
         $('sStart').textContent = picked !== null ? clock(picked) : '–';
         if (isStay()) {
-            $('sEnd').textContent = picked !== null && dObj ? clock(picked + hours * 60) + ' each day, until ' + endDate().toLocaleDateString([], { month: 'short', day: 'numeric' }) : '–';
+            $('sEnd').textContent = picked !== null && dObj ? clock(picked + hours * 60) + ' each day, until ' + lastDate().toLocaleDateString([], { month: 'short', day: 'numeric' }) : '–';
         } else {
             $('sEnd').textContent = picked !== null ? clock(picked + hours * 60) : '–';
         }
@@ -444,18 +541,19 @@ window.addEventListener('error', function (e) {
         $('hrMinus').disabled = hours <= hMin; $('hrPlus').disabled = hours >= hMax;
         const lim = stayLimitText();
         $('durHint').textContent = isStay()
-            ? 'Same arrival time and hours every day, for ' + nDays() + ' days.' + (hours >= hMax ? ' Latest finish is ' + clock(CLOSEMIN) + '.' : '')
-            : hours >= MAX ? 'Longest booking reached (' + fmtHrs(MAX) + ' a day).'
-            : (hours >= hMax && lim ? lim : (c ? peso(c.price) + (head ? ' per person, per hour.' : ' per hour.') + ' Each + adds one hour. Choose days, weeks or months to repeat it daily.' : 'Courts are rented per hour. Each + adds one hour.'));
+            ? 'Same arrival time and hours every day, for ' + nDays() + ' days.' + (hours >= hMax ? ' Latest finish is ' + clock(closeMin()) + '.' : '')
+            : hours >= capH() ? 'Longest booking reached (' + fmtHrs(capH()) + ' a day).'
+            : (hours >= hMax && lim ? lim : (c ? peso(c.price) + (head ? ' per person, per hour.' : ' per hour.') + ' Each + adds one hour.' : 'Courts are rented per hour. Each + adds one hour.'));
         const sum = $('lenSum');
         sum.hidden = !isStay();
         if (isStay()) sum.innerHTML = picked !== null && dObj
-            ? '<i class="bi bi-calendar2-week"></i> <b>' + clock(picked) + ' – ' + clock(picked + hours * 60) + '</b> every day, from ' + dObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' to ' + endDate().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' (' + nDays() + ' days).'
+            ? '<i class="bi bi-calendar2-week"></i> <b>' + clock(picked) + ' – ' + clock(picked + hours * 60) + '</b> every day, from ' + dObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' to ' + lastDate().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ' (' + nDays() + ' days).'
             : '<i class="bi bi-calendar2-week"></i> Choose an arrival time. It repeats every day of your stay.';
 
         let ready = !!c && picked !== null && /^\d{4}-\d{2}-\d{2}$/.test(dv);
         let stayMsg = '';
-        if (ready && isStay()) {
+        if (ready && mode === 'days' && !endIn.value) { ready = false; stayMsg = 'Pick the last day on the calendar.'; }
+        else if (ready && isStay()) {
             if (!span) { ready = false; stayMsg = 'Checking that the whole stay is free…'; }
             else if (span.error) { ready = false; stayMsg = 'Could not check the stay. Refresh the page and try again.'; }
             else if (!span.free) { ready = false; stayMsg = span.clashes && span.clashes.length ? 'Not free on ' + span.clashes.slice(0, 3).join(', ') + (span.clashes.length > 3 ? ' and ' + (span.clashes.length - 3) + ' more' : '') + '. Choose other days or another time.' : 'Some days are not free. Choose other days or another time.'; }
@@ -464,6 +562,9 @@ window.addEventListener('error', function (e) {
         $('submitBtn').disabled = !ready;
         $('submitHint').textContent = note || stayMsg;
         $('submitHint').hidden = !(note || stayMsg);
+        const w = $('waitHint'), wn = span && span.waiting ? span.waiting : 0;
+        w.hidden = !wn || !ready;
+        if (wn) w.textContent = wn + (wn === 1 ? ' other request is' : ' other requests are') + ' also waiting for this time. The first one the admin approves gets it.';
 
     }
 
@@ -483,13 +584,12 @@ window.addEventListener('error', function (e) {
     $('pPlus').addEventListener('click', () => { const c = court(); if (c && c.head && people < c.max) setPeople(people + 1); });
     $('hrMinus').addEventListener('click', () => { if (hours > minH()) { hours--; note = ''; checkSpan(); summary(); } });
     $('hrPlus').addEventListener('click', () => { if (hours < maxH()) { hours++; note = ''; checkSpan(); summary(); } });
-    // Days / weeks / months repeat the same arrival time and hours every day.
-    [selM, selW, selD].forEach(sel => sel.addEventListener('change', () => { note = ''; checkSpan(); summary(); }));
     // Keep "passed" slots current while the page stays open.
     setInterval(() => { if (info) { renderSlots(); summary(); } }, 30000);
 
     if (picked !== null) openKey = (GROUPS.find(g => picked >= g[2] && picked < g[3]) || [null])[0];
     setSport(sport);
+    $('chips').hidden = mode !== 'days';
     load();
     document.addEventListener('live:changed', () => load(true));   // someone else's booking changes which times are free
 })();

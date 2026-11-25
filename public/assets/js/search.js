@@ -66,3 +66,20 @@
     document.addEventListener('click', e => { if (!form.querySelector('.hx-q').contains(e.target)) close(); });
     form.addEventListener('submit', () => close());
 })();
+
+// Home search: Hourly / Flexible Days switch for the date button (Flexible Days = pick a first and a last day).
+(function () {
+    const form = document.querySelector('.hx-search'), input = form && form.querySelector('input[name=date]');
+    if (!input) return;
+    const tabs = form.querySelectorAll('[data-hx-mode]');
+    tabs.forEach(function (b) {
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();   // keep the document click handler from closing the calendar we open below
+            const days = b.dataset.hxMode === 'days';
+            input.dataset.range = days ? '1' : '';
+            tabs.forEach(function (t) { const on = t === b; t.classList.toggle('is-on', on); t.setAttribute('aria-selected', on ? 'true' : 'false'); });
+            input.dispatchEvent(new Event('dp:refresh'));
+            const btn = form.querySelector('.dp-btn'); if (days && btn) btn.click();   // open the calendar so the range can be picked right away
+        });
+    });
+})();

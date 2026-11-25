@@ -9,7 +9,7 @@ class FacilityModel extends Model
     protected $table         = 'facilities';
     protected $primaryKey    = 'id';
     protected $returnType    = 'array';
-    protected $allowedFields = ['name', 'type', 'description', 'image', 'capacity', 'price_per_hour', 'status', 'hotel_id'];
+    protected $allowedFields = ['name', 'type', 'description', 'image', 'capacity', 'price_per_hour', 'status', 'hotel_id', 'open_hour', 'close_hour'];
     protected $useTimestamps = true;
     protected $useSoftDeletes = true;   // deleted rows go to the Archive and can be restored
     protected $deletedField   = 'deleted_at';
@@ -21,26 +21,59 @@ class FacilityModel extends Model
     /**
      * Booking length. Courts are rented per hour: a booking is MIN_HOURS (1 hour) or more,
      * added one hour at a time with the +/- stepper, up to the hours the facility is open in one day.
-     * For longer stays the customer picks days, weeks or months instead (see stay()).
+     * For longer stays the customer picks a first and last date instead (see daysBetween()).
      */
     public const MIN_HOURS = 1;
     public const MAX_HOURS = self::CLOSE_HOUR - self::OPEN_HOUR;
 
     /**
-     * Longer stays: the same arrival time and hours repeat every day. Months, weeks and days add up to the
-     * number of days (a month is 30 days). Each day is its own booking, linked by bookings.group_id.
+     * Multiple-day bookings: the same arrival time and hours repeat every day between a first and a last date.
+     * Each day is its own booking, linked by bookings.group_id. There is no limit on how long a stay can be;
+     * STAY_SAFETY_DAYS (one year) only stops a mistyped date from creating thousands of rows.
      */
-    public const STAY_MAX = ['months' => 3, 'weeks' => 3, 'days' => 6];
+    public const STAY_SAFETY_DAYS = 366;
 
-    /** Number of days for a months / weeks / days choice, or 0 when it is outside the allowed limits. */
-    public static function stayDays(int $months, int $weeks, int $days): int
+    /** Number of days from $first to $last (both included), or 0 when the dates are not valid. */
+    public static function daysBetween(string $first, string $last): int
     {
-        if ($months < 0 || $weeks < 0 || $days < 0
-            || $months > self::STAY_MAX['months'] || $weeks > self::STAY_MAX['weeks'] || $days > self::STAY_MAX['days']) {
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $first) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $last)) {
             return 0;
         }
+        $a = strtotime($first . ' 12:00:00');
+        $b = strtotime($last . ' 12:00:00');
+        if (! $a || ! $b || $b < $a) {
+            return 0;
+        }
+        $n = (int) round(($b - $a) / 86400) + 1;
 
-        return $months * 30 + $weeks * 7 + $days;
+        return $n > self::STAY_SAFETY_DAYS ? 0 : $n;
+    }
+
+    /** Opening hours (open, close) when a facility has none of its own: 24 h clock, close 24 = midnight. */
+    public const DEFAULT_HOURS = [
+        'yoga' => [7, 21], 'gymnastics' => [7, 21], 'massage' => [9, 21], 'footspa' => [10, 21],
+        'swimming' => [6, 20], 'dance' => [8, 22], 'music' => [9, 23], 'karaoke' => [10, 24],
+        'bowling' => [10, 24], 'billiards' => [10, 24],
+    ];
+
+    /** [open hour, close hour] for a facility: its own hours if set on the admin page, else the type's, else 6 AM to 10 PM. */
+    public static function hoursFor(array $facility): array
+    {
+        $own  = isset($facility['open_hour'], $facility['close_hour']) && $facility['open_hour'] !== '' && $facility['close_hour'] !== ''
+            && (int) $facility['close_hour'] > (int) $facility['open_hour'];
+        if ($own) {
+            return [(int) $facility['open_hour'], min(24, (int) $facility['close_hour'])];
+        }
+
+        return self::DEFAULT_HOURS[(string) ($facility['type'] ?? '')] ?? [self::OPEN_HOUR, self::CLOSE_HOUR];
+    }
+
+    /** Longest booking in one day for this facility (the hours it is open). */
+    public static function maxHoursFor(array $facility): int
+    {
+        [$o, $c] = self::hoursFor($facility);
+
+        return $c - $o;
     }
 
     /** The dates (Y-m-d) of a stay of $n days that begins on $startDate. */
@@ -85,6 +118,7 @@ class FacilityModel extends Model
         'tennis'        => 'Tennis Court',
         'futsal'        => 'Futsal Court',
         'football'      => 'Football Court',
+        'baseball'      => 'Baseball Court',
         'tabletennis'   => 'Table Tennis',
         'bowling'       => 'Bowling Alley',
         'billiards'     => 'Billiards Table',
@@ -93,18 +127,48 @@ class FacilityModel extends Model
         'gym'           => 'Gym',
         'swimming'      => 'Swimming Pool',
         'dance'         => 'Dance Studio',
+        'gymnastics'    => 'Gymnastics Hall',
+        'yoga'          => 'Yoga Studio',
+        'music'         => 'Music Studio',
+        'karaoke'       => 'Karaoke Room',
+        'massage'       => 'Massage Room',
+        'footspa'       => 'Foot Spa Lounge',
         'room'          => 'Hotel Room',
         'other'         => 'Other',
     ];
 
-    /** Facility types that live under the Fitness tab (everything else is an Activity). */
-    public const FITNESS = ['gym', 'swimming', 'dance'];
+    /** Facility types that live under the Fitness tab. */
+    public const FITNESS = ['gym', 'gymnastics', 'yoga', 'massage', 'footspa'];
 
     public static function isFitness(array|string $facilityOrType): bool
     {
         $type = is_array($facilityOrType) ? (string) ($facilityOrType['type'] ?? '') : $facilityOrType;
 
         return in_array($type, self::FITNESS, true);
+    }
+
+    /** Facility types that live under the Entertainment tab. */
+    public const ENTERTAINMENT = ['bowling', 'billiards', 'swimming', 'dance', 'music', 'karaoke'];
+
+    public static function isEntertainment(array|string $facilityOrType): bool
+    {
+        $type = is_array($facilityOrType) ? (string) ($facilityOrType['type'] ?? '') : $facilityOrType;
+
+        return in_array($type, self::ENTERTAINMENT, true);
+    }
+
+    /** The four sections of the site a facility type belongs to: activities, hotels, fitness or entertainment. */
+    public static function sectionOf(array|string $facilityOrType): string
+    {
+        $type = is_array($facilityOrType) ? (string) ($facilityOrType['type'] ?? '') : $facilityOrType;
+
+        return $type === self::ROOM ? 'hotels' : (self::isFitness($type) ? 'fitness' : (self::isEntertainment($type) ? 'entertainment' : 'activities'));
+    }
+
+    /** Page that lists a section ("facilities" is the Activities page). */
+    public static function sectionPath(string $section): string
+    {
+        return ['activities' => 'facilities', 'hotels' => 'hotels', 'fitness' => 'fitness', 'entertainment' => 'entertainment'][$section] ?? 'facilities';
     }
 
     /** Hotel rooms are booked by the night and live under Hotels, never in the court lists. */
@@ -122,6 +186,7 @@ class FacilityModel extends Model
     public const UNITS = [
         'gym' => ['gym', 'gyms'], 'swimming' => ['pool', 'pools'], 'dance' => ['studio', 'studios'], 'bowling' => ['lane', 'lanes'], 'billiards' => ['table', 'tables'],
         'tabletennis' => ['table', 'tables'], 'boxing' => ['ring', 'rings'],
+        'gymnastics' => ['hall', 'halls'], 'yoga' => ['studio', 'studios'], 'music' => ['studio', 'studios'], 'karaoke' => ['room', 'rooms'], 'massage' => ['room', 'rooms'], 'footspa' => ['lounge', 'lounges'],
     ];
 
     public static function unitName(string $type, int $n = 2): string
@@ -139,6 +204,7 @@ class FacilityModel extends Model
         'tennis'       => ['Tennis',       'Hard courts for singles and doubles'],
         'futsal'       => ['Futsal', 'Small-sided indoor games'],
         'football'     => ['Football', 'Full-size outdoor pitch'],
+        'baseball'     => ['Baseball', 'Full diamond with a pitcher\'s mound'],
         'tabletennis'  => ['Table Tennis', 'Singles and doubles on full-size tables'],
         'bowling'      => ['Bowling', 'Lanes with automatic scoring'],
         'billiards'    => ['Billiards', 'Pool tables with cues and racks'],
@@ -147,6 +213,12 @@ class FacilityModel extends Model
         'gym'          => ['Gym',          'Workout floor, booked per person'],
         'swimming'     => ['Swimming',     'Lap pools with marked lanes'],
         'dance'        => ['Dance Studio', 'Mirrored studios for classes and practice'],
+        'gymnastics'   => ['Gymnastics Hall', 'Beams, bars, rings and sprung floors'],
+        'yoga'         => ['Yoga Studio', 'Calm studios with mats and blocks'],
+        'music'        => ['Music Studio', 'Instruments, a mic and a recording desk'],
+        'karaoke'      => ['Karaoke Room', 'Private room with a big screen and sound'],
+        'massage'      => ['Massage Room', 'Quiet treatment rooms with massage beds'],
+        'footspa'      => ['Foot Spa Lounge', 'Recliners with soaking basins'],
         'room'         => ['Hotel Room',   'Rooms booked by the night'],
         'other'        => ['Other',        'Other facilities'],
     ];
@@ -163,6 +235,7 @@ class FacilityModel extends Model
         'tennis'       => [2, 4],
         'futsal'       => [10, 14],
         'football'     => [14, 22],
+        'baseball'     => [10, 18],
         'tabletennis'  => [2, 4],
         'bowling'      => [2, 6],
         'billiards'    => [2, 4],
@@ -171,6 +244,12 @@ class FacilityModel extends Model
         'gym'          => [1, 15],
         'swimming'     => [4, 20],
         'dance'        => [8, 25],
+        'gymnastics'   => [4, 20],
+        'yoga'         => [4, 15],
+        'music'        => [2, 8],
+        'karaoke'      => [4, 12],
+        'massage'      => [1, 4],
+        'footspa'      => [2, 6],
     ];
 
     /** @return array{0:int,1:int} [min, max] people the court comfortably holds. */

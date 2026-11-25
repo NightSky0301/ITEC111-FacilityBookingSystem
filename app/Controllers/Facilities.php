@@ -7,7 +7,7 @@ use App\Models\FacilityModel;
 use DateTime;
 
 /**
- * Facility menu:  Activity (basketball, badminton...)  ->  Court (A, B)  ->  Date (calendar)  ->  booking form (time in + hours)
+ * Facility menu:  Activity (basketball, badminton...)  ->  booking form (court, dates, time, hours)
  */
 class Facilities extends BaseController
 {
@@ -63,13 +63,28 @@ class Facilities extends BaseController
     /** Activities: every court in one place, with filters. Clicking a card opens its schedule. */
     public function index()
     {
+        // Staff get the same facilities table the admin manages, but view only.
+        if (is_manager() && ! is_admin()) {
+            return view('admin/facilities/index', [
+                'facilities' => (new FacilityModel())->orderBy('type')->orderBy('name')->findAll(),
+                'types'      => FacilityModel::TYPES,
+                'readOnly'   => true,
+            ]);
+        }
+
         return $this->browse('activities');
     }
 
-    /** Fitness: the gym, swimming pools and dance studios. */
+    /** Fitness: the gym, gymnastics, yoga, massage and foot spa. */
     public function fitness()
     {
         return $this->browse('fitness');
+    }
+
+    /** Entertainment: bowling, billiards, swimming pools, dance studios, the music studio and karaoke. */
+    public function entertainment()
+    {
+        return $this->browse('entertainment');
     }
 
     private function browse(string $section)
@@ -77,11 +92,8 @@ class Facilities extends BaseController
         helper('booking');
         $bookings = new BookingModel();
         $byType   = (new FacilityModel())->activeByType();
-        // The gym, pools and dance studios live under Fitness; every other court is an activity.
-        $fitnessTypes = array_flip(FacilityModel::FITNESS);
-        $byType = $section === 'fitness'
-            ? array_intersect_key($byType, $fitnessTypes)
-            : array_diff_key($byType, $fitnessTypes);
+        // Each facility type belongs to exactly one section: Activities, Fitness or Entertainment.
+        $byType = array_filter($byType, static fn ($courts, $type) => FacilityModel::sectionOf((string) $type) === $section, ARRAY_FILTER_USE_BOTH);
         $items    = [];
         $chips    = [];
         foreach ($byType as $type => $courts) {
@@ -94,16 +106,25 @@ class Facilities extends BaseController
         $type = (string) $this->request->getGet('type');
         $date = (string) $this->request->getGet('date');
         $d    = DateTime::createFromFormat('!Y-m-d', $date);
+        $date = ($d && $d->format('Y-m-d') === $date && $date >= date('Y-m-d')) ? $date : '';
+        $end  = $date !== '' ? valid_end_date($date, (string) $this->request->getGet('end_date')) : '';
+
+        $heading = ['fitness' => 'Fitness', 'entertainment' => 'Entertainment'][$section] ?? 'Activities';
+        $lead    = [
+            'fitness'       => 'Book the gym, a yoga studio, a massage room or a foot spa lounge.',
+            'entertainment' => 'Bowling, billiards, swimming, dance, music and karaoke. Pick one and book it by the hour.',
+        ][$section] ?? 'Courts for every sport. Pick one to see its schedule and book a time.';
 
         return view('facilities/index', [
             'section' => $section,
-            'heading' => $section === 'fitness' ? 'Fitness' : 'Activities',
-            'lead'    => $section === 'fitness' ? 'Book the gym, a swimming pool or a dance studio.' : 'Courts and tables for every sport. Pick one to see its schedule and book a time.',
-            'action'  => site_url($section === 'fitness' ? 'fitness' : 'facilities'),
+            'heading' => $heading,
+            'lead'    => $lead,
+            'action'  => site_url(FacilityModel::sectionPath($section)),
             'items'   => $items,
             'chips'   => $chips,
             'selType' => isset($chips[$type]) ? $type : '',
-            'date'    => ($d && $d->format('Y-m-d') === $date && $date >= date('Y-m-d')) ? $date : '',
+            'date'    => $date,
+            'end'     => $end,
         ]);
     }
 
@@ -129,8 +150,8 @@ class Facilities extends BaseController
     }
 
     /**
-     * Step 3: pick a date on a month calendar. Days that already have sessions are marked, and the
-     * sessions of the selected day are listed next to it. The time itself is chosen in the booking form.
+     * There is no separate "pick a date" page any more. Customers choose their dates on the booking form, and
+     * staff / admin do not book: they see a court's bookings on the calendar.
      */
     public function court(int $id)
     {
@@ -141,108 +162,19 @@ class Facilities extends BaseController
         if (! $facility || ($facility['status'] !== 'active' && ! is_manager())) {
             return redirect()->to('/facilities')->with('error', 'That court is not available.');
         }
-
-        // Selected day (defaults to today). Anything that is not a real Y-m-d date falls back to today.
-        $dateStr = (string) $this->request->getGet('date');
-        $date    = DateTime::createFromFormat('!Y-m-d', $dateStr);
-        if (! $date || $date->format('Y-m-d') !== $dateStr) {
-            $date = new DateTime('today');
-        }
-        $dateStr  = $date->format('Y-m-d');
-        $dayStart = $dateStr . ' 00:00:00';
-        $dayEnd   = (clone $date)->modify('+1 day')->format('Y-m-d') . ' 00:00:00';
-
-        // Month shown on the calendar (?month=Y-m). Defaults to the month of the selected day.
-        $monthStr = (string) $this->request->getGet('month');
-        $month    = DateTime::createFromFormat('!Y-m', $monthStr);
-        if (! $month || $month->format('Y-m') !== $monthStr || (int) $month->format('Y') < 2000 || (int) $month->format('Y') > 2100) {
-            $month = new DateTime($date->format('Y-m-01'));
+        if (is_manager()) {
+            return redirect()->to('/calendar?facility_id=' . (int) $facility['id']);
         }
 
-        $isManager = is_manager();
-        $me        = (int) session()->get('user_id');
-
-        // Approved sessions block the court. Pending ones are shown only to staff/admin and to their owner.
-        $visible = static function (array $b) use ($isManager, $me): bool {
-            return $b['status'] === 'approved' || $isManager || (int) $b['user_id'] === $me;
-        };
-
-        // Sessions of the selected day, for the list.
-        $sessions = [];
-        foreach ((new BookingModel())->sessionsBetween($id, $dayStart, $dayEnd, ['approved', 'pending']) as $b) {
-            if (! $visible($b)) {
-                continue;
-            }
-            $mine = (int) $b['user_id'] === $me;
-            $sessions[] = [
-                'id'       => (int) $b['id'],
-                'start'    => $b['start_at'],
-                'end'      => $b['end_at'],
-                'status'   => $b['status'],
-                'mine'     => $mine,
-                'who'      => $isManager ? $b['customer_name'] : ($mine ? 'You' : 'Reserved'),
-                'purpose'  => ($isManager || $mine) ? $b['purpose'] : null,
-            ];
-        }
-
-        // Month grid (Sunday first): only the weeks the month needs, 4 to 6 rows. The rows stretch to fill the panel.
-        $weeks     = (int) ceil(((int) $month->format('w') + (int) $month->format('t')) / 7);
-        $gridStart = (clone $month)->modify('-' . (int) $month->format('w') . ' days');
-        $gridEnd   = (clone $gridStart)->modify('+' . ($weeks * 7) . ' days');
-
-        // How many sessions touch each day of the grid (a session past midnight marks both days).
-        $dayCounts = [];
-        foreach ((new BookingModel())->sessionsBetween($id, $gridStart->format('Y-m-d') . ' 00:00:00', $gridEnd->format('Y-m-d') . ' 00:00:00', ['approved', 'pending']) as $b) {
-            if (! $visible($b)) {
-                continue;
-            }
-            $cursor = new DateTime(date('Y-m-d', strtotime($b['start_at'])));
-            $last   = date('Y-m-d', strtotime($b['end_at']) - 1);
-            while ($cursor->format('Y-m-d') <= $last) {
-                $key             = $cursor->format('Y-m-d');
-                $dayCounts[$key] = ($dayCounts[$key] ?? 0) + 1;
-                $cursor->modify('+1 day');
+        $q = ['facility_id' => (int) $facility['id']];
+        $d = DateTime::createFromFormat('!Y-m-d', (string) $this->request->getGet('date'));
+        if ($d && $d->format('Y-m-d') === (string) $this->request->getGet('date') && $d >= new DateTime('today')) {
+            $q['start'] = $d->format('Y-m-d');
+            if ($end = valid_end_date($q['start'], (string) $this->request->getGet('end_date'))) {
+                $q['end'] = $end;
             }
         }
 
-        $today = date('Y-m-d');
-        $cells = [];
-        for ($i = 0; $i < $weeks * 7; $i++) {
-            $d       = (clone $gridStart)->modify('+' . $i . ' days');
-            $ds      = $d->format('Y-m-d');
-            $cells[] = [
-                'date'     => $ds,
-                'day'      => (int) $d->format('j'),
-                'inMonth'  => $d->format('Y-m') === $month->format('Y-m'),
-                'past'     => $ds < $today,
-                'today'    => $ds === $today,
-                'selected' => $ds === $dateStr,
-                'count'    => $dayCounts[$ds] ?? 0,
-                'label'    => $d->format('l, F j, Y'),
-            ];
-        }
-
-        $prevMonth = (clone $month)->modify('-1 month')->format('Y-m');
-
-        return view('facilities/court', [
-            'navSection' => FacilityModel::isFitness($facility) ? 'fitness' : 'activities',
-            'facility'   => $facility,
-            'activity'   => FacilityModel::activityName($facility['type']),
-            'date'       => $date,
-            'isPast'     => $dateStr < $today,
-            'month'      => $month,
-            'cells'      => $cells,
-            'weeks'      => $weeks,
-            'prevMonth'  => $prevMonth,
-            'nextMonth'  => (clone $month)->modify('+1 month')->format('Y-m'),
-            // Customers cannot book the past, so they cannot browse back before the current month.
-            'canPrev'    => $isManager || $prevMonth >= date('Y-m'),
-            'showToday'  => $dateStr !== $today || $month->format('Y-m') !== date('Y-m'),
-            'opens'      => date('g:i A', strtotime(sprintf('%02d:00', FacilityModel::OPEN_HOUR))),
-            'closes'     => date('g:i A', strtotime(sprintf('%02d:00', FacilityModel::CLOSE_HOUR))),
-            'sessions'   => $sessions,
-            'live'       => (new BookingModel())->liveStatus($id),
-            'isManager'  => $isManager,
-        ]);
+        return redirect()->to('/bookings/new?' . http_build_query($q));
     }
 }

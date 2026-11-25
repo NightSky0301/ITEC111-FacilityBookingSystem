@@ -54,5 +54,10 @@ abstract class BaseController extends Controller
             (new \App\Models\BookingModel())->expirePending();
             cache()->save('pending_expiry_checked', 1, 30);
         }
+        // Reminders for bookings starting within 24 hours (also sent by `php spark bookings:remind` if scheduled).
+        if (! is_cli() && ! cache('booking_reminders_checked')) {
+            (new \App\Models\BookingModel())->remindUpcoming();
+            cache()->save('booking_reminders_checked', 1, 600);
+        }
     }
 }

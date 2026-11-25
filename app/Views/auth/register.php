@@ -42,7 +42,6 @@
     </div>
     <button class="btn btn-primary w-100 py-2" id="regSubmit">Create account</button>
 </form>
-<p class="mt-4 mb-0 text-muted">Already registered? <a href="<?= site_url('login') ?>">Log in</a></p>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>

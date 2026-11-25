@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libraries\Addons;
 use App\Libraries\NotificationService;
 use App\Models\BookingModel;
 use App\Models\FacilityModel;
@@ -61,6 +62,7 @@ class Hotels extends BaseController
             'room'  => $room,
             'hotel' => $hotel,
             'taken' => (new HotelModel())->takenRanges($id),
+            'addons' => Addons::forFacility($room),
         ]);
     }
 
@@ -102,12 +104,6 @@ class Hotels extends BaseController
         if ($nights > HotelModel::MAX_NIGHTS) {
             return redirect()->to($back)->withInput()->with('error', 'You can book up to ' . HotelModel::MAX_NIGHTS . ' nights at a time.');
         }
-        $guests = (int) $this->request->getPost('guests');
-        $cap    = max(1, (int) $room['capacity']);
-        if ($guests < 1 || $guests > $cap) {
-            return redirect()->to($back)->withInput()->with('error', 'This room sleeps up to ' . $cap . ' ' . ($cap === 1 ? 'guest' : 'guests') . '.');
-        }
-
         $startAt  = $in->format('Y-m-d') . ' ' . $hotel['check_in_time'] . ':00';
         $endAt    = $out->format('Y-m-d') . ' ' . $hotel['check_out_time'] . ':00';
         $bookings = new BookingModel();
@@ -115,16 +111,23 @@ class Hotels extends BaseController
             return redirect()->to($back)->withInput()->with('error', 'Sorry, ' . $room['name'] . ' is already booked for some of those nights. Pick other dates.');
         }
 
+        // Add-ons (extra bed, early check-in...): only the ones this room offers, priced here, never taken from the form.
+        $extras = Addons::resolve((array) $this->request->getPost('addons'), 'room', 0, 0, false, 1, false, Addons::forFacility($room), $nights);
+        if (is_string($extras)) {
+            return redirect()->to($back)->withInput()->with('error', $extras);
+        }
+
         $uid   = (int) session()->get('user_id');
         $auto  = is_manager();
-        $total = round($nights * (float) $room['price_per_hour'], 2);
+        $total = round($nights * (float) $room['price_per_hour'] + $extras['total'], 2);  // one price per room, per night: the number of guests does not change it
         $id    = (int) $bookings->insert([
             'facility_id'  => $room['id'],
             'user_id'      => $uid,
             'start_at'     => $startAt,
             'end_at'       => $endAt,
-            'guests'       => $guests,
-            'addons_total' => 0,
+            'guests'       => 1,   // rooms are not booked by head count
+            'addons'       => $extras['items'] ? json_encode($extras['items']) : null,
+            'addons_total' => $extras['total'],
             'purpose'      => mb_substr(trim((string) $this->request->getPost('requests')), 0, 255),
             'status'       => $auto ? 'approved' : 'pending',
             'approved_by'  => $auto ? $uid : null,

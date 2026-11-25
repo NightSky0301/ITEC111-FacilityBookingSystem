@@ -43,7 +43,9 @@ class Dashboard extends BaseController
     /** Extra numbers for the staff / admin dashboard, built from today's approved sessions. */
     private function managerData(BookingModel $bookings, array $today): array
     {
-        $now      = time();
+        // Same rule as the "Did not arrive" label on the Session(s) today cards.
+        $missed = count(array_filter($today, static fn ($b) => arrival_state($b)[0] === 'missed'));
+
         // Oldest requests first, one line per stay (a stay's other days ride along).
         $pending = $bookings->withDetails(['status' => 'pending']);
         usort($pending, static fn ($a, $b) => strtotime($a['created_at']) <=> strtotime($b['created_at']));
@@ -62,16 +64,16 @@ class Dashboard extends BaseController
             $queue[$g]  = $p;
         }
 
-        // Three lists: activities (courts), hotels (rooms) and fitness (gym, pools, studios).
-        $groups = ['activities' => [], 'hotels' => [], 'fitness' => []];
+        // Four lists: activities (courts), hotels (rooms), fitness (gym, pools, studios) and entertainment (bowling, billiards).
+        $groups = ['activities' => [], 'hotels' => [], 'fitness' => [], 'entertainment' => []];
         foreach ($queue as $q) {
             $type = (string) ($q['facility_type'] ?? '');
-            $key  = $type === FacilityModel::ROOM ? 'hotels' : (FacilityModel::isFitness($type) ? 'fitness' : 'activities');
-            $groups[$key][] = $q;
+            $groups[FacilityModel::sectionOf($type)][] = $q;
         }
 
         return [
             'bookedToday'     => count($today),
+            'missed'          => $missed,
             'bookedMonth'     => $bookings->countThisMonth('approved'),
             'cancelledMonth'  => $bookings->countThisMonth('cancelled'),
             'queues'     => $groups,
@@ -86,13 +88,15 @@ class Dashboard extends BaseController
         $acts     = [];
         $freeNow  = [];
         $total    = 0;
+        $sec      = ['activities' => 0, 'fitness' => 0, 'entertainment' => 0];   // facilities per section (hotels are counted as rooms below)
         $slides   = $this->bannerSlides();
         foreach ($byType as $type => $courts) {
-            if (! FacilityModel::isFitness($type)) {
-                $acts[$type] = FacilityModel::activityName($type);   // gym, pools and studios are under Fitness, not in the activity search
+            if (FacilityModel::sectionOf($type) === 'activities') {
+                $acts[$type] = FacilityModel::activityName($type);   // gym, pools, studios, bowling and billiards have their own tabs
             }
             foreach ($courts as $c) {
                 $total++;
+                $sec[FacilityModel::sectionOf($type)]++;
                 if ($bookings->isFreeNow($c)) {
                     $freeNow[] = [
                         'id' => (int) $c['id'], 'name' => $c['name'], 'activity' => FacilityModel::activityName($type),
@@ -131,23 +135,23 @@ class Dashboard extends BaseController
         }
 
         return ['activities' => $acts, 'freeNow' => array_slice($freeNow, 0, 10), 'courtTotal' => $total, 'top' => $top, 'slides' => $slides,
-            'hotelCount' => count($hotels), 'roomCount' => $rooms, 'freeCount' => count($freeNow)];
+            'hotelCount' => count($hotels), 'roomCount' => $rooms, 'freeCount' => count($freeNow), 'sectionCounts' => $sec];
     }
 
     /**
-     * Photos for the home page banner: up to 5. Anything you drop into public/assets/img/hero/ is used first
-     * (hero-1.jpg ... hero-5.jpg, see the README there); until then the five sharpest court photos are used.
+     * Photos for the home page banner: up to 4. Anything you drop into public/assets/img/hero/ is used first
+     * (hero-1.jpg ... hero-4.jpg, see the README there); until then the four sharpest court photos are used.
      */
     private function bannerSlides(): array
     {
         $files = glob(FCPATH . 'assets/img/hero/*.{jpg,jpeg,png,webp}', GLOB_BRACE) ?: [];
         natsort($files);
         $urls = [];
-        foreach (array_slice(array_values($files), 0, 5) as $f) {
+        foreach (array_slice(array_values($files), 0, 4) as $f) {
             $urls[] = base_url('assets/img/hero/' . basename($f)) . '?v=' . filemtime($f);
         }
         if (! $urls) {
-            foreach (['football-a', 'multipurpose-a', 'gym-a', 'tennis-a', 'futsal-a'] as $n) {
+            foreach (['football-a', 'multipurpose-a', 'gym-a', 'tennis-a'] as $n) {
                 $urls[] = base_url('assets/img/courts/' . $n . '.jpg');
             }
         }

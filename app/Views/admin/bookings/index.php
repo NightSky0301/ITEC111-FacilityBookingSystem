@@ -1,12 +1,5 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<div class="page-head">
-    <div>
-        <h1>Bookings</h1>
-        <p>Every booking in one list. Pending requests are approved or rejected from the Dashboard.</p>
-    </div>
-</div>
-
 <form method="get" class="filter-bar">
     <select name="status" class="form-select" data-dd aria-label="Filter by status" onchange="this.form.submit()">
         <option value="">All statuses</option>
@@ -20,12 +13,12 @@
             <option value="<?= $k ?>" <?= $category === $k ? 'selected' : '' ?>><?= esc($label) ?></option>
         <?php endforeach; ?>
     </select>
-    <select name="facility_id" class="form-select" data-dd aria-label="Filter by facility" onchange="this.form.submit()">
+    <div class="filter-right"><select name="facility_id" class="form-select" data-dd aria-label="Filter by facility" onchange="this.form.submit()">
         <option value="">All facilities</option>
         <?php foreach ($facilities as $f): ?>
             <option value="<?= (int) $f['id'] ?>" <?= (int) $facilityId === (int) $f['id'] ? 'selected' : '' ?>><?= esc($f['name']) ?></option>
         <?php endforeach; ?>
-    </select>
+    </select></div>
 </form>
 
 <?php $bookings = group_bookings($bookings); ?>
@@ -122,7 +115,12 @@
                             <summary>Show all <?= (int) $stayN ?> days</summary>
                             <ul>
                                 <?php foreach ($stayDays as $d): ?>
-                                    <li class="is-<?= esc($d['status'], 'attr') ?>"><span><?= esc(date('D, M j', strtotime($d['start_at']))) ?></span><em><?= esc(ucfirst($d['status'])) ?></em></li>
+                                    <li class="is-<?= esc($d['status'], 'attr') ?>"><span><?= esc(date('D, M j', strtotime($d['start_at']))) ?></span><em><?= esc(ucfirst($d['status'])) ?></em>
+                                        <?php if ($d['status'] === 'approved' && strtotime($d['end_at']) > time()): ?>
+                                            <form method="post" action="<?= site_url('manage/bookings/' . (int) $d['id'] . '/cancel') ?>" data-confirm="Cancel <?= esc(date('D, M j', strtotime($d['start_at'])), 'attr') ?> only? The other days stay booked." data-confirm-title="Cancel this day?" data-confirm-ok="Yes, cancel" data-confirm-cancel="Keep it" data-confirm-icon="bi-calendar-x">
+                                                <?= csrf_field() ?><input type="hidden" name="single" value="1"><button class="btn btn-sm btn-outline-danger py-0">Cancel day</button>
+                                            </form>
+                                        <?php endif; ?></li>
                                 <?php endforeach; ?>
                             </ul>
                         </details>
@@ -157,13 +155,6 @@
                                 data-title="Cancel this booking?" data-ok="Cancel booking" data-icon="bi-calendar-x" data-tone="brass"
                                 data-text="<?= esc('Cancel the approved booking of ' . $b['customer_name'] . ' for ' . $b['facility_name'] . ($stayN > 1 ? ' (every day still to come)' : '') . '. The customer will be notified.', 'attr') ?>"><i class="bi bi-calendar-x"></i> Cancel booking</button>
                     </div>
-                <?php endif; ?>
-                <?php if (is_admin()): ?>
-                    <form method="post" action="<?= site_url('admin/bookings/' . (int) $b['id'] . '/archive') ?>"
-                          data-confirm="<?= $stayN > 1 ? 'All ' . (int) $stayN . ' days of this stay' : 'This booking' ?> will be moved to the Archive and the time slot freed. You can restore it from the Archive." data-confirm-title="Archive this booking?" data-confirm-ok="Archive" data-confirm-icon="bi-archive">
-                        <?= csrf_field() ?>
-                        <button class="btn btn-sm btn-act btn-act-ghost-red btn-del"><i class="bi bi-archive"></i> Archive</button>
-                    </form>
                 <?php endif; ?>
               </div>
             </td>

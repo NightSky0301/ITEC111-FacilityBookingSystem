@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
+use App\Libraries\Addons;
 use App\Models\BookingModel;
 use App\Models\FacilityModel;
 
@@ -19,6 +20,9 @@ class Facilities extends BaseController
             'capacity'       => 'required|is_natural_no_zero',
             'price_per_hour' => 'required|decimal',
             'status'         => 'required|in_list[active,inactive]',
+            'open_hour'      => 'permit_empty|is_natural|less_than[24]',
+            'close_hour'     => 'permit_empty|is_natural_no_zero|less_than_equal_to[24]',
+            'new_addons.*.price' => 'permit_empty|decimal',
         ];
     }
 
@@ -31,6 +35,9 @@ class Facilities extends BaseController
             'capacity'       => (int) $this->request->getPost('capacity'),
             'price_per_hour' => (float) $this->request->getPost('price_per_hour'),
             'status'         => $this->request->getPost('status'),
+            // Blank = the usual hours for this kind of facility.
+            'open_hour'      => ($o = $this->request->getPost('open_hour')) === '' || $o === null ? null : (int) $o,
+            'close_hour'     => ($c = $this->request->getPost('close_hour')) === '' || $c === null ? null : (int) $c,
         ];
     }
 
@@ -81,6 +88,48 @@ class Facilities extends BaseController
         }
     }
 
+    /** Everything the Add / Edit form needs besides the facility itself. */
+    private function formData(?array $facility): array
+    {
+        $defaults = [];
+        foreach (array_keys(FacilityModel::TYPES) as $type) {
+            $defaults[$type] = Addons::defaultsFor($type);
+        }
+
+        return [
+            'facility'     => $facility,
+            'types'        => FacilityModel::TYPES,
+            'addons'       => Addons::all(),
+            'chosenAddons' => $facility ? Addons::keysFor((int) $facility['id']) : [],
+            'defaults'     => $defaults,
+            'perLabels'    => Addons::PER_LABELS,
+        ];
+    }
+
+    /** Saves the add-ons ticked on the form, plus any new add-ons typed in, for one facility. */
+    private function saveAddons(int $facilityId): void
+    {
+        $keys = array_values(array_filter((array) $this->request->getPost('addons'), 'is_string'));
+        foreach ((array) $this->request->getPost('new_addons') as $n) {
+            if (! is_array($n)) {
+                continue;
+            }
+            $key = Addons::create(
+                (string) ($n['label'] ?? ''),
+                is_numeric($n['price'] ?? null) ? (float) $n['price'] : 0.0,
+                (string) ($n['per'] ?? 'session'),
+                (string) ($n['group'] ?? 'extra'),
+                (string) ($n['note'] ?? ''),
+                ! empty($n['evening']),
+                ! empty($n['indoor'])
+            );
+            if ($key !== null) {
+                $keys[] = $key;
+            }
+        }
+        Addons::syncFacility($facilityId, $keys);
+    }
+
     public function index()
     {
         return view('admin/facilities/index', [
@@ -91,7 +140,7 @@ class Facilities extends BaseController
 
     public function new()
     {
-        return view('admin/facilities/form', ['facility' => null, 'types' => FacilityModel::TYPES]);
+        return view('admin/facilities/form', $this->formData(null));
     }
 
     public function create()
@@ -107,9 +156,11 @@ class Facilities extends BaseController
 
         $data = $this->payload();
         $data['image'] = $path;
-        (new FacilityModel())->insert($data);
+        $model = new FacilityModel();
+        $model->insert($data);
+        $this->saveAddons((int) $model->getInsertID());
 
-        return redirect()->to('/admin/facilities')->with('success', 'Facility added.');
+        return redirect()->to('/admin/facilities')->with('success', $data['name'] . ' was added.');
     }
 
     public function edit(int $id)
@@ -118,7 +169,7 @@ class Facilities extends BaseController
         if (! $facility) {
             return redirect()->to('/admin/facilities')->with('error', 'Facility not found.');
         }
-        return view('admin/facilities/form', ['facility' => $facility, 'types' => FacilityModel::TYPES]);
+        return view('admin/facilities/form', $this->formData($facility));
     }
 
     public function update(int $id)
@@ -147,8 +198,9 @@ class Facilities extends BaseController
         }
 
         $model->update($id, $data);
+        $this->saveAddons($id);
 
-        return redirect()->to('/admin/facilities')->with('success', 'Facility updated.');
+        return redirect()->to('/admin/facilities')->with('success', $data['name'] . ' was updated.');
     }
 
     public function archive(int $id)

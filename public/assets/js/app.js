@@ -1,12 +1,4 @@
 // Small helpers used across the site.
-document.addEventListener('click', function (e) {
-    // Close buttons on flash messages
-    const close = e.target.closest('.flash-close');
-    if (close) {
-        const box = close.closest('.flash');
-        if (box) box.remove();
-    }
-});
 
 // Notifications pop-up: the bell opens it, the list is loaded fresh each time.
 (function () {
@@ -331,6 +323,12 @@ document.addEventListener('live:swap', initPagers);
         const min = parse(input.min), max = parse(input.max);
         let value = parse(input.value) || new Date();
         let view = new Date(value.getFullYear(), value.getMonth(), 1);
+        // Range mode (home search, Flexible Days): set data-range-end="#id" on the input; the page turns it on with input.dataset.range = '1'.
+        // Two clicks: first day (the pop-up stays open), then last day (it closes). The end date goes in the input named by data-range-end.
+        const endInput = input.dataset.rangeEnd ? document.querySelector(input.dataset.rangeEnd) : null;
+        let endValue = endInput && parse(endInput.value) ? parse(endInput.value) : null;
+        let step = 'start';
+        const isRange = () => !!endInput && input.dataset.range === '1';
 
         const root = document.createElement('div'); root.className = 'dp';
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'dp-btn'; btn.setAttribute('aria-haspopup', 'dialog'); btn.setAttribute('aria-expanded', 'false');
@@ -342,7 +340,14 @@ document.addEventListener('live:swap', initPagers);
         input.parentNode.insertBefore(root, input);
         root.append(input, btn, pop);
 
-        function text() { btn.querySelector('.dp-text').textContent = nice(value); input.value = iso(value); }
+        const short = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        function text() {
+            input.value = iso(value);
+            const range = isRange() && endValue && +endValue > +value;
+            if (endInput) endInput.value = range ? iso(endValue) : '';
+            btn.querySelector('.dp-text').textContent = range ? short(value) + ' → ' + short(endValue) + ' · ' + Math.round((endValue - value) / 864e5 + 1) + ' days' : nice(value);
+        }
+        input.addEventListener('dp:refresh', function () { if (!isRange()) endValue = null; text(); });
         function inRange(d) { return (!min || d >= min) && (!max || d <= max); }
 
         function draw(focusIso) {
@@ -357,9 +362,11 @@ document.addEventListener('live:swap', initPagers);
                 const dt = new Date(y, m, d), ok = inRange(dt), cls = ['dp-day'];
                 if (+dt === +today) cls.push('is-today');
                 if (+dt === +value) cls.push('is-sel');
+                if (isRange() && endValue && +dt > +value && +dt < +endValue) cls.push('is-in');
+                if (isRange() && endValue && +dt === +endValue) cls.push('is-sel', 'is-end');
                 h += '<button type="button" class="' + cls.join(' ') + '" data-d="' + iso(dt) + '"' + (ok ? '' : ' disabled') + (+dt === +value ? ' aria-pressed="true"' : '') + '>' + d + '</button>';
             }
-            h += '</div><div class="dp-foot"><button type="button" class="dp-today">Today</button></div>';
+            h += '</div><div class="dp-foot">' + (isRange() ? '<span class="dp-hint">' + (step === 'end' ? '<b>Now pick the last day.</b>' : 'Pick the first day, then the last day.') + '</span>' : '') + '<button type="button" class="dp-today">Today</button></div>';
             pop.innerHTML = h;
             const prev = pop.querySelector('[data-step="-1"]');
             if (min && new Date(y, m, 1) <= new Date(min.getFullYear(), min.getMonth(), 1)) prev.disabled = true;
@@ -375,10 +382,16 @@ document.addEventListener('live:swap', initPagers);
         }
         function open() {
             if (openDp) openDp(false);
-            view = new Date(value.getFullYear(), value.getMonth(), 1);
+            view = new Date(value.getFullYear(), value.getMonth(), 1); step = 'start';
             draw(); pop.hidden = false; root.classList.add('is-open'); btn.setAttribute('aria-expanded', 'true'); openDp = close;
         }
-        function pick(d) { value = d; text(); input.dispatchEvent(new Event('change', { bubbles: true })); close(true); }
+        function pick(d) {
+            if (isRange()) {
+                if (step === 'start' || +d <= +value) { value = d; endValue = null; step = 'end'; text(); draw(iso(d)); return; }   // first click: stays open
+                endValue = d; step = 'start'; text(); input.dispatchEvent(new Event('change', { bubbles: true })); close(true); return;   // second click: last day
+            }
+            endValue = null; value = d; text(); input.dispatchEvent(new Event('change', { bubbles: true })); close(true);
+        }
 
         btn.addEventListener('click', () => (pop.hidden ? open() : close(false)));
         pop.addEventListener('click', function (e) {
@@ -403,4 +416,19 @@ document.addEventListener('live:swap', initPagers);
     // Clicking the month arrows re-draws the pop-up, so the clicked arrow is no longer in the page when this runs.
     // Such a click came from inside the picker and must not close it.
     document.addEventListener('click', function (e) { if (openDp && e.target.isConnected && !e.target.closest('.dp')) openDp(false); });
+})();
+
+// No browser suggestions (saved entries, past values) under form fields, except on the login form where saved logins are useful.
+(function () {
+    function quiet(root) {
+        (root || document).querySelectorAll('form').forEach(function (form) {
+            if (/\/login$/.test(form.getAttribute('action') || '')) return;
+            form.setAttribute('autocomplete', 'off');
+            form.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=submit]), textarea, select').forEach(function (el) {
+                el.setAttribute('autocomplete', el.type === 'password' ? 'new-password' : 'off');
+            });
+        });
+    }
+    quiet();
+    document.addEventListener('live:changed', function () { quiet(); });
 })();

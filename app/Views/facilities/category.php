@@ -1,6 +1,6 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<?= $this->setVar('step', 2)->include('facilities/_stepper') ?>
+<?= $this->setVar('step', 1)->include('facilities/_stepper') ?>
 
 <div class="row g-4 justify-content-center">
     <?php foreach ($courts as $c): $live = $c['live']; ?>

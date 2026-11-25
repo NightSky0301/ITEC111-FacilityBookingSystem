@@ -19,16 +19,21 @@ class Bookings extends BaseController
 
     public function create()
     {
+        if (is_manager()) {
+            return redirect()->to('/dashboard')->with('error', 'Staff and admin accounts cannot make bookings. Customers book from their own accounts.');
+        }
         $facilities = new FacilityModel();
 
         // Links pass ?start=2026-11-14T15:00 (date and time) or just ?start=2026-11-14 (the court calendar).
         // The form has a separate date and time, so split it here. A bare date leaves the time to the customer.
         $startDate = '';
         $startTime = '';
+        $endDate   = '';
         $rawStart  = (string) $this->request->getGet('start');
         if ($rawStart !== '' && ($ts = strtotime($rawStart))) {
             $startDate = date('Y-m-d', $ts);
             $startTime = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawStart) ? '' : date('H:i', $ts);
+            $endDate   = valid_end_date($startDate, (string) $this->request->getGet('end'));   // a Flexible Days search from the home page
         }
 
         return view('bookings/create', [
@@ -40,6 +45,7 @@ class Bookings extends BaseController
             'selected'   => (int) $this->request->getGet('facility_id'),
             'startDate'  => $startDate,
             'startTime'  => $startTime,
+            'endDate'    => $endDate,
             'courts'     => array_map(static fn ($f) => [
                 'id'    => (int) $f['id'],
                 'type'  => $f['type'],
@@ -50,14 +56,18 @@ class Bookings extends BaseController
                 'outdoor' => facility_is_outdoor($f),
                 'head'  => FacilityModel::isPerHead($f),
                 'max'   => FacilityModel::maxPeople($f),
+                'open'  => FacilityModel::hoursFor($f)[0],
+                'close' => FacilityModel::hoursFor($f)[1],
+                'hours' => min(FacilityModel::MAX_HOURS, FacilityModel::maxHoursFor($f)),
+                'addons' => array_keys(Addons::forFacility($f)),
             ], $facilities->active()),
-            'addons'     => Addons::CATALOG,
+            'addons'     => Addons::all(),
             'eveningFrom' => Addons::EVENING_FROM,
             'open'       => FacilityModel::OPEN_HOUR,
             'close'      => FacilityModel::CLOSE_HOUR,
             'minHours'   => FacilityModel::MIN_HOURS,
             'maxHours'   => FacilityModel::MAX_HOURS,
-            'stayMax'    => FacilityModel::STAY_MAX,
+            'safetyDays' => FacilityModel::STAY_SAFETY_DAYS,
             'refPool'    => Addons::REFEREE_POOL,
             'dayHours'   => FacilityModel::CLOSE_HOUR - FacilityModel::OPEN_HOUR,
         ]);
@@ -79,12 +89,13 @@ class Bookings extends BaseController
         $facility = $facilityId > 0 ? (new FacilityModel())->find($facilityId) : null;
         $bookings = new BookingModel();
         $head     = $facility && FacilityModel::isPerHead($facility);
+        [$openH, $closeH] = $facility ? FacilityModel::hoursFor($facility) : [FacilityModel::OPEN_HOUR, FacilityModel::CLOSE_HOUR];
 
         if ($head) {
             // Per-head facility: a half hour is "full" when the people already approved plus the people
             // in this request would go over the limit. Everyone else can still book the other half hours.
             $people = max(1, min(FacilityModel::maxPeople($facility), (int) $this->request->getGet('people')));
-            for ($m = FacilityModel::OPEN_HOUR * 60; $m < FacilityModel::CLOSE_HOUR * 60; $m += 30) {
+            for ($m = $openH * 60; $m < $closeH * 60; $m += 30) {
                 $from = date('Y-m-d H:i:s', $dayStart + $m * 60);
                 $to   = date('Y-m-d H:i:s', $dayStart + ($m + 30) * 60);
                 if (! $bookings->hasRoom($facility, $from, $to, $people)) {
@@ -103,63 +114,117 @@ class Bookings extends BaseController
             'date'  => $date,
             'today' => date('Y-m-d'),
             'now'   => (int) date('G') * 60 + (int) date('i'),
-            'open'  => FacilityModel::OPEN_HOUR * 60,
-            'close' => FacilityModel::CLOSE_HOUR * 60,
+            'open'  => $openH * 60,
+            'close' => $closeH * 60,
             'busy'  => $busy,
             'head'  => $head,
             'cap'   => $head ? FacilityModel::maxPeople($facility) : null,
             'sessions' => $sessions,
             'refPool'  => Addons::REFEREE_POOL,
-            'ref'      => $bookings->refereeUsage($dayStart, FacilityModel::OPEN_HOUR * 60, FacilityModel::CLOSE_HOUR * 60),
+            'ref'      => $bookings->refereeUsage($dayStart, $openH * 60, $closeH * 60),
         ]);
     }
 
-    /** JSON: is the court free on every day of a stay (same arrival time and hours each day)? */
-    public function span()
+    /** Reads the common query parameters of span() and days(). Returns null when something is missing or wrong. */
+    private function stayParams(): ?array
     {
         $facilityId = (int) $this->request->getGet('facility_id');
-        $date       = (string) $this->request->getGet('date');
         $time       = (string) $this->request->getGet('time');
         $hours      = (int) $this->request->getGet('hours');
         $facility   = $facilityId > 0 ? (new FacilityModel())->find($facilityId) : null;
-        $dt         = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)
-            ? \DateTime::createFromFormat('Y-m-d H:i', $date . ' ' . $time) : false;
-        $n = FacilityModel::stayDays((int) $this->request->getGet('months'), (int) $this->request->getGet('weeks'), (int) $this->request->getGet('days'));
-        if (! $facility || ! $dt || $n < 1 || $hours < FacilityModel::MIN_HOURS || $hours > FacilityModel::MAX_HOURS) {
+        if (! $facility || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time) || $hours < FacilityModel::MIN_HOURS || $hours > FacilityModel::maxHoursFor($facility)) {
+            return null;
+        }
+        $head = FacilityModel::isPerHead($facility);
+
+        return [
+            'facility' => $facility,
+            'time'     => $time,
+            'hours'    => $hours,
+            'head'     => $head,
+            'people'   => $head ? max(1, min(FacilityModel::maxPeople($facility), (int) $this->request->getGet('people'))) : 1,
+            'ref'      => (string) $this->request->getGet('ref') === '1',
+        ];
+    }
+
+    /** One day of a stay: is the facility free, is a referee left, and how many other requests wait for the same time? */
+    private function dayState(BookingModel $bookings, array $p, string $day): array
+    {
+        $startTs = strtotime($day . ' ' . $p['time']);
+        $startAt = date('Y-m-d H:i:s', $startTs);
+        $endAt   = date('Y-m-d H:i:s', $startTs + $p['hours'] * 3600);
+        $fid     = (int) $p['facility']['id'];
+        $free    = $p['head'] ? $bookings->hasRoom($p['facility'], $startAt, $endAt, $p['people']) : $bookings->firstClash($fid, $startAt, $endAt) === null;
+
+        return [
+            'free'    => $free,
+            'refOk'   => ! $p['ref'] || $bookings->refereeAvailable($startAt, $endAt),
+            'waiting' => $bookings->pendingOverlap($fid, $startAt, $endAt),
+            'label'   => date('D, M j', $startTs),
+        ];
+    }
+
+    /** JSON: is the facility free on every day from date to end_date (same arrival time and hours each day)? */
+    public function span()
+    {
+        $date = (string) $this->request->getGet('date');
+        $end  = (string) ($this->request->getGet('end_date') ?: $date);
+        $p    = $this->stayParams();
+        $n    = FacilityModel::daysBetween($date, $end);
+        if (! $p || $n < 1) {
             return $this->response->setStatusCode(400)->setJSON(['error' => 'Bad request']);
         }
 
         $bookings = new BookingModel();
-        $head     = FacilityModel::isPerHead($facility);
-        $people   = $head ? max(1, min(FacilityModel::maxPeople($facility), (int) $this->request->getGet('people'))) : 1;
-        $wantsRef = (string) $this->request->getGet('ref') === '1';
         $clashes  = [];
         $refShort = [];
+        $waiting  = 0;
         foreach (FacilityModel::stayDates($date, $n) as $d) {
-            $startTs = strtotime($d . ' ' . $time);
-            $startAt = date('Y-m-d H:i:s', $startTs);
-            $endAt   = date('Y-m-d H:i:s', $startTs + $hours * 3600);
-            $ok      = $head ? $bookings->hasRoom($facility, $startAt, $endAt, $people) : $bookings->firstClash($facilityId, $startAt, $endAt) === null;
-            if (! $ok) {
-                $clashes[] = date('D, M j', $startTs);
-            }
-            if ($wantsRef && ! $bookings->refereeAvailable($startAt, $endAt)) {
-                $refShort[] = date('D, M j', $startTs);
-            }
+            $s = $this->dayState($bookings, $p, $d);
+            if (! $s['free']) { $clashes[] = $s['label']; }
+            if (! $s['refOk']) { $refShort[] = $s['label']; }
+            $waiting = max($waiting, $s['waiting']);
         }
 
         return $this->response->setJSON([
             'free'     => $clashes === [],
             'clashes'  => $clashes,
             'refShort' => $refShort,
+            'waiting'  => $waiting,
             'days'     => $n,
-            'hours'    => $hours,
+            'hours'    => $p['hours'],
             'lastDay'  => date('D, M j, Y', strtotime($date . ' +' . ($n - 1) . ' days')),
         ]);
     }
 
+    /** JSON for the range calendar: which days between from and to (at most 62) are already taken at this time. */
+    public function days()
+    {
+        $from = (string) $this->request->getGet('from');
+        $to   = (string) $this->request->getGet('to');
+        $p    = $this->stayParams();
+        $n    = FacilityModel::daysBetween($from, $to);
+        if (! $p || $n < 1 || $n > 62) {
+            return $this->response->setStatusCode(400)->setJSON(['error' => 'Bad request']);
+        }
+
+        $bookings = new BookingModel();
+        $taken    = [];
+        $refShort = [];
+        foreach (FacilityModel::stayDates($from, $n) as $d) {
+            $s = $this->dayState($bookings, $p, $d);
+            if (! $s['free']) { $taken[] = $d; }
+            if (! $s['refOk']) { $refShort[] = $d; }
+        }
+
+        return $this->response->setJSON(['today' => date('Y-m-d'), 'taken' => $taken, 'refShort' => $refShort]);
+    }
+
     public function store()
     {
+        if (is_manager()) {
+            return redirect()->to('/dashboard')->with('error', 'Staff and admin accounts cannot make bookings. Customers book from their own accounts.');
+        }
         $rules = [
             'facility_id' => 'required|is_natural_no_zero',
             'purpose'     => 'permit_empty|max_length[255]',
@@ -192,31 +257,31 @@ class Bookings extends BaseController
             return redirect()->back()->withInput()->with('error', 'That time has already passed. Please choose a time from now onward.');
         }
 
-        // Hourly booking (one day, 1 to 16 hours) OR a stay: the same arrival time and hours repeat every day
-        // for the chosen months / weeks / days. Each day is saved as its own booking.
-        $sm = (int) $this->request->getPost('stay_months');
-        $sw = (int) $this->request->getPost('stay_weeks');
-        $sd = (int) $this->request->getPost('stay_days');
-        $stayN = 1;
-        if ($sm + $sw + $sd > 0) {
-            $stayN = FacilityModel::stayDays($sm, $sw, $sd);
+        // By the hour (one day) OR multiple days: the same arrival time and hours repeat every day from the
+        // first date to the last. Each day is saved as its own booking. There is no limit on how long.
+        $endDate = trim((string) $this->request->getPost('end_date'));
+        $stayN   = 1;
+        if ($this->request->getPost('mode') === 'days' && $endDate !== '' && $endDate !== $date) {
+            $stayN = FacilityModel::daysBetween($date, $endDate);
             if ($stayN < 1) {
-                return redirect()->back()->withInput()->with('error', 'That stay length is not allowed (up to ' . FacilityModel::STAY_MAX['months'] . ' months, ' . FacilityModel::STAY_MAX['weeks'] . ' weeks and ' . FacilityModel::STAY_MAX['days'] . ' days).');
+                return redirect()->back()->withInput()->with('error', 'Please choose a last day that is the same as or after the first day.');
             }
         }
-        $stay     = $stayN > 1 ? true : false;
+        $stay     = $stayN > 1;
+        [$openH, $closeH] = FacilityModel::hoursFor($facility);
+        $maxHours = min(FacilityModel::MAX_HOURS, $closeH - $openH);
         $rawHours = trim((string) $this->request->getPost('hours'));
         $hours    = $rawHours === '' ? FacilityModel::MIN_HOURS : (ctype_digit($rawHours) ? (int) $rawHours : 0);
-        if ($hours < FacilityModel::MIN_HOURS || $hours > FacilityModel::MAX_HOURS) {
-            return redirect()->back()->withInput()->with('error', 'Choose ' . FacilityModel::MIN_HOURS . ' to ' . FacilityModel::MAX_HOURS . ' hours, added one hour at a time.');
+        if ($hours < FacilityModel::MIN_HOURS || $hours > $maxHours) {
+            return redirect()->back()->withInput()->with('error', 'Choose ' . FacilityModel::MIN_HOURS . ' to ' . $maxHours . ' hours, added one hour at a time.');
         }
         $endTs = $startTs + FacilityModel::durationMinutes($hours) * 60;
 
-        // Every day has to fall inside opening hours (the hours repeat daily, so one check covers them all).
-        $opens  = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::OPEN_HOUR));
-        $closes = strtotime($date . ' ' . sprintf('%02d:00', FacilityModel::CLOSE_HOUR));
+        // Every day has to fall inside this facility's opening hours (the hours repeat daily, so one check covers them all).
+        $opens  = strtotime($date . ' ' . sprintf('%02d:00', $openH));
+        $closes = strtotime($date . ' ' . sprintf('%02d:00', $closeH));
         if ($startTs < $opens || $endTs > $closes) {
-            return redirect()->back()->withInput()->with('error', 'Bookings must fall within opening hours (' . date('g:i A', $opens) . ' – ' . date('g:i A', $closes) . '). Choose an earlier time in or fewer hours.');
+            return redirect()->back()->withInput()->with('error', $facility['name'] . ' is open ' . date('g:i A', $opens) . ' – ' . ($closeH >= 24 ? '12:00 AM' : date('g:i A', $closes)) . '. Choose an earlier time in or fewer hours.');
         }
 
         // Courts are booked as a whole; the suggested number of people is information only.
@@ -234,7 +299,7 @@ class Bookings extends BaseController
         // Add-ons: lights (evening only), fan or AC (one of them), rentals. Priced here, never taken from the form.
         $keys   = (array) $this->request->getPost('addons');
         $keys[] = (string) $this->request->getPost('cooling');
-        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours, facility_is_outdoor($facility), $perHead ? $guests : 1);
+        $addons = Addons::resolve($keys, (string) $facility['type'], (int) date('G', $startTs) * 60 + (int) date('i', $startTs), $hours, facility_is_outdoor($facility), $perHead ? $guests : 1, false, Addons::forFacility($facility));
         if (is_string($addons)) {
             return redirect()->back()->withInput()->with('error', $addons);
         }
@@ -292,6 +357,17 @@ class Bookings extends BaseController
 
         $db = \Config\Database::connect();
         $db->transStart();
+        // Take turns with anyone saving the same facility at this moment, then look once more: the checks above
+        // may be a few milliseconds old.
+        $bookings->lockFacility((int) $facility['id']);
+        foreach ($days as [$sAt, $eAt]) {
+            $ok = $perHead ? $bookings->hasRoom($facility, $sAt, $eAt, $guests) : ! $bookings->hasConflict((int) $facility['id'], $sAt, $eAt);
+            if (! $ok || ($wantsReferee && ! $bookings->refereeAvailable($sAt, $eAt))) {
+                $db->transComplete();
+
+                return redirect()->back()->withInput()->with('error', 'Sorry, that time was just taken by another booking. Please pick another time.');
+            }
+        }
         $ids = [];
         foreach ($days as $i => [$sAt, $eAt]) {
             $ids[] = (int) $bookings->insert($row($sAt, $eAt, $i === 0 ? null : $ids[0]), true);
@@ -330,10 +406,15 @@ class Bookings extends BaseController
 
             return redirect()->to('/manage/bookings?status=approved')->with('success', 'Booked ' . $what . ' (₱' . number_format($total, 2) . '). It is confirmed, no approval needed.');
         }
+        $waiting = 0;
+        foreach ($days as [$sAt, $eAt]) {
+            $waiting = max($waiting, $bookings->pendingOverlap((int) $facility['id'], $sAt, $eAt, $ids));
+        }
+        $note = $waiting > 0 ? ' Heads up: ' . $waiting . ' other request' . ($waiting === 1 ? ' is' : 's are') . ' also waiting for this time, and the first one approved gets it.' : '';
         $notify->notifyManagers('New booking request', session()->get('name') . ' requested ' . $facility['name'] . ' for ' . $what . '.', $id);
         $notify->notifyUser($uid, 'Booking request sent', 'Your request for ' . $facility['name'] . $who . ' (' . $what . ') is waiting for admin approval.', $id);
 
-        return redirect()->to('/my-bookings')->with('success', 'Booking request sent for ' . $what . ' (₱' . number_format($total, 2) . '). You will be notified once it is reviewed.');
+        return redirect()->to('/my-bookings')->with('success', 'Booking request sent for ' . $what . ' (₱' . number_format($total, 2) . '). You will be notified once it is reviewed.' . $note);
     }
 
     public function cancel(int $id)
@@ -348,10 +429,14 @@ class Bookings extends BaseController
             return redirect()->to('/my-bookings')->with('error', 'This booking can no longer be cancelled.');
         }
 
-        // A stay is cancelled as a whole: every day that has not ended yet. ?day=1 cancels only this one day.
-        $rows = $this->request->getPost('single') === '1'
-            ? [$booking]
-            : $bookings->groupRows($booking, ['pending', 'approved'], true);
+        // Pending requests can be cancelled any time; approved ones until 24 hours before they start.
+        // After that the customer contacts the staff, who can always cancel.
+        $targets = $this->request->getPost('single') === '1' ? [$booking] : $bookings->groupRows($booking, ['pending', 'approved'], true);
+        $rows    = array_values(array_filter($targets, static fn ($r) => BookingModel::customerCanCancel($r)));
+        $kept    = count($targets) - count($rows);
+        if (! $rows) {
+            return redirect()->to('/my-bookings')->with('error', 'Free cancellation for approved bookings closes ' . BookingModel::CANCEL_HOURS_BEFORE . ' hours before the start. Please contact the staff to cancel this one.');
+        }
         foreach ($rows as $r) {
             $bookings->update((int) $r['id'], ['status' => 'cancelled']);
         }
@@ -363,6 +448,11 @@ class Bookings extends BaseController
             $id
         );
 
-        return redirect()->to('/my-bookings')->with('success', $n > 1 ? 'Booking cancelled (' . $n . ' days).' : 'Booking cancelled.');
+        $msg = $n > 1 ? 'Booking cancelled (' . $n . ' days).' : 'Booking cancelled.';
+        if ($kept > 0) {
+            $msg .= ' ' . $kept . ' day' . ($kept === 1 ? ' starts' : 's start') . ' within ' . BookingModel::CANCEL_HOURS_BEFORE . ' hours and ' . ($kept === 1 ? 'was' : 'were') . ' kept; contact the staff for ' . ($kept === 1 ? 'it' : 'those') . '.';
+        }
+
+        return redirect()->to('/my-bookings')->with('success', $msg);
     }
 }

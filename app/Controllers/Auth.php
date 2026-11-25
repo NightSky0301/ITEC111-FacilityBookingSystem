@@ -42,10 +42,8 @@ class Auth extends BaseController
             'role'    => $user['role'],
         ]);
 
-        $back = (string) session()->get('after_login');
-        session()->remove('after_login');
-
-        return redirect()->to($back !== '' ? $back : '/dashboard')->with('success', 'Welcome back, ' . $user['name'] . '!');
+        // Logging in always lands on the main page: the home page for customers, the Dashboard for staff and admin.
+        return redirect()->to('/dashboard')->with('welcome', $user['name']);
     }
 
     public function register()
@@ -90,9 +88,14 @@ class Auth extends BaseController
         return redirect()->to('/login')->with('success', 'Account created. You can log in now.');
     }
 
+    /** Logging out is a POST (after the "Do you really want to log out?" pop-up); opening the address in a browser does nothing. */
     public function logout()
     {
-        session()->destroy();
+        if (strtolower($this->request->getMethod()) !== 'post') {
+            return redirect()->to('/dashboard');
+        }
+        session()->remove(['user_id', 'name', 'email', 'role']);
+        session()->regenerate(true);   // new session id; (destroy() would also throw away the flash message below)
         return redirect()->to('/')->with('success', 'You have been logged out.');
     }
 }

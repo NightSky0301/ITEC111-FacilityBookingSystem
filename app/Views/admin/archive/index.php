@@ -4,7 +4,6 @@
     $tabs = [
         'facilities' => ['Facilities', 'bi-grid-3x3-gap', count($facilities)],
         'users'      => ['Accounts',   'bi-people',       count($users)],
-        'bookings'   => ['Bookings',   'bi-calendar-check', count($bookings)],
     ];
     $count = $tabs[$tab][2];
     $restore = static function (string $what, int $id, string $name): string {
@@ -14,13 +13,6 @@
             . csrf_field() . '<button class="btn btn-sm btn-gold"><i class="bi bi-arrow-counterclockwise me-1"></i>Restore</button></form>';
     };
 ?>
-<div class="page-head">
-    <div>
-        <h1>Archive</h1>
-        <p>Archived facilities, accounts and bookings are kept here. Restore anything you archived by mistake.</p>
-    </div>
-</div>
-
 <nav class="arc-tabs" aria-label="Archive sections" id="live-arc-tabs" data-live>
     <?php foreach ($tabs as $key => [$label, $icon, $n]): ?>
         <a href="<?= site_url('admin/archive?tab=' . $key) ?>" class="arc-tab <?= $tab === $key ? 'active' : '' ?>" <?= $tab === $key ? 'aria-current="page"' : '' ?>>
@@ -33,8 +25,11 @@
     <div class="sess-head">
         <div>
             <h2>Archived <?= strtolower($tabs[$tab][0]) ?></h2>
-            <div class="sess-sub"><?= $count ?> <?= $count === 1 ? 'item' : 'items' ?> in the archive</div>
+            <div class="sess-sub"><span data-smart-count><?= $count ?></span> <?= $count === 1 ? 'item' : 'items' ?> in the archive</div>
         </div>
+        <?php if ($count > 0): ?>
+        <label class="tb-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" placeholder="Search name, email, type..." data-smart-search="#live-archive" data-smart-item="tbody tr" aria-label="Search the archive" autocomplete="off" spellcheck="false"></label>
+        <?php endif; ?>
     </div>
 
 <?php if ($count === 0): ?>
@@ -71,22 +66,7 @@
         <?php endforeach; ?>
         </tbody>
     </table></div>
-<?php else: ?>
-    <div class="table-responsive"><table class="table data-table table-hover tbl-brass">
-        <thead><tr><th>Customer</th><th>Facility</th><th>When</th><th>Status</th><th>Archived</th><th></th></tr></thead>
-        <tbody>
-        <?php foreach ($bookings as $b): ?>
-            <tr>
-                <td><div class="cell-title"><?= esc($b['customer_name'] ?? 'Unknown') ?></div><div class="cell-sub"><?= esc($b['customer_email'] ?? '') ?></div></td>
-                <td><div class="cell-title"><?= esc($b['facility_name'] ?? 'Unknown') ?></div></td>
-                <td><?= esc(fmt_range($b['start_at'], $b['end_at'])) ?></td>
-                <td><?= status_badge($b['status']) ?></td>
-                <td><?= esc(date('M j, Y · g:i A', strtotime($b['deleted_at']))) ?></td>
-                <td class="text-end"><?= $restore('bookings', (int) $b['id'], 'This booking') ?></td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table></div>
 <?php endif; ?>
+<?php if ($count > 0): ?><div class="empty" data-smart-empty hidden><i class="bi bi-search"></i><strong>No match</strong>Nothing in the archive matches your search.</div><?php endif; ?>
 </section>
 <?= $this->endSection() ?>

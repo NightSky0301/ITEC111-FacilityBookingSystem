@@ -30,6 +30,14 @@
         }, 880);
     }
 
+    // Back: on Create an account it returns to Log in (the screen you came from); on Log in it leaves to the home page.
+    document.addEventListener('click', function (e) {
+        const back = e.target.closest('.auth-back');
+        if (!back || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || modeNow() !== 'register') return;
+        e.preventDefault();
+        setMode('login', true);
+    });
+
     document.addEventListener('click', function (e) {
         const a = e.target.closest('[data-auth-switch]');
         if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;

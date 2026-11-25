@@ -1,12 +1,12 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 <?php
-    $dateQs = $date !== '' ? '?date=' . rawurlencode($date) : '';
+    $dateQs = $date !== '' ? '?date=' . rawurlencode($date) . (($end ?? '') !== '' ? '&end_date=' . rawurlencode($end) : '') : '';
 ?>
 <header class="fx-head">
     <div>
         <h1><?= $q !== '' ? 'Results for “' . esc($q) . '”' : 'Everything you can book' ?></h1>
-        <p><?= $total === 0 ? 'Nothing matched yet.' : $total . ($total === 1 ? ' place' : ' places') . ' found' . ($date !== '' ? ' · showing times for ' . esc(date('D, M j', strtotime($date))) : '') . '.' ?></p>
+        <p><?= $total === 0 ? 'Nothing matched yet.' : $total . ($total === 1 ? ' place' : ' places') . ' found' . ($date !== '' ? ' · showing times for ' . esc(date('D, M j', strtotime($date))) . (($end ?? '') !== '' ? ' to ' . esc(date('D, M j', strtotime($end))) : '') : '') . '.' ?></p>
     </div>
 </header>
 
@@ -14,6 +14,7 @@
     <i class="bi bi-search" aria-hidden="true"></i>
     <input type="search" name="q" value="<?= esc($q, 'attr') ?>" placeholder="Search courts, hotels, rooms or activities" aria-label="Search" autocomplete="off">
     <?php if ($date !== ''): ?><input type="hidden" name="date" value="<?= esc($date, 'attr') ?>"><?php endif; ?>
+    <?php if (($end ?? '') !== ''): ?><input type="hidden" name="end_date" value="<?= esc($end, 'attr') ?>"><?php endif; ?>
     <button class="btn btn-gold" type="submit">Search</button>
 </form>
 
@@ -29,6 +30,7 @@
                 <?php endforeach; ?>
                 <a class="sr-chip" href="<?= site_url('hotels') ?>"><i class="bi bi-building"></i> Hotels</a>
                 <a class="sr-chip" href="<?= site_url('fitness') ?>"><i class="bi bi-heart-pulse"></i> Fitness</a>
+                <a class="sr-chip" href="<?= site_url('entertainment') ?>"><i class="bi bi-controller"></i> Entertainment</a>
             </div>
         </div>
     </div>
@@ -48,6 +50,15 @@
     <h2 class="sr-h"><i class="bi bi-heart-pulse"></i> Fitness <span><?= count($gyms) ?></span></h2>
     <div class="ax-grid">
         <?php foreach ($gyms as $c): ?><?= view('facilities/_card', ['c' => $c, 'dateQs' => $dateQs]) ?><?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if (! empty($fun)): ?>
+<section class="sr-group">
+    <h2 class="sr-h"><i class="bi bi-controller"></i> Entertainment <span><?= count($fun) ?></span></h2>
+    <div class="ax-grid">
+        <?php foreach ($fun as $c): ?><?= view('facilities/_card', ['c' => $c, 'dateQs' => $dateQs]) ?><?php endforeach; ?>
     </div>
 </section>
 <?php endif; ?>
@@ -75,7 +86,6 @@
                     <?php endif; ?>
                     <span class="ht-card-foot">
                         <span class="ht-from"><?= $n ?> <?= $n === 1 ? 'room' : 'rooms' ?> · <b class="ht-free-txt"><?= (int) $h['free_tonight'] ?> free tonight</b> · from <b>₱<?= number_format($h['from'], 0) ?></b> <small>per night</small></span>
-                        <a class="ht-go" href="<?= site_url('hotels/' . (int) $h['id']) ?>">View rooms <i class="bi bi-arrow-right"></i></a>
                     </span>
                 </span>
             </div>

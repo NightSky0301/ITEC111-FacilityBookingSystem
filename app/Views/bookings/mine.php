@@ -147,7 +147,9 @@
                 $rowClass = $r['done'] ? 'is-done' : 'is-' . $status;
                 $closed   = ! $r['upcoming'];
                 $stayN  = $r['stayN'];
-                $canCancel = $r['canCancel'];
+                $freeDays  = array_values(array_filter($r['days'], static fn ($d) => \App\Models\BookingModel::customerCanCancel($d)));
+                $canCancel = $r['canCancel'] && $freeDays;
+                $lockedCancel = $r['canCancel'] && ! $freeDays;   // approved and starting within 24 h: staff only
                 $confirmText = $stayN > 1
                     ? 'Cancel every remaining day of your ' . $b['facility_name'] . ' stay (' . $stayN . ' days)?'
                     : 'Cancel your booking for ' . $b['facility_name'] . ' on ' . date('M j', $s) . '?';
@@ -181,6 +183,17 @@
                                     <div class="cell-sub"><?= $r['room'] ? esc($r['nights'] . ($r['nights'] === 1 ? ' night' : ' nights')) : esc($fmtHours($r['hours'])) ?></div>
                                 <?php endif; ?>
                                 <?php if (! empty($b['addons'])): ?><div class="cell-sub">+ <?= esc(implode(', ', array_column(json_decode($b['addons'], true) ?: [], 'label'))) ?></div><?php endif; ?>
+                                <?php if ($stayN > 1 && count($freeDays) > 0): ?>
+                                    <details class="bk-days">
+                                        <summary>Cancel a single day</summary>
+                                        <?php foreach ($freeDays as $fd): ?>
+                                            <form method="post" action="<?= site_url('bookings/' . (int) $fd['id'] . '/cancel') ?>" class="bk-day-cancel" data-confirm="Cancel <?= esc(date('D, M j', strtotime($fd['start_at'])), 'attr') ?> only? Your other days stay booked." data-confirm-title="Cancel this day?" data-confirm-ok="Yes, cancel" data-confirm-cancel="Keep it" data-confirm-icon="bi-calendar-x">
+                                                <?= csrf_field() ?><input type="hidden" name="single" value="1">
+                                                <?= esc(date('D, M j', strtotime($fd['start_at']))) ?> <button class="btn btn-sm btn-outline-danger">Cancel</button>
+                                            </form>
+                                        <?php endforeach; ?>
+                                    </details>
+                                <?php endif; ?>
                                 <?php if ($relText): ?><span class="bk-rel <?= esc($relClass, 'attr') ?>"><?= esc($relText) ?></span><?php endif; ?>
                             </div>
                         </div>
@@ -207,6 +220,8 @@
                                 <?= csrf_field() ?>
                                 <button class="btn btn-sm btn-outline-danger">Cancel</button>
                             </form>
+                        <?php elseif ($lockedCancel): ?>
+                            <span class="cell-sub" title="Approved bookings can be cancelled until <?= (int) \App\Models\BookingModel::CANCEL_HOURS_BEFORE ?> hours before they start">Cancellation closed.<br>Please contact the staff.</span>
                         <?php else: ?>
                             <a class="btn btn-sm btn-outline-secondary" href="<?= site_url('bookings/new') ?>?facility_id=<?= (int) $b['facility_id'] ?>">Book again</a>
                         <?php endif; ?>

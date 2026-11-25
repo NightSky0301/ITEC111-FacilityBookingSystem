@@ -4,12 +4,13 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-<div class="page-head">
-    <div>
-        <h1>Calendar</h1>
-        <p><?= is_manager() ? 'All requests and approved bookings.' : 'Click a day to see your bookings on it.' ?></p>
-    </div>
-    <div class="page-actions">
+<div class="legend" role="list" aria-label="Calendar legend">
+    <span class="legend-title">Legend</span>
+    <?php if (is_manager()): ?><span role="listitem"><i class="lg-booked" aria-hidden="true"></i> Booked</span><?php endif; ?>
+    <span role="listitem"><i class="lg-pending" aria-hidden="true"></i> Waiting for approval</span>
+    <?php if (! is_manager()): ?><span role="listitem"><i class="lg-mine" aria-hidden="true"></i> Your booking</span><?php endif; ?>
+    <div class="legend-filter">
+        <label class="cal-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="calSearch" placeholder="<?= is_manager() ? 'Search court, customer, date' : 'Search your bookings' ?>" aria-label="Search bookings" autocomplete="off" spellcheck="false"></label>
         <label class="visually-hidden" for="facilityFilter">Facility</label>
         <select id="facilityFilter" class="form-select" data-dd>
             <option value="">All facilities</option>
@@ -18,13 +19,6 @@
             <?php endforeach; ?>
         </select>
     </div>
-</div>
-
-<div class="legend" role="list" aria-label="Calendar legend">
-    <span class="legend-title">Legend</span>
-    <span role="listitem"><i class="lg-booked" aria-hidden="true"></i> Booked</span>
-    <span role="listitem"><i class="lg-pending" aria-hidden="true"></i> Waiting for approval</span>
-    <?php if (! is_manager()): ?><span role="listitem"><i class="lg-mine" aria-hidden="true"></i> Your booking</span><?php endif; ?>
 </div>
 
 <div class="panel cal-fc"><div class="panel-body"><div id="calendar"></div></div></div>
@@ -49,6 +43,7 @@
 
 <?= $this->section('scripts') ?>
 <script>
+const IS_MANAGER = <?= is_manager() ? 'true' : 'false' ?>;
 document.addEventListener('DOMContentLoaded', function () {
     const filter = document.getElementById('facilityFilter');
     const modal = new bootstrap.Modal(document.getElementById('eventModal'));
@@ -57,6 +52,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const params = new URLSearchParams(window.location.search);
     const wantDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') || '') ? params.get('date') : null;
     let wantBooking = params.get('booking');
+    // Smart search: every typed word must match the start of a word in the facility, customer, status or date (small typos are forgiven).
+    const searchIn = document.getElementById('calSearch');
+    const matches = e => {
+        if (!searchIn || !searchIn.value.trim()) return true;
+        const d = new Date(e.start), p = e.extendedProps || {};
+        const when = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) + ' ' + d.toLocaleDateString('en-US', { weekday: 'short', month: 'short' });
+        const status = p.status === 'pending' ? 'pending waiting' : (p.kind === 'mine' ? 'approved confirmed yours mine' : 'approved booked');
+        return window.smartMatch(searchIn.value, [p.facility, p.customer, status, when].join(' '));
+    };
     const peso = n => '₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const KICKER = { mine: 'Your booking', booked: 'Booked', pending: 'Waiting for approval' };
 
@@ -108,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         document.getElementById('evBody').innerHTML = html;
         const book = document.getElementById('evBook'), today = ymdOf(new Date());
-        if (day >= today) {
+        if (day >= today && !IS_MANAGER) {   // staff and admin do not book
             const qs = new URLSearchParams();
             if (filter.value) qs.set('facility_id', filter.value);
             qs.set('start', day + 'T' + (timeStr && timeStr.length >= 5 ? timeStr.substring(0, 5) : '09:00'));
@@ -170,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
             url.searchParams.set('start', info.startStr);
             url.searchParams.set('end', info.endStr);
             if (filter.value) url.searchParams.set('facility_id', filter.value);
-            fetch(url, { credentials: 'same-origin' }).then(r => r.json()).then(success).catch(failure);
+            fetch(url, { credentials: 'same-origin' }).then(r => r.json()).then(list => success(list.filter(matches))).catch(failure);
         },
         datesSet: repaint,
         windowResize: repaint,
@@ -190,6 +194,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     calendar.render();
     filter.addEventListener('change', () => calendar.refetchEvents());
+    let searchTimer = null;
+    if (searchIn) searchIn.addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => calendar.refetchEvents(), 150); });
     document.addEventListener('live:changed', () => calendar.refetchEvents());   // new / approved / cancelled bookings appear without a refresh
 });
 </script>

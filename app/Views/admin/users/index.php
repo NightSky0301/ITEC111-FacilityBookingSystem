@@ -1,27 +1,23 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
-<div class="page-head">
-    <div>
-        <h1>Users</h1>
-        <p>Staff handle day-to-day bookings when the owner is away. Customers register on their own.</p>
-    </div>
-    <div class="page-actions"><a href="<?= site_url('admin/users/new') ?>" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add user</a></div>
+<div class="tb-row">
+    <form method="get" class="tb-filter">
+        <select name="role" class="form-select" data-dd aria-label="Filter by role" onchange="this.form.submit()">
+            <option value="">All roles</option>
+            <?php foreach ($roles as $key => $label): ?>
+                <option value="<?= esc($key) ?>" <?= $role === $key ? 'selected' : '' ?>><?= esc($label) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </form>
+    <label class="tb-search"><i class="bi bi-search" aria-hidden="true"></i><input type="search" placeholder="Search name, email, phone, role..." data-smart-search="#live-users" data-smart-item="tbody tr" aria-label="Search users" autocomplete="off" spellcheck="false"></label>
+    <a href="<?= site_url('admin/users/new') ?>" class="btn btn-primary tb-add"><i class="bi bi-plus-lg"></i> Add user</a>
 </div>
-
-<form method="get" class="filter-bar">
-    <select name="role" class="form-select" data-dd aria-label="Filter by role" onchange="this.form.submit()">
-        <option value="">All roles</option>
-        <?php foreach ($roles as $key => $label): ?>
-            <option value="<?= esc($key) ?>" <?= $role === $key ? 'selected' : '' ?>><?= esc($label) ?></option>
-        <?php endforeach; ?>
-    </select>
-</form>
 
 <section class="tbl-panel" id="live-users" data-live>
     <div class="sess-head">
         <div>
             <h2>All accounts</h2>
-            <div class="sess-sub"><?= count($users) ?> <?= count($users) === 1 ? 'account' : 'accounts' ?><?= $role ? ' · ' . esc($roles[$role] ?? $role) : '' ?></div>
+            <div class="sess-sub"><span data-smart-count><?= count($users) ?></span> <?= count($users) === 1 ? 'account' : 'accounts' ?><?= $role ? ' · ' . esc($roles[$role] ?? $role) : '' ?></div>
         </div>
     </div>
 <?php if (empty($users)): ?>
@@ -52,11 +48,17 @@
                             <button class="btn btn-sm btn-act btn-act-ghost"><i class="bi bi-person-check"></i> Reactivate</button>
                         <?php endif; ?>
                     </form>
+                    <?php if ($status === 'active'): ?>
+                        <span class="d-inline-block" tabindex="0" title="Deactivate this account first. Only deactivated accounts can be archived.">
+                            <button type="button" class="btn btn-sm btn-act btn-act-red" disabled aria-disabled="true"><i class="bi bi-lock"></i> Archive</button>
+                        </span>
+                    <?php else: ?>
                     <form method="post" action="<?= site_url('admin/users/' . (int) $u['id'] . '/archive') ?>" class="d-inline"
                           data-confirm="<?= esc($u['name'] . ' will be moved to the Archive and can no longer log in. You can restore the account from the Archive.', 'attr') ?>" data-confirm-title="Archive this account?" data-confirm-ok="Archive" data-confirm-icon="bi-archive">
                         <?= csrf_field() ?>
                         <button class="btn btn-sm btn-act btn-act-red"><i class="bi bi-archive"></i> Archive</button>
                     </form>
+                    <?php endif; ?>
                 <?php endif; ?>
             </td>
         </tr>
@@ -64,6 +66,7 @@
     </tbody>
 </table>
 </div>
+<div class="empty" data-smart-empty hidden><i class="bi bi-search"></i><strong>No match</strong>No account matches your search.</div>
 <?php endif; ?>
 </section>
 <?= $this->endSection() ?>

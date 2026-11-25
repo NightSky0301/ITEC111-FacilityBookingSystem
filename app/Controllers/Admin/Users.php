@@ -97,10 +97,8 @@ class Users extends BaseController
             'role'  => $this->request->getPost('role'),
         ];
 
-        // Admins cannot lock themselves out by changing their own role.
-        if ($id === (int) session()->get('user_id')) {
-            $data['role'] = $user['role'];
-        }
+        // The role is locked once an account exists (the form shows it disabled; this also stops a hand-made request).
+        $data['role'] = $user['role'];
 
         $password = (string) $this->request->getPost('password');
         if ($password !== '') {
@@ -141,6 +139,11 @@ class Users extends BaseController
         $user  = $model->find($id);
         if (! $user) {
             return redirect()->to('/admin/users')->with('error', 'User not found.');
+        }
+
+        // An account has to be deactivated before it can be archived.
+        if (($user['status'] ?? 'active') === 'active') {
+            return redirect()->to('/admin/users')->with('error', 'Deactivate ' . $user['name'] . ' first. Only deactivated accounts can be archived.');
         }
 
         $model->delete($id);

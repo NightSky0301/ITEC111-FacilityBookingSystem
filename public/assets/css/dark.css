@@ -60,7 +60,7 @@
     --bs-link-hover-color: var(--lagoon-ink)
 }
 :where(html[data-theme="dark"]) .brand-logo {
-    background: #2d2718
+    background: none
 }
 :where(html[data-theme="dark"]) .site-nav .nav-link:hover {
     color: #fff
@@ -110,9 +110,6 @@
 }
 :where(html[data-theme="dark"]) .form-control, :where(html[data-theme="dark"]) .form-select {
     background-color: #1b1f32
-}
-:where(html[data-theme="dark"]) .flash-bad i {
-    color: var(--bad-ink)
 }
 :where(html[data-theme="dark"]) .pill-approved, :where(html[data-theme="dark"]) .pill-active {
     color: var(--ok-ink)
@@ -609,7 +606,7 @@
 :where(html[data-theme="dark"]) .cal-fc .fc .fc-header-toolbar .fc-button-primary:not(:disabled).fc-button-active, :where(html[data-theme="dark"]) .cal-fc .fc .fc-header-toolbar .fc-button-primary:not(:disabled):active {
     color: #1b1608
 }
-:where(html[data-theme="dark"]) .legend span:not(.legend-title) {
+:where(html[data-theme="dark"]) .legend > span:not(.legend-title) {
     background: #1b1f32
 }
 :where(html[data-theme="dark"]) .legend .lg-pending {
@@ -969,9 +966,6 @@
 :where(html[data-theme="dark"]) .ht-chip i {
     color: var(--brass-ink)
 }
-:where(html[data-theme="dark"]) .ht-go {
-    color: #1b1608
-}
 :where(html[data-theme="dark"]) .ht-hero {
     background: #1b1f32
 }
@@ -1134,13 +1128,6 @@
 :where(html[data-theme="dark"]) .why-card h3 {
     color: var(--lagoon-ink)
 }
-:where(html[data-theme="dark"]) .ax-stat {
-    background: #1b1f32;
-    color: var(--lagoon-ink)
-}
-:where(html[data-theme="dark"]) .ax-stat i {
-    color: var(--brass-ink)
-}
 :where(html[data-theme="dark"]) .ax-side {
     background: #1b1f32
 }
@@ -1191,7 +1178,7 @@
 }
 /* 3. Hand-tuned parts */
 :where(html[data-theme="dark"]) body { background: var(--mist); color: var(--ink); }
-:where(html[data-theme="dark"]) .site-header { background: #0a0f1f; border-bottom-color: #1c2548; box-shadow: 0 4px 18px rgba(0, 0, 0, .35); }
+:where(html[data-theme="dark"]) .site-header { background: linear-gradient(120deg, var(--lagoon), var(--lagoon-2)); border-bottom-color: rgba(255, 255, 255, .12); box-shadow: 0 4px 18px rgba(0, 0, 0, .35); }
 :where(html[data-theme="dark"]) ::placeholder { color: #7480a6; opacity: 1; }
 :where(html[data-theme="dark"]) .form-control, :where(html[data-theme="dark"]) .form-select { background-color: #0f1530; border-color: var(--line-strong); color: var(--ink); }
 :where(html[data-theme="dark"]) .form-control:focus, :where(html[data-theme="dark"]) .form-select:focus { border-color: var(--brass); box-shadow: 0 0 0 .2rem rgba(232, 169, 58, .28); }
@@ -1229,8 +1216,6 @@ html[data-theme="dark"] .ax-live.is-free i { background: #3ddc97; box-shadow: 0 
 html[data-theme="dark"] .ax-live.is-busy i { background: #ff6b60; }
 
 /* "25 free now / 26 courts" header pills */
-html[data-theme="dark"] .ax-stat { border: 1px solid var(--line-strong); background: #1b2442; color: var(--ink); }
-html[data-theme="dark"] .ax-stat .fn-dot { background: #3ddc97; }
 
 /* Hotel cards */
 html[data-theme="dark"] .ht-chip.is-free { background: var(--ok-soft); color: var(--ok-ink); }
@@ -1273,3 +1258,83 @@ html[data-theme="dark"] .cal-day.is-past:not(.is-out) {
 html[data-theme="dark"] .cal-fc .fc .fc-day-past:not(.fc-day-other):not(.fc-day-today) .fc-daygrid-day-number { color: #5a6590; font-weight: 500; }
 html[data-theme="dark"] .cal-fc .fc .fc-day-past:not(.fc-day-other):not(.fc-day-today):hover .fc-daygrid-day-frame { border-color: #2c3566; }
 html[data-theme="dark"] .cal-day.is-past:not(.is-out) { color: #5a6590; }
+
+:where(html[data-theme="dark"]) .why-dark { background: #1d2750; }
+:where(html[data-theme="dark"]) .why-dark h3 { color: #fff; }
+:where(html[data-theme="dark"]) .why-card .why-kicker { color: var(--brass-light); }
+:where(html[data-theme="dark"]) a.why-card:hover { box-shadow: 0 16px 32px rgba(0, 0, 0, .4); }
+
+/* ---------- Add / Edit facility (dark) ---------- */
+html[data-theme="dark"] .fm-card, html[data-theme="dark"] .fm-prev { box-shadow: none; }
+html[data-theme="dark"] .fm-no { color: #1b1608; }
+html[data-theme="dark"] .fm-addon-body { background: #12182e; }
+html[data-theme="dark"] .fm-addon input:checked + .fm-addon-body { background: #302a1a; }
+html[data-theme="dark"] .fm-newrow { background: #12182e; }
+html[data-theme="dark"] .fm-drop:hover, html[data-theme="dark"] .fm-drop.is-over { background: #302a1a; }
+html[data-theme="dark"] .fm-seg { background: #12182e; }
+
+html[data-theme="dark"] .mh { background: linear-gradient(115deg, #1c2764 0%, #2b3a8c 100%); box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+html[data-theme="dark"] .btn.btn-act-red:disabled { background: #1c2542; border-color: #2c3566; color: #7d89b3; }
+html[data-theme="dark"] .stat-card.is-missed-card .stat-icon { background: #3b1c26; color: #ff9a92; }
+
+html[data-theme="dark"] .aq-filters, html[data-theme="dark"] .aq-table thead th { background: #121830; border-color: #2c3566; }
+html[data-theme="dark"] .aq-pill { background: #171f3d; border-color: #2c3566; color: #dfe5ff; }
+html[data-theme="dark"] .aq-pill.is-on { background: #2b3a8c; border-color: #4a5bd0; color: #fff; }
+html[data-theme="dark"] .aq-table td { border-color: #232b52; color: #dfe5ff; }
+html[data-theme="dark"] .aq-table tbody tr:hover { background: rgba(255, 255, 255, .03); }
+html[data-theme="dark"] .aq-price { color: #9fb0ff; }
+html[data-theme="dark"] .aq-act .btn-reject { color: #dfe5ff; border-color: #2c3566; }
+
+html[data-theme="dark"] .back-pill { background: #171f3d; color: #dfe5ff; border-color: var(--brass); }
+html[data-theme="dark"] .back-pill:hover { background: #2b3a8c; color: #fff; }
+html[data-theme="dark"] .rm-facts li { background: #1b1f32; border-color: #2c3566; }
+html[data-theme="dark"] .rm-rate { background: rgba(232, 169, 58, .1); }
+html[data-theme="dark"] .rm-rate b { color: #f3c065; }
+html[data-theme="dark"] .hb-tag { background: #16281f; color: #7fd6a0; }
+html[data-theme="dark"] .hb-step-title i { background: #2b3a8c; }
+html[data-theme="dark"] .hb-row { border-color: #2c3566; }
+html[data-theme="dark"] .hb-sum { background: rgba(232, 169, 58, .08); }
+html[data-theme="dark"] .rg { border-color: #2c3566; }
+html[data-theme="dark"] .rg-day.is-past:disabled { background: #151a30; color: #5c6690; text-decoration-color: #4a5380; }
+html[data-theme="dark"] .rg-k-past { background: #151a30; border-color: #3a4472; }
+html[data-theme="dark"] .rg-k-past::after { border-color: #6a76a8; }
+html[data-theme="dark"] .rg-day.is-in, html[data-theme="dark"] .rg-day.is-out { background: #4a5bd0; color: #fff; }
+html[data-theme="dark"] .rg-k-sel { background: #4a5bd0; }
+html[data-theme="dark"] .hb-addon-check { background: #12182e; border-color: #3a4472; }
+
+html[data-theme="dark"] .rm-card { background: #1b1f32; border-color: #2c3566; }
+html[data-theme="dark"] .rm-card textarea { border-color: #2c3566; }
+
+html[data-theme="dark"] .btn.btn-head { background: #171f3d; border-color: var(--brass); color: #dfe5ff; }
+html[data-theme="dark"] .btn.btn-head:hover { background: #2b3a8c; border-color: #4a5bd0; color: #fff; }
+html[data-theme="dark"] .btn.btn-head.is-solid { background: #e8a93a; border-color: #e8a93a; color: #1b1608; }
+html[data-theme="dark"] .btn.btn-head.is-solid i { color: #1b1608; }
+html[data-theme="dark"] .btn.btn-head.is-solid:hover { background: #f3c065; border-color: #f3c065; color: #1b1608; }
+html[data-theme="dark"] .fy-thumb { border-color: #2c3566; }
+html[data-theme="dark"] .fy-price { color: #9fb0ff; }
+html[data-theme="dark"] .fy-table .btn-act-ghost, html[data-theme="dark"] .fy-table .btn-act-ghost:hover { background: #171f3d; border-color: #4a5bd0; color: #dfe5ff; }
+html[data-theme="dark"] .fy-table .btn-act-ghost-red, html[data-theme="dark"] .fy-table .btn-act-ghost-red:hover { background: transparent; border-color: #c4574f; color: #ff9a92; }
+
+html[data-theme="dark"] .cal-fc .fc .fc-daygrid-day.has-ev:not(.fc-day-today):not(.fc-day-past) .fc-daygrid-day-frame { background: #17245a; border-color: #4a5bd0; box-shadow: inset 3px 0 0 #7b8cff; }
+html[data-theme="dark"] .cal-fc .fc .fc-daygrid-day.has-ev:not(.fc-day-today):not(.fc-day-past) .fc-daygrid-day-number { color: #b9c4ff; font-weight: 700; }
+html[data-theme="dark"] .cal-fc .fc .fc-day-today.has-ev .fc-daygrid-day-frame { background: #322a14; border-color: #e8a93a; box-shadow: inset 0 0 0 2px #e8a93a; }
+html[data-theme="dark"] .cal-dot { background: #7b8cff; }
+
+html[data-theme="dark"] .rm-flat { background: rgba(232, 169, 58, .08); color: #dfe5ff; }
+
+:where(html[data-theme="dark"]) .dp-day.is-in { background: rgba(255, 255, 255, .1); }
+
+
+
+:where(html[data-theme="dark"]) .cal-search input, :where(html[data-theme="dark"]) .tb-search input { background: var(--paper); border-color: var(--line-strong); color: var(--ink); }
+:where(html[data-theme="dark"]) .legend .legend-filter .dd-btn, :where(html[data-theme="dark"]) .legend .legend-filter .dd-btn:hover, :where(html[data-theme="dark"]) .legend .legend-filter .dd.open .dd-btn { background: var(--paper); color: var(--ink); border-color: var(--line-strong); }
+:where(html[data-theme="dark"]) .legend .legend-filter .dd-btn:hover, :where(html[data-theme="dark"]) .legend .legend-filter .dd.open .dd-btn { border-color: var(--brass); }
+:where(html[data-theme="dark"]) .tb-row .dd-btn, :where(html[data-theme="dark"]) .tb-row .dd-btn:hover, :where(html[data-theme="dark"]) .tb-row .dd.open .dd-btn { background: var(--paper); color: var(--ink); border-color: var(--line-strong); }
+:where(html[data-theme="dark"]) .tb-row .dd-btn:hover, :where(html[data-theme="dark"]) .tb-row .dd.open .dd-btn { border-color: var(--brass); }
+
+:where(html[data-theme="dark"]) .wl-overlay { background: rgba(5, 8, 20, .5); }
+:where(html[data-theme="dark"]) .wl-card { background: var(--paper); border-color: var(--line-strong); color: var(--ink); box-shadow: 0 30px 70px rgba(0, 0, 0, .6); }
+:where(html[data-theme="dark"]) .pp-ok { --pp: var(--ok-ink); }
+:where(html[data-theme="dark"]) .pp-bad { --pp: #ff7d72; }
+:where(html[data-theme="dark"]) .pp-hi { --pp: var(--brass); }
+:where(html[data-theme="dark"]) .wl-text strong, :where(html[data-theme="dark"]) .pp-card .wl-text ul { color: var(--ink); }

@@ -9,12 +9,12 @@ use App\Models\FacilityModel;
 
 class Bookings extends BaseController
 {
-    public const CATEGORIES = ['activities' => 'Sport Activities', 'hotels' => 'Hotel & Suites', 'fitness' => 'Fitness & Wellbeing'];
+    public const CATEGORIES = ['activities' => 'Sport Activities', 'hotels' => 'Hotel & Suites', 'fitness' => 'Fitness & Wellbeing', 'entertainment' => 'Entertainment'];
 
-    /** Which of the three groups a facility type belongs to. */
+    /** Which of the four groups a facility type belongs to. */
     public static function categoryOf(string $type): string
     {
-        return $type === FacilityModel::ROOM ? 'hotels' : (FacilityModel::isFitness($type) ? 'fitness' : 'activities');
+        return FacilityModel::sectionOf($type);
     }
 
     public function index()
@@ -61,6 +61,14 @@ class Bookings extends BaseController
         return count($days) > 1 ? count($days) . ' days from ' . fmt_dt($days[0]['start_at']) : fmt_dt($days[0]['start_at']);
     }
 
+    /** Ends the open transaction (nothing was written) and goes back with an error. */
+    private function deny(\CodeIgniter\Database\BaseConnection $db, string $message)
+    {
+        $db->transComplete();
+
+        return redirect()->back()->with('error', $message);
+    }
+
     public function approve(int $id)
     {
         $bookings = new BookingModel();
@@ -77,17 +85,20 @@ class Bookings extends BaseController
         // Every day is checked first; nothing is approved unless all of them are free.
         $perHead = FacilityModel::isPerHead((string) $booking['facility_type']);
         $hasRef  = str_contains((string) $booking['addons'], '"key":"' . \App\Libraries\Addons::REFEREE_KEY . '"');
+        $db = \Config\Database::connect();
+        $db->transStart();
+        $bookings->lockFacility((int) $booking['facility_id']);   // two admins approving at once take turns
         foreach ($days as $d) {
             $label = count($days) > 1 ? ' on ' . date('D, M j', strtotime($d['start_at'])) : ' during this time';
             if ($perHead) {
                 if (! $bookings->hasRoom(['id' => $booking['facility_id'], 'capacity' => $booking['facility_capacity']], $d['start_at'], $d['end_at'], max(1, (int) $d['guests']), (int) $d['id'])) {
-                    return redirect()->back()->with('error', 'Cannot approve: the gym would go over its ' . (int) $booking['facility_capacity'] . '-person limit' . $label . '.');
+                    return $this->deny($db,  'Cannot approve: the gym would go over its ' . (int) $booking['facility_capacity'] . '-person limit' . $label . '.');
                 }
             } elseif ($bookings->hasConflict((int) $booking['facility_id'], $d['start_at'], $d['end_at'], (int) $d['id'])) {
-                return redirect()->back()->with('error', 'Cannot approve: it overlaps with an already approved booking' . $label . '.');
+                return $this->deny($db,  'Cannot approve: it overlaps with an already approved booking' . $label . '.');
             }
             if ($hasRef && $bookings->refereePeak($d['start_at'], $d['end_at'], (int) $d['id']) >= \App\Libraries\Addons::REFEREE_POOL) {
-                return redirect()->back()->with('error', 'Cannot approve: all ' . \App\Libraries\Addons::REFEREE_POOL . ' referees are booked' . $label . '.');
+                return $this->deny($db,  'Cannot approve: all ' . \App\Libraries\Addons::REFEREE_POOL . ' referees are booked' . $label . '.');
             }
         }
 
@@ -95,6 +106,7 @@ class Bookings extends BaseController
         foreach ($days as $d) {
             $bookings->update((int) $d['id'], ['status' => 'approved', 'admin_remarks' => $remarks, 'approved_by' => (int) session()->get('user_id')]);
         }
+        $db->transComplete();
 
         (new NotificationService())->notifyUser(
             (int) $booking['user_id'],
@@ -186,21 +198,5 @@ class Bookings extends BaseController
         );
 
         return redirect()->back()->with('success', count($days) > 1 ? 'Booking cancelled (' . count($days) . ' days).' : 'Booking cancelled.');
-    }
-
-    /** Admin only: moves a booking to the Archive (nothing is erased). Its time slot is freed. */
-    public function archive(int $id)
-    {
-        $bookings = new BookingModel();
-        if (! $bookings->find($id)) {
-            return redirect()->back()->with('error', 'Booking not found.');
-        }
-
-        // Archiving a stay moves every day of it to the Archive (single=1 moves just this day).
-        $booking = $bookings->find($id);
-        $ids     = $this->request->getPost('single') === '1' ? [$id] : array_column($bookings->groupRows($booking), 'id');
-        $bookings->delete($ids);
-
-        return redirect()->back()->with('success', count($ids) > 1 ? 'Booking moved to the Archive (' . count($ids) . ' days).' : 'Booking moved to the Archive.');
     }
 }

@@ -3,54 +3,39 @@
 <?php
     helper('booking');
     $total     = count($items);
-    $dateQs    = $date !== '' ? '?date=' . rawurlencode($date) : '';
-    $dateTxt   = $date !== '' ? date('D, M j', strtotime($date)) : '';
+    $dateQs    = $date !== '' ? '?date=' . rawurlencode($date) . (($end ?? '') !== '' ? '&end_date=' . rawurlencode($end) : '') : '';
+    $dateTxt   = $date !== '' ? date('D, M j', strtotime($date)) . (($end ?? '') !== '' ? ' to ' . date('D, M j', strtotime($end)) : '') : '';
     $freeCount = count(array_filter($items, static fn ($c) => $c['free']));
     $fitness   = $section === 'fitness';
+    $fun       = $section === 'entertainment';
+    $spaces    = $fitness || $fun;   // these pages count "spaces", the Activities page counts "courts"
     $first     = $items[0] ?? null;
     $hasSide   = count($chips) > 1;
 ?>
-<header class="ax-hero">
-    <div>
-        <h1><?= esc($heading) ?></h1>
-        <p><?= $dateTxt !== '' ? 'Pick one to see its schedule for ' . esc($dateTxt) . '.' : esc($lead) ?></p>
-    </div>
-    <?php if ($total): ?>
-    <div class="ax-stats">
-        <span class="ax-stat"><span class="fn-dot" aria-hidden="true"></span> <span id="axFreeStat"><?= $freeCount ?></span>&nbsp;free now</span>
-        <span class="ax-stat"><i class="bi <?= $fitness ? 'bi-heart-pulse' : 'bi-grid' ?>" aria-hidden="true"></i> <?= $total ?> <?= $fitness ? ($total === 1 ? 'space' : 'spaces') : ($total === 1 ? 'court' : 'courts') ?></span>
-    </div>
-    <?php endif; ?>
-</header>
+<?php if ($dateTxt !== ''): ?><p class="ax-dateline"><i class="bi bi-calendar-event" aria-hidden="true"></i> Showing availability for <?= esc($dateTxt) ?></p><?php endif; ?>
 
 <?php if (empty($items)): ?>
     <div class="panel"><div class="empty"><i class="bi bi-geo-alt"></i><strong>Nothing here yet</strong>The facility manager has not added any yet.</div></div>
 <?php else: ?>
 
-<?php if ($fitness && $first): ?>
-<section class="gy-feature" aria-label="About Fitness">
-    <div class="gy-photo" style="background-image:url('<?= esc($first['img'], 'attr') ?>')" role="img" aria-label="<?= esc($first['name'], 'attr') ?>"></div>
-    <div class="gy-copy">
-        <h2>Train, swim and dance on your schedule</h2>
-        <p>Work out in the gym, swim laps or reserve a mirrored dance studio. Choose a start time and how long you want.</p>
-        <ul class="gy-perks">
-            <li><i class="bi bi-person-check" aria-hidden="true"></i> Gym booked per person</li>
-            <li><i class="bi bi-water" aria-hidden="true"></i> Pools and studios by the hour</li>
-            <li><i class="bi bi-clock" aria-hidden="true"></i> Pick any open hour</li>
-            <li><i class="bi bi-patch-check" aria-hidden="true"></i> Confirmed by staff</li>
-        </ul>
-        <a class="btn btn-gold" href="#fxGrid">Choose a space <i class="bi bi-arrow-down ms-1"></i></a>
-    </div>
-</section>
-<?php endif; ?>
+<?php if ($first):
+    $copy = [
+        'entertainment' => ['Play, swim, sing and jam', 'Reserve a bowling lane, a pool table, a swimming pool, a dance studio, the music studio or a karaoke room. Choose a start time and how long you want.', [['bi-people', 'Great for groups'], ['bi-controller', 'Games, music and water'], ['bi-clock', 'Pick any open hour'], ['bi-patch-check', 'Confirmed by staff']]],
+        'fitness'       => ['Train, stretch and recover on your schedule', 'Work out in the gym, flow through a yoga class, or unwind in a massage room or foot spa lounge. Choose a start time and how long you want.', [['bi-person-check', 'Gym booked per person'], ['bi-flower1', 'Hall and studios by the hour'], ['bi-clock', 'Pick any open hour'], ['bi-patch-check', 'Confirmed by staff']]],
+    ][$section] ?? ['Game on, whatever your sport', 'From basketball and badminton to baseball and football, find a court, see what is open and book your time.', [['bi-grid', 'A court for every sport'], ['bi-lightning-charge', 'Live free-now status'], ['bi-clock', 'Pick any open hour'], ['bi-patch-check', 'Confirmed by staff']]];
+    // Optional category banner photo: public/assets/img/banners/{sports|fitness|entertainment}.jpg, else the first facility's photo.
+    $bn = FCPATH . 'assets/img/banners/' . ($fitness ? 'fitness' : ($fun ? 'entertainment' : 'sports')) . '.jpg';
+    $bannerPhoto = is_file($bn) ? base_url('assets/img/banners/' . basename($bn)) . '?v=' . filemtime($bn) : $first['img'];
+    echo view('facilities/_banner', ['photo' => $bannerPhoto, 'alt' => $first['name'], 'title' => $copy[0], 'text' => $copy[1], 'perks' => $copy[2], 'free' => $freeCount, 'total' => $total, 'when' => 'now']);
+endif; ?>
 
 <div class="<?= $hasSide ? 'ax-layout' : '' ?>">
 <?php if ($hasSide): ?>
     <aside class="ax-side" aria-label="Filter activities">
-        <h2>Activity</h2>
+        <h2><?= $fun ? 'Type' : 'Activity' ?></h2>
         <div class="ax-cats" role="group" aria-label="Choose an activity">
             <button type="button" class="ax-cat <?= $selType === '' ? 'is-on' : '' ?>" data-type="" data-label="">
-                <span class="ax-cat-ico"><i class="bi bi-grid-fill" aria-hidden="true"></i></span>All activities<span class="ax-cat-n"><?= $total ?></span>
+                <span class="ax-cat-ico"><i class="bi bi-grid-fill" aria-hidden="true"></i></span><?= $fun ? 'All' : 'All activities' ?><span class="ax-cat-n"><?= $total ?></span>
             </button>
             <?php foreach ($chips as $k => $c): ?>
             <button type="button" class="ax-cat <?= $selType === $k ? 'is-on' : '' ?>" data-type="<?= esc($k, 'attr') ?>" data-label="<?= esc(strtolower($c['name']), 'attr') ?>">
@@ -115,7 +100,7 @@
     const free = document.getElementById('fxFree'), sort = document.getElementById('fxSort');
     const cats = Array.from(document.querySelectorAll('.ax-cat')), count = document.getElementById('fxCount');
     const places = Array.from(document.querySelectorAll('.ax-seg button')), stat = document.getElementById('axFreeStat');
-    const noun = <?= $fitness ? "['space', 'spaces']" : "['court', 'courts']" ?>;
+    const noun = <?= $spaces ? "['facility', 'facilities']" : "['court', 'courts']" ?>;
     let type = (cats.find(c => c.classList.contains('is-on')) || { dataset: { type: '' } }).dataset.type, place = '';
 
     function apply() {
@@ -135,7 +120,7 @@
         none.classList.toggle('is-hidden', shown > 0);
         const cur = cats.find(c => c.dataset.type === type), lab = cur && type ? cur.dataset.label : '';
         count.innerHTML = '<b>' + shown + '</b> ' + (lab ? lab + ' ' : '') + noun[shown === 1 ? 0 : 1] + (place ? ', ' + place : '') + (free.checked ? ', free now' : '');
-        if (stat) stat.textContent = cards.filter(c => c.dataset.free === '1').length;
+        if (stat) { const f = cards.filter(c => c.dataset.free === '1').length; stat.textContent = f; const bar = document.getElementById('axFreeBar'); if (bar) bar.style.width = (cards.length ? Math.round(f * 100 / cards.length) : 0) + '%'; }
     }
     cats.forEach(c => c.addEventListener('click', () => { type = c.dataset.type; apply(); }));
     places.forEach(b => b.addEventListener('click', () => { place = b.dataset.place; apply(); }));

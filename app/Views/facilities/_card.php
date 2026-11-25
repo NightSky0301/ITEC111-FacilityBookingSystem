@@ -16,7 +16,6 @@ $dateQs = $dateQs ?? '';
         </span>
         <span class="ax-foot">
             <span class="ax-price">₱<?= number_format($c['price'], 0) ?> <small><?= $c['per_head'] ? 'per person, per hour' : 'per hour' ?></small></span>
-            <span class="ax-book">Book <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
         </span>
     </span>
 </a>

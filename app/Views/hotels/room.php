@@ -8,35 +8,69 @@
     $cout  = date('g:i A', strtotime($hotel['check_out_time']));
     $min   = \App\Models\HotelModel::MAX_NIGHTS;
 ?>
-<nav class="ht-crumbs" aria-label="Breadcrumb">
-    <a href="<?= site_url('hotels/' . $hotel['id']) ?>"><i class="bi bi-arrow-left"></i> <?= esc($hotel['name']) ?></a>
-</nav>
+<a class="back-pill" href="<?= site_url('hotels/' . $hotel['id']) ?>"><i class="bi bi-arrow-left"></i> Back to <?= esc($hotel['name']) ?></a>
 
-<div class="rm">
+<form class="rm" id="hbForm" method="post" action="<?= site_url('hotels/book') ?>" novalidate>
+    <?= csrf_field() ?>
+    <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
+    <input type="hidden" name="check_in" id="hbIn" value="<?= esc(old('check_in'), 'attr') ?>">
+    <input type="hidden" name="check_out" id="hbOut" value="<?= esc(old('check_out'), 'attr') ?>">
+
     <div class="rm-main">
-        <div class="rm-photo" style="background-image:url('<?= esc(facility_image($room), 'attr') ?>')" role="img" aria-label="<?= esc($room['name'], 'attr') ?>"></div>
-        <h1 class="rm-title"><?= esc($room['name']) ?></h1>
-        <p class="rm-hotel"><i class="bi bi-building"></i> <?= esc($hotel['name']) ?></p>
+        <div class="rm-photo" style="background-image:url('<?= esc(facility_image($room), 'attr') ?>')" role="img" aria-label="<?= esc($room['name'], 'attr') ?>">
+            <span class="rm-badge"><i class="bi bi-people"></i> Sleeps <?= $cap ?></span>
+        </div>
+        <div class="rm-head">
+            <div>
+                <p class="rm-hotel"><i class="bi bi-building"></i> <?= esc($hotel['name']) ?></p>
+                <h1 class="rm-title"><?= esc($room['name']) ?></h1>
+            </div>
+            <div class="rm-rate"><b>₱<?= number_format($price, 0) ?></b><span>per night, per room</span></div>
+        </div>
         <p class="rm-desc"><?= esc($room['description']) ?></p>
-        <ul class="ht-facts">
-            <li><i class="bi bi-people"></i><span><b>Sleeps <?= $cap ?></b>Up to <?= $cap ?> <?= $cap === 1 ? 'guest' : 'guests' ?></span></li>
-            <li><i class="bi bi-box-arrow-in-right"></i><span><b>Check-in from <?= esc($cin) ?></b>On your first day</span></li>
-            <li><i class="bi bi-box-arrow-right"></i><span><b>Check-out by <?= esc($cout) ?></b>On your last day</span></li>
+        <ul class="rm-facts">
+            <li><i class="bi bi-people"></i><span><small>Capacity</small><b>Up to <?= $cap ?> <?= $cap === 1 ? 'guest' : 'guests' ?></b></span></li>
+            <li><i class="bi bi-box-arrow-in-right"></i><span><small>Check-in</small><b><?= esc($cin) ?></b></span></li>
+            <li><i class="bi bi-box-arrow-right"></i><span><small>Check-out</small><b><?= esc($cout) ?></b></span></li>
+            <li><i class="bi bi-moon-stars"></i><span><small>Max stay</small><b><?= (int) $min ?> nights</b></span></li>
         </ul>
+
+        <p class="rm-flat"><i class="bi bi-info-circle"></i> One price per room: the rate stays the same whether 1 or <?= $cap ?> <?= $cap === 1 ? 'guest stays' : 'guests stay' ?>.</p>
+
+        <?php if (! empty($addons)): ?>
+        <section class="rm-card">
+            <h2 class="rm-h"><i class="bi bi-plus-circle"></i> Add-ons <small>optional</small></h2>
+            <div class="hb-addons">
+                <?php foreach ($addons as $key => $a): ?>
+                    <label class="hb-addon">
+                        <input type="checkbox" name="addons[]" value="<?= esc($key, 'attr') ?>" <?= in_array($key, (array) old('addons'), true) ? 'checked' : '' ?>>
+                        <span class="hb-addon-body">
+                            <span class="hb-addon-check"><i class="bi bi-check-lg"></i></span>
+                            <span class="hb-addon-name"><b><?= esc($a['label']) ?></b><?php if ($a['note'] !== ''): ?><small><?= esc($a['note']) ?></small><?php endif; ?></span>
+                            <span class="hb-addon-price">+₱<?= number_format($a['price']) ?><small><?= esc(['night' => ' / night', 'session' => ' once'][$a['per']] ?? '') ?></small></span>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
+
+        <section class="rm-card">
+            <h2 class="rm-h"><i class="bi bi-chat-left-text"></i> Special requests <small>optional</small></h2>
+            <textarea id="hbReq" name="requests" rows="2" maxlength="255" placeholder="Late arrival, quiet floor, high floor"><?= esc(old('requests')) ?></textarea>
+        </section>
     </div>
 
     <aside class="rm-side">
-        <form class="hb" id="hbForm" method="post" action="<?= site_url('hotels/book') ?>" novalidate>
-            <?= csrf_field() ?>
-            <input type="hidden" name="room_id" value="<?= (int) $room['id'] ?>">
-            <input type="hidden" name="check_in" id="hbIn" value="<?= esc(old('check_in'), 'attr') ?>">
-            <input type="hidden" name="check_out" id="hbOut" value="<?= esc(old('check_out'), 'attr') ?>">
-
-            <div class="hb-price"><b>₱<?= number_format($price, 0) ?></b> <span>per night</span></div>
+        <div class="hb">
+            <div class="hb-top">
+                <div class="hb-price"><b>₱<?= number_format($price, 0) ?></b> <span>/ night</span></div>
+                <span class="hb-tag"><i class="bi bi-shield-check"></i> No payment now</span>
+            </div>
 
             <div class="hb-dates">
-                <div class="hb-date" id="hbInBox"><span>Check-in</span><b id="hbInTxt">Choose a date</b></div>
-                <div class="hb-date" id="hbOutBox"><span>Check-out</span><b id="hbOutTxt">Choose a date</b></div>
+                <div class="hb-date" id="hbInBox"><span><i class="bi bi-box-arrow-in-right"></i> Check-in</span><b id="hbInTxt">Choose a date</b></div>
+                <div class="hb-date" id="hbOutBox"><span><i class="bi bi-box-arrow-right"></i> Check-out</span><b id="hbOutTxt">Choose a date</b></div>
             </div>
 
             <div class="rg" id="rg" aria-label="Choose your dates">
@@ -49,22 +83,10 @@
                 <div class="rg-key">
                     <span><i class="rg-k rg-k-sel"></i> Your stay</span>
                     <span><i class="rg-k rg-k-taken"></i> Booked</span>
+                    <span><i class="rg-k rg-k-past"></i> Not available</span>
                 </div>
             </div>
             <p class="hb-hint" id="hbHint" role="status">Choose your check-in date.</p>
-
-            <div class="hb-row">
-                <label for="hbGuests">Guests</label>
-                <div class="hb-step">
-                    <button type="button" id="hbMinus" aria-label="Fewer guests"><i class="bi bi-dash"></i></button>
-                    <input type="number" id="hbGuests" name="guests" min="1" max="<?= $cap ?>" value="<?= (int) old('guests', 1) ?>" readonly>
-                    <button type="button" id="hbPlus" aria-label="More guests"><i class="bi bi-plus"></i></button>
-                </div>
-            </div>
-            <div class="hb-field">
-                <label for="hbReq">Special requests <small>(optional)</small></label>
-                <textarea id="hbReq" name="requests" rows="2" maxlength="255" placeholder="Late arrival, extra bed, quiet floor"><?= esc(old('requests')) ?></textarea>
-            </div>
 
             <dl class="hb-sum" id="hbSum" hidden>
                 <div><dt id="hbSumLine"></dt><dd id="hbSumVal"></dd></div>
@@ -76,17 +98,18 @@
             <?php else: ?>
                 <button class="btn hb-go" id="hbGo" type="submit" disabled><i class="bi bi-calendar2-check"></i> Request booking</button>
             <?php endif; ?>
-            <p class="hb-note"><i class="bi bi-shield-check"></i> No payment needed. Staff will confirm your request.</p>
-        </form>
+            <p class="hb-note">Staff will confirm your request. You'll be notified.</p>
+        </div>
     </aside>
-</div>
+</form>
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
 <script>
 (function () {
     const PRICE = <?= json_encode($price) ?>, CAP = <?= $cap ?>, MAXN = <?= (int) $min ?>, AHEAD = <?= (int) \App\Models\HotelModel::MAX_AHEAD_DAYS ?>;
-    const TAKEN = <?= json_encode($taken) ?>;           // [[check-in, check-out], ...] already approved
+    const TAKEN = <?= json_encode($taken) ?>;
+    const EXTRAS = <?= json_encode(array_map(static fn ($a) => ['label' => $a['label'], 'price' => $a['price'], 'per' => $a['per']], $addons), JSON_HEX_TAG | JSON_HEX_AMP) ?>;           // [[check-in, check-out], ...] already approved
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     const pad = n => String(n).padStart(2, '0');
@@ -134,13 +157,14 @@
         for (let k = 0; k < first; k++) h += '<span></span>';
         for (let d = 1; d <= days; d++) {
             const dt = new Date(y, m, d), cls = ['rg-day']; let ok;
+            if (+dt === +today) cls.push('is-today');
             if (dt < today || dt > last) { ok = false; cls.push('is-past'); }
             else if (picking) { ok = canEnd(dt) || (free(dt) && dt < cin); if (!free(dt) && !canEnd(dt)) cls.push('is-taken'); }
             else { ok = free(dt); if (!ok) cls.push('is-taken'); }
             if (cin && +dt === +cin) cls.push('is-in', cout ? 'has-range' : 'is-solo');
             else if (cout && +dt === +cout) cls.push('is-out');
             else if (cin && cout && dt > cin && dt < cout) cls.push('is-mid');
-            h += '<button type="button" class="' + cls.join(' ') + '" data-d="' + iso(dt) + '"' + (ok ? '' : ' disabled') + '>' + d + '</button>';
+            h += '<button type="button" class="' + cls.join(' ') + '" data-d="' + iso(dt) + '"' + (ok ? '' : ' disabled') + (cls.includes('is-past') ? ' title="' + (dt < today ? 'Past date' : 'Too far ahead') + '"' : cls.includes('is-taken') ? ' title="Already booked"' : '') + '>' + d + '</button>';
         }
         grid.innerHTML = h;
     }
@@ -154,9 +178,22 @@
         inEl.value = cin ? iso(cin) : ''; outEl.value = cout ? iso(cout) : '';
         if (cin && cout) {
             const n = Math.round((cout - cin) / 864e5);
-            document.getElementById('hbSumLine').textContent = peso(PRICE) + ' x ' + n + (n === 1 ? ' night' : ' nights');
-            document.getElementById('hbSumVal').textContent = peso(PRICE * n);
-            document.getElementById('hbTotal').textContent = peso(PRICE * n);
+            const base = PRICE * n;
+            document.getElementById('hbSumLine').textContent = peso(PRICE) + ' × ' + n + (n === 1 ? ' night' : ' nights');
+            document.getElementById('hbSumVal').textContent = peso(base);
+            // Add-ons the guest ticked: one line each, added to the total.
+            sum.querySelectorAll('.hb-xrow').forEach(r => r.remove());
+            const totalRow = document.querySelector('#hbSum .hb-total');
+            let extra = 0;
+            document.querySelectorAll('.hb-addon input:checked').forEach(c => {
+                const a = EXTRAS[c.value]; if (!a) return;
+                const amt = a.per === 'night' ? a.price * n : a.price;
+                extra += amt;
+                const row = document.createElement('div'); row.className = 'hb-xrow';
+                row.innerHTML = '<dt></dt><dd></dd>'; row.firstChild.textContent = a.label; row.lastChild.textContent = peso(amt);
+                totalRow.parentNode.insertBefore(row, totalRow);
+            });
+            document.getElementById('hbTotal').textContent = peso(base + extra);
             sum.hidden = false; hint.textContent = n + (n === 1 ? ' night' : ' nights') + ', ' + nice(cin) + ' to ' + nice(cout) + '.';
             if (go) go.disabled = false;
         } else {
@@ -176,10 +213,7 @@
     document.getElementById('rgPrev').addEventListener('click', () => { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); draw(); });
     document.getElementById('rgNext').addEventListener('click', () => { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); draw(); });
 
-    const gi = document.getElementById('hbGuests');
-    gi.value = Math.min(CAP, Math.max(1, parseInt(gi.value, 10) || 1));
-    document.getElementById('hbMinus').addEventListener('click', () => { gi.value = Math.max(1, +gi.value - 1); });
-    document.getElementById('hbPlus').addEventListener('click', () => { gi.value = Math.min(CAP, +gi.value + 1); });
+    document.querySelectorAll('.hb-addon input').forEach(c => c.addEventListener('change', summary));
 
     document.getElementById('hbForm').addEventListener('submit', function (e) { if (!(cin && cout)) e.preventDefault(); });
     draw(); summary();

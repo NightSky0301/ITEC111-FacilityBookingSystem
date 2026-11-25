@@ -28,6 +28,8 @@
     if ($section === null) {
         if ($seg1 === 'fitness' || ($seg1 === 'facilities' && $seg2 !== null && \App\Models\FacilityModel::isFitness($seg2))) {
             $section = 'fitness';
+        } elseif ($seg1 === 'entertainment' || ($seg1 === 'facilities' && $seg2 !== null && \App\Models\FacilityModel::isEntertainment($seg2))) {
+            $section = 'entertainment';
         } elseif ($seg1 === 'hotels') {
             $section = 'hotels';
         } elseif ($seg1 === 'facilities') {
@@ -35,7 +37,7 @@
         } elseif ($seg1 === 'bookings' && $seg2 === 'new') {
             $fid     = (int) service('request')->getGet('facility_id');
             $f       = $fid > 0 ? (new \App\Models\FacilityModel())->find($fid) : null;
-            $section = $f ? (\App\Models\FacilityModel::isRoom($f) ? 'hotels' : (\App\Models\FacilityModel::isFitness($f) ? 'fitness' : 'activities')) : 'activities';
+            $section = $f ? \App\Models\FacilityModel::sectionOf($f) : 'activities';
         }
     }
     $onSec = static fn (string $s): string => $section === $s ? 'active' : '';
@@ -72,6 +74,7 @@
                         <li class="nav-item"><a class="nav-link <?= $onSec('activities') ?>" href="<?= site_url('facilities') ?>">Sport Activities</a></li>
                         <li class="nav-item"><a class="nav-link <?= $onSec('hotels') ?>" href="<?= site_url('hotels') ?>">Hotel &amp; Suites</a></li>
                         <li class="nav-item"><a class="nav-link <?= $onSec('fitness') ?>" href="<?= site_url('fitness') ?>">Fitness &amp; Wellbeing</a></li>
+                        <li class="nav-item"><a class="nav-link <?= $onSec('entertainment') ?>" href="<?= site_url('entertainment') ?>">Entertainment</a></li>
                     <?php elseif (is_manager()): ?>
                         <li class="nav-item"><a class="nav-link <?= $active('manage', 'bookings') ?>" href="<?= site_url('manage/bookings') ?>">Bookings</a></li>
                         <?php if (is_admin()): ?>
@@ -128,10 +131,13 @@
                                     <span class="um-label">Dark mode</span>
                                     <span class="um-switch" aria-hidden="true"></span>
                                 </button>
-                                <a class="um-item um-out" href="<?= site_url('logout') ?>">
-                                    <span class="um-ico"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></span>
-                                    <span class="um-label">Log out</span>
-                                </a>
+                                <form method="post" action="<?= site_url('logout') ?>" data-confirm="Do you really want to log out?" data-confirm-title="Log out?" data-confirm-ok="Yes, log out" data-confirm-cancel="No" data-confirm-tone="brass" data-confirm-icon="bi-box-arrow-right">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="um-item um-out w-100">
+                                        <span class="um-ico"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></span>
+                                        <span class="um-label">Log out</span>
+                                    </button>
+                                </form>
                             </nav>
                         </div>
                     </div>
@@ -143,7 +149,6 @@
 </header>
 
 <main class="page">
-    <?= $this->include('layouts/alerts') ?>
     <?= $this->renderSection('content') ?>
 </main>
 
@@ -171,7 +176,10 @@
 
 <?= $this->include('layouts/_confirm') ?>
 
+<?= $this->include('layouts/welcome') ?>
+<?= $this->include('layouts/alerts') ?>
 <script src="<?= base_url('assets/vendor/bootstrap.bundle.min.js') ?>"></script>
+<script src="<?= base_url('assets/js/smart-search.js') ?>"></script>
 <script src="<?= base_url('assets/js/app.js') ?>"></script>
 <?= $this->renderSection('scripts') ?>
 </body>

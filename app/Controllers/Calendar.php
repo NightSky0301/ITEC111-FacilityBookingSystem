@@ -44,8 +44,8 @@ class Calendar extends BaseController
         foreach ($builder->findAll() as $b) {
             $mine = (int) $b['user_id'] === $me;
 
-            // Customers only see other people's APPROVED bookings (as "Booked"), plus all of their own.
-            if (! $isAdmin && ! $mine && $b['status'] !== 'approved') {
+            // Customers see only their own bookings here. Staff and admin see everyone's.
+            if (! $isAdmin && ! $mine) {
                 continue;
             }
 
